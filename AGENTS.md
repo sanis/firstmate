@@ -234,6 +234,8 @@ A diagnostic request, report, recommendation, or implementation-ready finding is
 Implementation requires a separate request or other clear implementation scope.
 Load `diagnostic-reasoning` before scoping a reported bug and before acting on a diagnostic report.
 
+When the captain invokes `/clickup`, load the `clickup` skill; it owns the main-session-only ClickUp connector pipeline that pulls one eligible ClickUp task through intake, interview, and delegation as a normal ship task.
+
 Classify work as dispatchable when it does not overlap work under way, or queued and blocked when it touches the same project subsystem or depends on unlanded work.
 Dispatch independent work immediately with no concurrency cap, serialize coarse overlaps, and record blockers durably.
 Write the task-specific brief under section 11 before spawning.
@@ -336,6 +338,7 @@ Handle actionable wakes as follows:
 
 When any wake reports a merged PR for a project cloned in this home, refresh that clone through the guarded fleet-sync path.
 When X-linked work reaches a milestone or terminal state, load `fmx-respond`; before terminal teardown, always post the final completion follow-up so the link clears even if earlier follow-ups were spent.
+When a ClickUp-linked task - one whose backlog record carries a `clickup:` line - reports its PR checks green or its PR merged, load the `clickup` skill and post the matching ClickUp update before reporting or cleanup.
 
 A secondmate's idle endpoint is healthy, and parent supervision relies on its routed status rather than treating a quiet pane as stale.
 Waiting on a healthy supervision cycle is silent; empty polls, elapsed time, and no-change updates are not captain-facing progress.
