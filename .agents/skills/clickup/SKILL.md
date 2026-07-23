@@ -120,7 +120,7 @@ The ClickUp task description is the durable memory this pipeline accumulates acr
 
 This section is the one owner of the ClickUp-to-firstmate task linkage.
 
-- When the ship task is created, record one line in that backlog item's note: `clickup: <custom id> <internal id> <task url>` - for example `clickup: DEV-20958 86c2abc12 https://app.clickup.com/t/86c2abc12`.
+- When the ship task is created, record one line in that backlog item's note: `clickup: <custom id> <internal id> <task url>` - for example `clickup: DEV-1234 <clickup-internal-id> https://app.clickup.com/t/<clickup-internal-id>`.
   The custom id and internal id both come from the claimed ClickUp task; the internal id is what the connector's update and comment calls take.
 - The ClickUp task's custom id (for example `DEV-1234`) MUST appear in the delegated ship task's branch name and in its MR/PR title, so ticket and code cross-reference both ways.
   Firstmate includes the custom id when writing the ship brief - in the branch name and the title - in addition to the `clickup:` backlog line above.
