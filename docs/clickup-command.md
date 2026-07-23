@@ -17,7 +17,7 @@ That single constraint shapes the whole design:
 
 One invocation processes at most one ClickUp task - it finds an eligible one, creates one when the captain chooses, or (when the captain skips) proceeds with no ClickUp task at all:
 
-1. Find eligible tasks in the DEVELOPMENT space (tag `firstmate`, status `to do`, unassigned or self-assigned) and pick one; when nothing is eligible or the captain wants unticketed work, offer - never force - a create-a-task branch, where skip proceeds as an ordinary firstmate task with no ClickUp linkage and create files a new task via `clickup_create_task` in a configured `task_creation_lists` target (or a captain-supplied list id) before running the rest of the flow.
+1. Find eligible tasks in the DEVELOPMENT space (tag `firstmate`, status `to do`, unassigned or self-assigned) and pick one; when nothing is eligible or the captain wants unticketed work, offer - never force - a create-a-task branch, where skip proceeds as an ordinary firstmate task with no ClickUp linkage and create files a new task via `clickup_create_task` in a configured `task_creation_lists` target (or a captain-supplied list id), initialized to satisfy the same eligibility contract (`firstmate` tag, `to do` status, a DEVELOPMENT-space list, and a Project value) so a later eligibility scan can re-find it, before running the rest of the flow.
 2. Gather description, all comments, and the Project custom field as context.
 3. Claim the task if unassigned.
 4. Propose repo (Project field mapped through `data/projects.md`) and a sprint-points estimate, then interview the captain on genuine uncertainties only.

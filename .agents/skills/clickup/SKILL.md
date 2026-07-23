@@ -81,6 +81,8 @@ If an expected status name is missing on that task's list, stop, make no status 
    When nothing is eligible, or the captain wants to work on something not yet ticketed, OFFER to create a ClickUp task - this is OPTIONAL, never forced - and present it as a choice: create one, or skip and proceed without a task.
    If the captain SKIPS, proceed with the work as an ordinary firstmate task with NO ClickUp linkage - no claim, no status changes, no linkage line, no milestone updates.
    If the captain CHOOSES to create, gather a concise title and description, present the configured `task_creation_lists` labels and have the captain pick one (or supply a list id directly when none are configured), create the task via `clickup_create_task` in the chosen list, then run it through this flow from intake exactly like an existing task (claim, interview, dispatch).
+   Create it so it satisfies the same eligibility contract a pickable task must meet: the chosen configured list already sits in the DEVELOPMENT space, so pass the `firstmate` tag and `to do` status to `clickup_create_task` and set the Project custom field in the same call, confirming the status against the list's `available_statuses` first.
+   A created task missing the `firstmate` tag or a Project value would not be re-found by a later eligibility scan, so set them at creation rather than after.
    Never hardcode any list id or list name in this skill; creation targets come only from `config/clickup.json`.
 2. **Gather context.**
    Read the task with `clickup_get_task` (`include: ["description", "custom_fields"]`, `expand_statuses: true`), all its comments including threads, and the Project custom field.
