@@ -15,9 +15,9 @@ That single constraint shapes the whole design:
 
 ## Pipeline summary
 
-One invocation processes exactly one ClickUp task:
+One invocation processes at most one ClickUp task - it finds an eligible one, creates one when the captain chooses, or (when the captain skips) proceeds with no ClickUp task at all:
 
-1. Find eligible tasks in the DEVELOPMENT space (tag `firstmate`, status `to do`, unassigned or self-assigned) and pick one.
+1. Find eligible tasks in the DEVELOPMENT space (tag `firstmate`, status `to do`, unassigned or self-assigned) and pick one; when nothing is eligible or the captain wants unticketed work, offer - never force - a create-a-task branch, where skip proceeds as an ordinary firstmate task with no ClickUp linkage and create files a new task via `clickup_create_task` in a configured `task_creation_lists` target (or a captain-supplied list id), initialized to satisfy the same eligibility contract (`firstmate` tag, `to do` status, a DEVELOPMENT-space list, and a Project value) so a later eligibility scan can re-find it, before running the rest of the flow.
 2. Gather description, all comments, and the Project custom field as context.
 3. Claim the task if unassigned.
 4. Propose repo (Project field mapped through `data/projects.md`) and a sprint-points estimate, then interview the captain on genuine uncertainties only.
@@ -30,7 +30,7 @@ Firstmate's merge authority is unchanged throughout; the milestones only add Cli
 
 ## Connector facts the skill encodes
 
-- Tools: `clickup_filter_tasks`, `clickup_get_task` (with `include: ["description", "custom_fields"]` and `expand_statuses: true`), `clickup_get_task_comments`, `clickup_get_threaded_comments`, `clickup_resolve_assignees`, `clickup_update_task` (`assignees`, `status`, `markdown_description`, `custom_fields`, `time_estimate`), `clickup_create_comment`.
+- Tools: `clickup_filter_tasks`, `clickup_get_task` (with `include: ["description", "custom_fields"]` and `expand_statuses: true`), `clickup_get_task_comments`, `clickup_get_threaded_comments`, `clickup_resolve_assignees`, `clickup_update_task` (`assignees`, `status`, `markdown_description`, `custom_fields`, `time_estimate`), `clickup_create_comment`, `clickup_create_task` (create-a-task branch only).
 - The DEVELOPMENT space id and Project custom-field id are home-specific and are not hardcoded in the shared skill; they live in `config/clickup.json` (LOCAL, gitignored) and are read at `/clickup` start. See the skill's Configuration section for the file shape and the absent-config stop rule.
 - The Project custom field is a dropdown naming the product a task belongs to; its selected value maps to a registered project through `data/projects.md`.
 - Sprint points is ClickUp's native field and is not exposed by this connector: no points parameter on update, and it does not appear in `custom_fields`.

@@ -21,20 +21,25 @@ The crewmate implements the code change through the ordinary lifecycle and knows
 
 ## Configuration
 
-This skill needs two ClickUp parameters that are specific to each firstmate home, so they live in `config/clickup.json` (LOCAL, gitignored) rather than in this shared skill:
+This skill needs ClickUp parameters that are specific to each firstmate home, so they live in `config/clickup.json` (LOCAL, gitignored) rather than in this shared skill:
 
 - `development_space_id` - the ClickUp space id this pipeline draws tasks from.
 - `project_field_id` - the id of the "Project" custom field, a dropdown naming the product a task belongs to.
+- `task_creation_lists` - OPTIONAL, LOCAL, gitignored, home-specific; an ordered array of `{ "label": <human name>, "list_id": <ClickUp list id> }` entries naming the backlog lists a newly-created task may be filed under.
+  When absent or empty, the create-a-task branch of the flow (step 1 below) asks the captain for a target list id instead of offering configured choices.
 
 Shape:
 
     {
       "development_space_id": "<space id>",
-      "project_field_id": "<custom-field uuid>"
+      "project_field_id": "<custom-field uuid>",
+      "task_creation_lists": [
+        { "label": "<human name>", "list_id": "<list id>" }
+      ]
     }
 
-Read this file at the start of every `/clickup` invocation and reuse its two values through the run.
-If the file is absent or either key is missing, tell the captain ClickUp is not configured for this home and stop - never guess a space or field id.
+Read this file at the start of every `/clickup` invocation and reuse its values through the run.
+If the file is absent or either required key (`development_space_id`, `project_field_id`) is missing, tell the captain ClickUp is not configured for this home and stop - never guess a space or field id.
 
 ## Connector facts
 
@@ -73,7 +78,12 @@ If an expected status name is missing on that task's list, stop, make no status 
    Filter the configured DEVELOPMENT space for tasks tagged `firstmate` in status `to do`, and keep only eligible ones per the eligibility contract.
    If the captain named a task, use that one (after confirming it is eligible).
    Otherwise pick a sensible default - highest priority first, oldest first among equals - and name the picked task to the captain in plain language.
-   If nothing is eligible, tell the captain and stop.
+   When nothing is eligible, or the captain wants to work on something not yet ticketed, OFFER to create a ClickUp task - this is OPTIONAL, never forced - and present it as a choice: create one, or skip and proceed without a task.
+   If the captain SKIPS, proceed with the work as an ordinary firstmate task with NO ClickUp linkage - no claim, no status changes, no linkage line, no milestone updates.
+   If the captain CHOOSES to create, gather a concise title and description, present the configured `task_creation_lists` labels and have the captain pick one (or supply a list id directly when none are configured), create the task via `clickup_create_task` in the chosen list, then run it through this flow from intake exactly like an existing task (claim, interview, dispatch).
+   Create it so it satisfies the same eligibility contract a pickable task must meet: the chosen configured list already sits in the DEVELOPMENT space, so pass the `firstmate` tag and `to do` status to `clickup_create_task` and set the Project custom field in the same call, confirming the status against the list's `available_statuses` first.
+   A created task missing the `firstmate` tag or a Project value would not be re-found by a later eligibility scan, so set them at creation rather than after.
+   Never hardcode any list id or list name in this skill; creation targets come only from `config/clickup.json`.
 2. **Gather context.**
    Read the task with `clickup_get_task` (`include: ["description", "custom_fields"]`, `expand_statuses: true`), all its comments including threads, and the Project custom field.
    Comments and any prior `## firstmate clarifications` section are context: never re-ask anything already answered there.
@@ -112,8 +122,11 @@ The ClickUp task description is the durable memory this pipeline accumulates acr
 
 This section is the one owner of the ClickUp-to-firstmate task linkage.
 
-- When the ship task is created, record one line in that backlog item's note: `clickup: <custom id> <internal id> <task url>` - for example `clickup: DEV-20958 86c2abc12 https://app.clickup.com/t/86c2abc12`.
+- When the ship task is created, record one line in that backlog item's note: `clickup: <custom id> <internal id> <task url>` - for example `clickup: DEV-1234 <clickup-internal-id> https://app.clickup.com/t/<clickup-internal-id>`.
   The custom id and internal id both come from the claimed ClickUp task; the internal id is what the connector's update and comment calls take.
+- The ClickUp task's custom id (for example `DEV-1234`) MUST appear in the delegated ship task's branch name and in its MR/PR title, so ticket and code cross-reference both ways.
+  Firstmate includes the custom id when writing the ship brief - in the branch name and the title - in addition to the `clickup:` backlog line above.
+  This applies only to ClickUp-linked tasks; work the captain chose to leave unticketed carries no such requirement.
 - A firstmate task whose backlog record carries a `clickup:` line is ClickUp-linked: on its PR-checks-green report and on its merge, load this skill and run the matching milestone step before reporting or cleanup.
 - The milestone signals themselves (PR-ready report shapes, merge detection) are owned by `AGENTS.md` sections 7 and 8; this skill only adds the ClickUp side effects at those existing points.
 
