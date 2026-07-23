@@ -31,8 +31,8 @@ Firstmate's merge authority is unchanged throughout; the milestones only add Cli
 ## Connector facts the skill encodes
 
 - Tools: `clickup_filter_tasks`, `clickup_get_task` (with `include: ["description", "custom_fields"]` and `expand_statuses: true`), `clickup_get_task_comments`, `clickup_get_threaded_comments`, `clickup_resolve_assignees`, `clickup_update_task` (`assignees`, `status`, `markdown_description`, `custom_fields`, `time_estimate`), `clickup_create_comment`.
-- DEVELOPMENT space id: `REDACTED_SPACE_ID`.
-- Project custom field id: `REDACTED_FIELD_ID`, a dropdown (REDACTED, REDACTED, REDACTED, ...).
+- The DEVELOPMENT space id and Project custom-field id are home-specific and are not hardcoded in the shared skill; they live in `config/clickup.json` (LOCAL, gitignored) and are read at `/clickup` start. See the skill's Configuration section for the file shape and the absent-config stop rule.
+- The Project custom field is a dropdown naming the product a task belongs to; its selected value maps to a registered project through `data/projects.md`.
 - Sprint points is ClickUp's native field and is not exposed by this connector: no points parameter on update, and it does not appear in `custom_fields`.
 
 These facts were established interactively with the connector during design (2026-07-22) and are recorded in the skill as operating parameters.

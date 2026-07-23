@@ -11,6 +11,15 @@ SKILL="$ROOT/.agents/skills/clickup/SKILL.md"
 AGENTS="$ROOT/AGENTS.md"
 DOC="$ROOT/docs/clickup-command.md"
 
+# These tests deliberately do NOT contain the real ClickUp space id or Project
+# field UUID: naming them here would re-expose the very values the skill now
+# keeps in gitignored config/clickup.json. Instead we guard structurally - a
+# hardcoded connector id would be a UUID-shaped string in a tracked file.
+UUID_RE='[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+assert_no_uuid() {
+  ! grep -qE "$UUID_RE" "$1" || fail "$2"
+}
+
 test_clickup_skill_metadata() {
   assert_present "$SKILL" "clickup skill is missing"
   assert_grep 'name: clickup' "$SKILL" "clickup skill metadata has the wrong name"
@@ -19,10 +28,13 @@ test_clickup_skill_metadata() {
   pass "clickup skill exists with captain-invocable internal frontmatter"
 }
 
-test_clickup_skill_owns_connector_facts() {
-  assert_grep 'REDACTED_SPACE_ID' "$SKILL" "clickup skill lost the DEVELOPMENT space id"
-  assert_grep 'REDACTED_FIELD_ID' "$SKILL" \
-    "clickup skill lost the Project custom field id"
+test_clickup_skill_externalizes_instance_params() {
+  assert_no_uuid "$SKILL" \
+    "clickup skill hardcodes a UUID-shaped id - instance ids must live in config/clickup.json"
+  assert_grep 'config/clickup.json' "$SKILL" \
+    "clickup skill must read instance parameters from config/clickup.json"
+  assert_grep 'development_space_id' "$SKILL" "clickup skill lost the config space-id key name"
+  assert_grep 'project_field_id' "$SKILL" "clickup skill lost the config field-id key name"
   assert_grep 'expand_statuses: true' "$SKILL" "clickup skill lost the expand_statuses requirement"
   assert_grep 'available_statuses' "$SKILL" "clickup skill lost the runtime status confirmation"
   assert_grep 'include: ["description", "custom_fields"]' "$SKILL" \
@@ -31,7 +43,14 @@ test_clickup_skill_owns_connector_facts() {
     "clickup skill lost the sprint-points-not-writable fact"
   assert_grep 'Never attempt to write sprint points' "$SKILL" \
     "clickup skill lost the sprint-points write prohibition"
-  pass "clickup skill owns the connector operating facts"
+  pass "clickup skill externalizes instance parameters and keeps connector facts"
+}
+
+test_clickup_instance_params_stay_local() {
+  assert_grep 'config/clickup.json' "$ROOT/.gitignore" \
+    "config/clickup.json must be gitignored so instance ids never enter the repo"
+  assert_no_uuid "$DOC" "clickup design doc hardcodes a UUID-shaped id - it must live in config/clickup.json"
+  pass "clickup instance parameters stay local and out of tracked files"
 }
 
 test_clickup_skill_safety_contracts() {
@@ -71,10 +90,8 @@ test_agents_triggers() {
 }
 
 test_one_owner_boundaries() {
-  assert_no_grep 'REDACTED_SPACE_ID' "$AGENTS" \
-    "AGENTS.md duplicates the ClickUp space id owned by the skill"
-  assert_no_grep '71eb68c4' "$AGENTS" \
-    "AGENTS.md duplicates the ClickUp Project field id owned by the skill"
+  assert_no_uuid "$AGENTS" \
+    "AGENTS.md hardcodes a UUID-shaped id - ClickUp connector ids belong in config/clickup.json, not AGENTS.md"
   assert_no_grep 'firstmate clarifications' "$AGENTS" \
     "AGENTS.md duplicates the durable-description contract owned by the skill"
   assert_present "$DOC" "clickup design doc is missing"
@@ -85,7 +102,8 @@ test_one_owner_boundaries() {
 }
 
 test_clickup_skill_metadata
-test_clickup_skill_owns_connector_facts
+test_clickup_skill_externalizes_instance_params
+test_clickup_instance_params_stay_local
 test_clickup_skill_safety_contracts
 test_agents_triggers
 test_one_owner_boundaries

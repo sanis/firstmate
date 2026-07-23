@@ -19,6 +19,23 @@ Every ClickUp read and write in this skill therefore happens in the main firstma
 Never brief a crewmate to call ClickUp, never put ClickUp connector steps in a task brief, and never wait for a crewmate to report ClickUp state.
 The crewmate implements the code change through the ordinary lifecycle and knows nothing about ClickUp beyond the task context copied into its instructions.
 
+## Configuration
+
+This skill needs two ClickUp parameters that are specific to each firstmate home, so they live in `config/clickup.json` (LOCAL, gitignored) rather than in this shared skill:
+
+- `development_space_id` - the ClickUp space id this pipeline draws tasks from.
+- `project_field_id` - the id of the "Project" custom field, a dropdown naming the product a task belongs to.
+
+Shape:
+
+    {
+      "development_space_id": "<space id>",
+      "project_field_id": "<custom-field uuid>"
+    }
+
+Read this file at the start of every `/clickup` invocation and reuse its two values through the run.
+If the file is absent or either key is missing, tell the captain ClickUp is not configured for this home and stop - never guess a space or field id.
+
 ## Connector facts
 
 These facts are the authoritative operating parameters for this procedure.
@@ -29,8 +46,7 @@ These facts are the authoritative operating parameters for this procedure.
 - `clickup_resolve_assignees` - resolve `"me"` to the connected user's id.
 - `clickup_update_task` - sets `assignees`, `status`, `markdown_description`, `custom_fields`, and `time_estimate`.
 - `clickup_create_comment` - post a comment on a task.
-- DEVELOPMENT space id: `REDACTED_SPACE_ID`.
-- Project custom field id: `REDACTED_FIELD_ID` - a dropdown naming the product the task belongs to (REDACTED, REDACTED, REDACTED, ...).
+- The DEVELOPMENT space id and Project custom-field id are not hardcoded here; read them from `config/clickup.json` per the Configuration section above. The Project field is a dropdown naming the product a task belongs to; map its selected value to a registered project via `data/projects.md` (step 4).
 - Sprint points is ClickUp's native field and is NOT exposed by this connector: there is no points parameter on update and it does not appear in `custom_fields`.
   Never attempt to write sprint points through the connector; the confirmed estimate is recorded in the description only, under the durable-description contract below.
 
@@ -38,7 +54,7 @@ These facts are the authoritative operating parameters for this procedure.
 
 A task is eligible only when ALL of these hold:
 
-- It is in the DEVELOPMENT space (`REDACTED_SPACE_ID`).
+- It is in the DEVELOPMENT space (the configured `development_space_id`).
 - It carries the `firstmate` tag.
 - Its status is `to do`.
 - It is unassigned, or already assigned to the connected user (resolve `"me"` via `clickup_resolve_assignees` and compare ids).
@@ -54,7 +70,7 @@ If an expected status name is missing on that task's list, stop, make no status 
 ## The flow - one task per invocation
 
 1. **Find.**
-   Filter the DEVELOPMENT space for tasks tagged `firstmate` in status `to do`, and keep only eligible ones per the eligibility contract.
+   Filter the configured DEVELOPMENT space for tasks tagged `firstmate` in status `to do`, and keep only eligible ones per the eligibility contract.
    If the captain named a task, use that one (after confirming it is eligible).
    Otherwise pick a sensible default - highest priority first, oldest first among equals - and name the picked task to the captain in plain language.
    If nothing is eligible, tell the captain and stop.
