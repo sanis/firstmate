@@ -125,7 +125,10 @@ This section is the one owner of the ClickUp-to-firstmate task linkage.
 - When the ship task is created, record one line in that backlog item's note: `clickup: <custom id> <internal id> <task url>` - for example `clickup: DEV-1234 <clickup-internal-id> https://app.clickup.com/t/<clickup-internal-id>`.
   The custom id and internal id both come from the claimed ClickUp task; the internal id is what the connector's update and comment calls take.
 - The ClickUp task's custom id (for example `DEV-1234`) MUST appear in the delegated ship task's branch name and in its MR/PR title, so ticket and code cross-reference both ways.
-  Firstmate includes the custom id when writing the ship brief - in the branch name and the title - in addition to the `clickup:` backlog line above.
+  The branch name may carry the raw id (for example `dev-1234-short-slug`), but the MR/PR title and the delegated ship task's commit subject MUST both stay valid Conventional Commits with the id embedded compliantly, never displacing the `type(scope):` prefix.
+  Embed the id either in trailing parentheses on the subject/title - for example `feat(scope): short description (DEV-1234)` - or in a `Refs: DEV-1234` (or `Closes: DEV-1234`) footer.
+  A subject prefix that replaces the type, such as `DEV-1234: short description`, is WRONG because it breaks Conventional Commits.
+  Firstmate writes the ship brief accordingly: it includes the custom id in the branch name and embeds it Conventional-Commits-compliantly in the title and commit subject, in addition to the `clickup:` backlog line above.
   This applies only to ClickUp-linked tasks; work the captain chose to leave unticketed carries no such requirement.
 - A firstmate task whose backlog record carries a `clickup:` line is ClickUp-linked: on its PR-checks-green report and on its merge, load this skill and run the matching milestone step before reporting or cleanup.
 - The milestone signals themselves (PR-ready report shapes, merge detection) are owned by `AGENTS.md` sections 7 and 8; this skill only adds the ClickUp side effects at those existing points.
