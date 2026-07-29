@@ -159,19 +159,19 @@ esac
 SH
   chmod +x "$fakebin/ps"
 
-  got=$(PATH="$fakebin:$BASE_PATH" PI_CODING_AGENT=true "$ROOT/bin/fm-harness.sh")
+  got=$(env -u CLAUDECODE -u FM_PI_HARNESS PATH="$fakebin:$BASE_PATH" PI_CODING_AGENT=true "$ROOT/bin/fm-harness.sh")
   [ "$got" = pi ] || fail "unmarked shared signed-wrapper ancestry resolved '$got', expected pi"
-  got=$(PATH="$fakebin:$BASE_PATH" PI_CODING_AGENT=true FM_PI_HARNESS=pi-signed "$ROOT/bin/fm-harness.sh")
+  got=$(env -u CLAUDECODE PATH="$fakebin:$BASE_PATH" PI_CODING_AGENT=true FM_PI_HARNESS=pi-signed "$ROOT/bin/fm-harness.sh")
   [ "$got" = pi-signed ] || fail "selected signed wrapper resolved '$got', expected pi-signed"
-  got=$(PATH="$fakebin:$BASE_PATH" PI_CODING_AGENT=true FM_PI_HARNESS=pi "$ROOT/bin/fm-harness.sh")
+  got=$(env -u CLAUDECODE PATH="$fakebin:$BASE_PATH" PI_CODING_AGENT=true FM_PI_HARNESS=pi "$ROOT/bin/fm-harness.sh")
   [ "$got" = pi ] || fail "selected plain Pi resolved '$got', expected pi"
-  got=$(PATH="$fakebin:$BASE_PATH" PI_CODING_AGENT=true FM_PI_HARNESS=pi-signed-helper "$ROOT/bin/fm-harness.sh")
+  got=$(env -u CLAUDECODE PATH="$fakebin:$BASE_PATH" PI_CODING_AGENT=true FM_PI_HARNESS=pi-signed-helper "$ROOT/bin/fm-harness.sh")
   [ "$got" = pi ] || fail "inexact signed selection marker resolved '$got', expected pi"
-  got=$(PATH="$fakebin:$BASE_PATH" FM_PI_HARNESS=pi-signed "$ROOT/bin/fm-harness.sh")
+  got=$(env -u CLAUDECODE -u PI_CODING_AGENT -u GROK_AGENT PATH="$fakebin:$BASE_PATH" FM_PI_HARNESS=pi-signed "$ROOT/bin/fm-harness.sh")
   [ "$got" = pi ] || fail "signed selection marker without Pi's family marker resolved '$got', expected pi"
-  got=$(PATH="$fakebin:$BASE_PATH" PI_CODING_AGENT=true FM_TEST_SIGNED_SHAPE=plain "$ROOT/bin/fm-harness.sh")
+  got=$(env -u CLAUDECODE -u FM_PI_HARNESS PATH="$fakebin:$BASE_PATH" PI_CODING_AGENT=true FM_TEST_SIGNED_SHAPE=plain "$ROOT/bin/fm-harness.sh")
   [ "$got" = pi ] || fail "plain Pi marker resolved '$got', expected pi"
-  got=$(PATH="$fakebin:$BASE_PATH" PI_CODING_AGENT=true FM_TEST_SIGNED_SHAPE=helper "$ROOT/bin/fm-harness.sh")
+  got=$(env -u CLAUDECODE -u FM_PI_HARNESS PATH="$fakebin:$BASE_PATH" PI_CODING_AGENT=true FM_TEST_SIGNED_SHAPE=helper "$ROOT/bin/fm-harness.sh")
   [ "$got" = pi ] || fail "unrelated pi-signed-helper ancestry resolved '$got', expected pi"
 
   got=$(PATH="$fakebin:$BASE_PATH" bash -c \
@@ -186,6 +186,68 @@ SH
   fi
 
   pass "pi-signed identity: authoritative launch selection distinguishes shared wrapper ancestry"
+}
+
+# ===========================================================================
+# A) login-shell process names in the ancestry walk
+# ===========================================================================
+# macOS reports a login shell through `ps -o comm=` with a leading dash ("-zsh").
+# Passing that to basename makes it parse "-z -s -h" as option flags and fail
+# loudly on stderr at every hop that reaches a login shell, so both ancestry
+# walks strip the directory with parameter expansion instead.
+test_login_shell_process_name_in_ancestry() {
+  local dir fakebin got err
+  dir="$TMP_ROOT/login-shell-ancestry"
+  fakebin=$(fm_fakebin "$dir")
+  cat > "$fakebin/ps" <<'SH'
+#!/usr/bin/env bash
+set -u
+field= pid=
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -o) field=$2; shift 2 ;;
+    -p) pid=$2; shift 2 ;;
+    *) shift ;;
+  esac
+done
+# 300 is the login shell whose name starts with a dash; 400 above it is a real
+# harness, so the walk must survive 300 and still resolve the harness.
+case "$pid:$field" in
+  300:comm=) printf '%s\n' '-zsh' ;;
+  300:args=) printf '%s\n' '-zsh' ;;
+  300:ppid=) printf '%s\n' 400 ;;
+  400:comm=) printf '%s\n' '/opt/test/bin/codex' ;;
+  400:args=) printf '%s\n' 'codex' ;;
+  400:ppid=) printf '%s\n' 1 ;;
+  *:comm=) printf '%s\n' /bin/bash ;;
+  *:args=) printf '%s\n' bash ;;
+  *:ppid=) printf '%s\n' 300 ;;
+esac
+SH
+  chmod +x "$fakebin/ps"
+
+  err="$dir/harness.err"
+  got=$(env -u CLAUDECODE -u PI_CODING_AGENT -u GROK_AGENT \
+    PATH="$fakebin:$BASE_PATH" FM_CONFIG_OVERRIDE="$dir/config" \
+    "$ROOT/bin/fm-harness.sh" 2>"$err")
+  [ "$got" = codex ] || fail "harness detection past a login shell resolved '$got', expected codex"
+  [ ! -s "$err" ] || fail "harness detection wrote to stderr: $(cat "$err")"
+
+  err="$dir/lock.err"
+  got=$(PATH="$fakebin:$BASE_PATH" bash -c \
+    '. "$0/bin/fm-session-lock-lib.sh"; fm_harness_ancestry_pid' "$ROOT" 2>"$err")
+  [ "$got" = 400 ] || fail "session-lock ancestry past a login shell selected '$got', expected 400"
+  [ ! -s "$err" ] || fail "session-lock ancestry wrote to stderr: $(cat "$err")"
+
+  err="$dir/alive.err"
+  if PATH="$fakebin:$BASE_PATH" bash -c \
+    '. "$0/bin/fm-session-lock-lib.sh"; kill() { return 0; }; fm_harness_pid_alive 300' \
+    "$ROOT" 2>"$err"; then
+    fail "session-lock liveness accepted a login shell as a harness holder"
+  fi
+  [ ! -s "$err" ] || fail "session-lock liveness wrote to stderr: $(cat "$err")"
+
+  pass "A) a login-shell process name ('-zsh') traverses both ancestry walks without stderr noise"
 }
 
 # ===========================================================================
@@ -2246,6 +2308,7 @@ SH
 test_harness_resolution
 test_secondmate_model_effort_tokens
 test_pi_signed_detection_and_session_lock_identity
+test_login_shell_process_name_in_ancestry
 test_propagate_lib
 test_spawn_split_and_inherit
 test_spawn_backward_compat_crew_fallback
