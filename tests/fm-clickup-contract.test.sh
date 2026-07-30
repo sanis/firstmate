@@ -47,8 +47,8 @@ test_clickup_skill_externalizes_instance_params() {
 }
 
 test_clickup_instance_params_stay_local() {
-  assert_grep 'config/clickup.json' "$ROOT/.gitignore" \
-    "config/clickup.json must be gitignored so instance ids never enter the repo"
+  git -C "$ROOT" check-ignore -q config/clickup.json \
+    || fail "config/clickup.json must be gitignored so instance ids never enter the repo"
   assert_no_uuid "$DOC" "clickup design doc hardcodes a UUID-shaped id - it must live in config/clickup.json"
   pass "clickup instance parameters stay local and out of tracked files"
 }
