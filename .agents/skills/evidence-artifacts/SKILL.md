@@ -36,6 +36,8 @@ Deliver the artifact by committing it on the pull request's own branch and embed
 
     ![what it shows](https://github.com/<owner>/<repo>/raw/<commit-sha>/<path>)
 
+Commit it under `docs/verification/` in the repository being changed, so evidence lands in one predictable place instead of wherever each worker improvises.
+
 Use that host-absolute `github.com` form, and no other:
 
 - A relative image target such as `docs/evidence/x.png` does NOT work in a pull request body.
@@ -47,6 +49,7 @@ Use that host-absolute `github.com` form, and no other:
   A sha-pinned URL keeps serving after the head branch is deleted, because GitHub retains the pull request's head reference.
 
 If committing the artifact into that project's history is unwanted, the decision is above the implementation worker: report it to firstmate rather than degrading to a local path.
+A repository that constrains committed binaries is exactly that case: when it declares a binary-size limit, routes binaries through Git LFS, or states any other artifact policy in its `AGENTS.md`, `CONTRIBUTING`, or `.gitattributes`, stop and ask firstmate instead of committing.
 
 ## GitLab merge requests
 

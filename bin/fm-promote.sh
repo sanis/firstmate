@@ -5,7 +5,9 @@
 # again. After promoting, send the crewmate its ship instructions via fm-send.sh
 # (inventory scratch state, reset to a clean default-branch base, carry over only
 # intended fix changes, create branch fm/<task-id>, implement, then report done
-# according to this task's delivery mode).
+# according to this task's delivery mode). A promoted worker keeps its scout brief,
+# which carries no delivery rules, so this follow-up is the only place the evidence
+# contract reaches it before it writes a PR or MR body.
 # A scout records no delivery posture, so promotion is where this task's delivery
 # contract is decided: --mode and --yolo are REQUIRED and written into the meta
 # alongside the kind= flip. Firstmate resolves both at promotion time, having just
@@ -85,4 +87,4 @@ mv "$TMP" "$META"
 
 HOME_Q=$(printf '%q' "$FM_HOME")
 echo "promoted $ID to ship mode=$MODE yolo=$YOLO (teardown protection restored)"
-echo "next: FM_HOME=$HOME_Q bin/fm-send.sh fm-$ID '<ship instructions for mode=$MODE: review scratch state with git status and git log; reset to a clean default-branch base; carry over only intended fix changes; create branch fm/$ID; implement; report done>'"
+echo "next: FM_HOME=$HOME_Q bin/fm-send.sh fm-$ID '<ship instructions for mode=$MODE: review scratch state with git status and git log; reset to a clean default-branch base; carry over only intended fix changes; create branch fm/$ID; implement; report done>. Evidence you present in a PR or MR must be uploaded to it and embedded so it renders - a path on this machine is never the delivered form, because no reviewer can open it. If this work produced screenshots or other evidence files, follow $FM_ROOT/.agents/skills/evidence-artifacts/SKILL.md.'"
