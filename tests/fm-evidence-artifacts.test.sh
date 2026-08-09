@@ -135,11 +135,13 @@ EOF
 $hits
 EOF
 
-  # The connector arm of the same principle, after mechanics were filed by actor:
-  # naming the ClickUp surface is a legitimate cross-reference, so the narrowing
-  # is a connector CALL rather than the word ClickUp. Only the firstmate-only
-  # clickup skill may carry that procedure, plus the shared verification record.
-  hits=$(grep -rlF --include='*.md' -- 'clickup_attach_task_file' \
+  # The connector arm of the same principle, after mechanics were filed by actor,
+  # and narrowed in the same shape as the GitHub arm above: a tool NAME in a
+  # descriptive list is not the procedure, so the match requires the attach tool
+  # co-stated on one line with the parameter only the procedure passes. Only the
+  # firstmate-only clickup skill may carry that, plus the shared record.
+  hits=$(grep -rliE --include='*.md' \
+    'clickup_attach_task_file.*file_data|file_data.*clickup_attach_task_file' \
     "$ROOT/AGENTS.md" "$ROOT/.agents/skills" "$ROOT/skills" "$ROOT/docs" 2>/dev/null | sort)
   for hit in "$CLICKUP_SKILL" "$record"; do
     printf '%s\n' "$hits" | grep -qxF -- "$hit" \

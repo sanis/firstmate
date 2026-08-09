@@ -122,7 +122,8 @@ If an expected status name is missing on that task's list, stop, make no status 
      Parking never uses a `blocked` status or any other status change; the task simply stays `to do` and assigned, and a later `/clickup` resumes it from the accumulated description.
 7. **Code review milestone.**
    When the delegated ship task reaches its normal PR-ready signal - the PR open with checks green per section 7 - the main session posts a ClickUp comment (`clickup_create_comment`) containing a short implementation summary and the full PR URL, and moves the task to `code review` (after confirming that status exists).
-   If that update carries a screenshot or other evidence file, load `evidence-artifacts` and attach it before writing the comment.
+   If that update carries a screenshot or other evidence file, attach it to the task first by the Evidence attachments section above, then name the attached files in the comment.
+   Load `evidence-artifacts` separately for the delivery contract and the entitlement rule it owns, which decide whether that artifact may be presented at all.
 8. **QA milestone.**
    When that PR merges - detected by the normal merge monitoring - the main session moves the ClickUp task to `qa` (after confirming that status exists).
 
