@@ -114,6 +114,25 @@ test_forge_mechanics_have_exactly_one_owner() {
   done <<EOF
 $hits
 EOF
+
+  # Scripts too, on the same one-owner principle: a generator that hands the
+  # rule to a worker names the owner skill by path, so exactly one file under
+  # bin/ may do so - bin/fm-evidence-rule-lib.sh, which both bin/fm-brief.sh and
+  # bin/fm-promote.sh interpolate. A prose-only sweep could not see a second
+  # generator, which is how two copies of the sentence appeared. An unrelated
+  # mention of a download host (bin/fm-bootstrap.sh) does not match this.
+  hits=$(grep -rlF -- '/.agents/skills/evidence-artifacts/SKILL.md' "$ROOT/bin" 2>/dev/null | sort)
+  printf '%s\n' "$hits" | grep -qxF -- "$ROOT/bin/fm-evidence-rule-lib.sh" \
+    || fail "no script holds the evidence rule any more: $ROOT/bin/fm-evidence-rule-lib.sh"
+  while IFS= read -r hit; do
+    [ -n "$hit" ] || continue
+    case "$hit" in
+      "$ROOT/bin/fm-evidence-rule-lib.sh") ;;
+      *) fail "a second generator states the evidence rule instead of sharing it: $hit" ;;
+    esac
+  done <<EOF
+$hits
+EOF
   pass "forge mechanics live only in the owner skill and its verification record"
 }
 
@@ -121,21 +140,30 @@ EOF
 # reaches it. The promotion handoff is where the rule must land, because that
 # worker opens the pull request itself.
 test_promotion_handoff_carries_the_rule() {
-  local home meta out status
+  local home meta out status brief rule
   home="$TMP_ROOT/promote"
-  mkdir -p "$home/state"
+  mkdir -p "$home/state" "$home/data"
   meta="$home/state/evidence-promote.meta"
   printf 'window=fm-evidence-promote\nkind=scout\nworktree=/tmp/wt\n' > "$meta"
+
+  # The expected rule is read back out of a generated ship brief rather than
+  # restated here, so this asserts the promoted worker gets the SAME rule the
+  # brief delivers without mandating a second copy of the wording.
+  brief=$(scaffold "$home" evidence-handoff sample --mode direct-PR)
+  assert_present "$brief" "the reference ship brief was not scaffolded"
+  rule=$(grep -F -- '/.agents/skills/evidence-artifacts/SKILL.md' "$brief")
+  rule=${rule#8. }
+  [ -n "$rule" ] || fail "the ship brief no longer carries an evidence rule to compare against"
 
   out=$(FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" FM_ROOT_OVERRIDE="$ROOT" \
     "$ROOT/bin/fm-promote.sh" evidence-promote --mode direct-PR --yolo off 2>&1)
   status=$?
   expect_code 0 "$status" "promotion with a full delivery contract should succeed"
-  assert_contains "$out" "never the delivered form" \
-    "the promotion handoff drops the evidence rule the scout brief never carried"
+  assert_contains "$out" "$rule" \
+    "the promotion handoff does not deliver the same evidence rule the ship brief carries"
   assert_contains "$out" "$ROOT/.agents/skills/evidence-artifacts/SKILL.md" \
     "the promotion handoff does not point at the owner by a resolvable absolute path"
-  pass "a promoted scout receives the evidence rule with a resolvable owner pointer"
+  pass "a promoted scout receives the ship brief's evidence rule and owner pointer"
 }
 
 test_ship_briefs_carry_the_rule_and_point_at_the_owner

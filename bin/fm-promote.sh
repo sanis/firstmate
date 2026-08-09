@@ -7,7 +7,9 @@
 # intended fix changes, create branch fm/<task-id>, implement, then report done
 # according to this task's delivery mode). A promoted worker keeps its scout brief,
 # which carries no delivery rules, so this follow-up is the only place the evidence
-# contract reaches it before it writes a PR or MR body.
+# contract reaches it before it writes a PR or MR body; the sentence itself comes
+# from bin/fm-evidence-rule-lib.sh, shared with the ship brief bin/fm-brief.sh
+# generates, so the two handoffs cannot state the rule differently.
 # A scout records no delivery posture, so promotion is where this task's delivery
 # contract is decided: --mode and --yolo are REQUIRED and written into the meta
 # alongside the kind= flip. Firstmate resolves both at promotion time, having just
@@ -21,6 +23,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FM_ROOT="${FM_ROOT_OVERRIDE:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 FM_HOME="${FM_HOME:-${FM_ROOT_OVERRIDE:-$FM_ROOT}}"
 STATE="${FM_STATE_OVERRIDE:-$FM_HOME/state}"
+# shellcheck source=bin/fm-evidence-rule-lib.sh
+. "$SCRIPT_DIR/fm-evidence-rule-lib.sh"
 
 MODE=
 YOLO=
@@ -86,5 +90,6 @@ grep -v -e '^kind=' -e '^mode=' -e '^yolo=' "$META" > "$TMP"
 mv "$TMP" "$META"
 
 HOME_Q=$(printf '%q' "$FM_HOME")
+EVIDENCE_RULE=$(fm_evidence_rule_text "$FM_ROOT")
 echo "promoted $ID to ship mode=$MODE yolo=$YOLO (teardown protection restored)"
-echo "next: FM_HOME=$HOME_Q bin/fm-send.sh fm-$ID '<ship instructions for mode=$MODE: review scratch state with git status and git log; reset to a clean default-branch base; carry over only intended fix changes; create branch fm/$ID; implement; report done>. Evidence you present in a PR or MR must be uploaded to it and embedded so it renders - a path on this machine is never the delivered form, because no reviewer can open it. If this work produced screenshots or other evidence files, follow $FM_ROOT/.agents/skills/evidence-artifacts/SKILL.md.'"
+echo "next: FM_HOME=$HOME_Q bin/fm-send.sh fm-$ID '<ship instructions for mode=$MODE: review scratch state with git status and git log; reset to a clean default-branch base; carry over only intended fix changes; create branch fm/$ID; implement; report done>. $EVIDENCE_RULE'"

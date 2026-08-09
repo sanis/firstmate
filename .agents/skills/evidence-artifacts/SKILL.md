@@ -49,7 +49,8 @@ Use that host-absolute `github.com` form, and no other:
   A sha-pinned URL keeps serving after the head branch is deleted, because GitHub retains the pull request's head reference.
 
 If committing the artifact into that project's history is unwanted, the decision is above the implementation worker: report it to firstmate rather than degrading to a local path.
-A repository that constrains committed binaries is exactly that case: when it declares a binary-size limit, routes binaries through Git LFS, or states any other artifact policy in its `AGENTS.md`, `CONTRIBUTING`, or `.gitattributes`, stop and ask firstmate instead of committing.
+Committing is unretractable: the pinned artifact keeps serving after the pull request is closed and its branch is deleted, so what may be written into a repository forever is a separate question from what a reader may see today.
+Stop and ask firstmate instead of committing when the repository constrains committed binaries - a declared binary-size limit, Git LFS routing, or any other artifact policy in its `AGENTS.md`, `CONTRIBUTING`, or `.gitattributes` - or when the capture shows credentials, personal data, or a third-party system.
 
 ## GitLab merge requests
 
