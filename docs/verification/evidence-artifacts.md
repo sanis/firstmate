@@ -94,6 +94,7 @@ Verified on 2026-08-09.
 
 The claude.ai ClickUp connector reaches ClickUp's attachment API through two tools.
 `clickup_attach_task_file` accepts base64 `file_data` with `file_name`, or an `http`/`https` `file_url`, and its own contract limits the base64 path to roughly 200KB.
+Its schema also carries an `auth_header` for downloading from a protected URL, which the instruction deliberately leaves unused, because sending a repository credential to a third-party service buys nothing the upload path does not already cover.
 `clickup_request_attachment_upload` covers a local file of any size; requesting a ticket for a task returned a live, structured upload target:
 
     {"success":true,"task_id":"<task-id>","upload_url":"https://mcp.clickup.com/upload",

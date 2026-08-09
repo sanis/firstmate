@@ -156,6 +156,29 @@ EOF
   done <<EOF
 $hits
 EOF
+
+  # The ticket flow is the other half of that procedure and the longer recipe,
+  # so it gets its own arm. The co-statement was checked against both owners
+  # rather than assumed: the returned instructions and the multipart field name
+  # each sit on a different line from the tool name in one owner or the other,
+  # so the pairing used here is the tool with the any-size capability that only
+  # this procedure claims, which a descriptive tool list does not carry.
+  hits=$(grep -rliE --include='*.md' \
+    'clickup_request_attachment_upload.*local file of any size|local file of any size.*clickup_request_attachment_upload' \
+    "$ROOT/AGENTS.md" "$ROOT/.agents/skills" "$ROOT/skills" "$ROOT/docs" 2>/dev/null | sort)
+  for hit in "$CLICKUP_SKILL" "$record"; do
+    printf '%s\n' "$hits" | grep -qxF -- "$hit" \
+      || fail "expected owner no longer states the ClickUp upload-ticket procedure: $hit"
+  done
+  while IFS= read -r hit; do
+    [ -n "$hit" ] || continue
+    case "$hit" in
+      "$CLICKUP_SKILL"|"$record") ;;
+      *) fail "the ClickUp upload-ticket procedure gained a second owner: $hit" ;;
+    esac
+  done <<EOF
+$hits
+EOF
   pass "forge mechanics live only in the owner skill and its verification record"
 }
 

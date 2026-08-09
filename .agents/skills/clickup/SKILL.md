@@ -65,6 +65,7 @@ These facts are the authoritative operating parameters for this procedure.
   The roughly 200KB ceiling applies to the base64 path, which most screenshots exceed.
   A `file_url` works only if ClickUp's own side can fetch that URL, so a private repository's raw link does not qualify.
   That end-to-end fetch is UNVERIFIED, because the recorded check stopped before completing any upload; treat the reachability condition as a requirement to satisfy first, not as a tested result, and do not reach for the URL path by default.
+  The tool also exposes an `auth_header` for downloading from a protected URL, and firstmate does not use it, because that would hand a repository credential to a third-party service so it can fetch a private file, while the upload path below delivers the same artifact without one.
 - `clickup_request_attachment_upload` handles a local file of any size.
   It returns a short-lived upload URL, ticket, HTTP method, and multipart field name, together with its own `instructions`.
   Follow those returned instructions rather than a memorized recipe, because they are what the connector currently expects and the ticket expires quickly.
