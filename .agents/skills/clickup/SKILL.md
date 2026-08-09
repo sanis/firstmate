@@ -50,12 +50,28 @@ These facts are the authoritative operating parameters for this procedure.
 - `clickup_get_task_comments` and `clickup_get_threaded_comments` - read all comments (including threads) for context.
 - `clickup_resolve_assignees` - resolve `"me"` to the connected user's id.
 - `clickup_update_task` - sets `assignees`, `status`, `markdown_description`, `custom_fields`, and `time_estimate`.
-- `clickup_create_comment` - post a comment on a task; `evidence-artifacts` owns what a comment can and cannot carry.
-- `clickup_attach_task_file` and `clickup_request_attachment_upload` - attach a file to a task.
-  When a milestone update carries a screenshot or other evidence file, follow `evidence-artifacts`, which owns the upload contract and these tools' mechanics.
+- `clickup_create_comment` - post a comment on a task; the Evidence attachments section below owns what a comment can and cannot carry.
+- `clickup_attach_task_file` and `clickup_request_attachment_upload` - attach a file to a task, under the Evidence attachments section below.
 - The DEVELOPMENT space id and Project custom-field id are not hardcoded here; read them from `config/clickup.json` per the Configuration section above. The Project field is a dropdown naming the product a task belongs to; map its selected value to a registered project via `data/projects.md` (step 4).
 - Sprint points is ClickUp's native field and is NOT exposed by this connector: there is no points parameter on update and it does not appear in `custom_fields`.
   Never attempt to write sprint points through the connector; the confirmed estimate is recorded in the description only, under the durable-description contract below.
+
+## Evidence attachments
+
+`evidence-artifacts` owns the contract for getting an evidence file to the reader it is shown to; this section owns the ClickUp mechanics that carry it out, and they run in the main firstmate session like every other connector call here.
+`clickup-axi` exposes no attachment command and no raw API passthrough, so the connector is the only route.
+
+- `clickup_attach_task_file` accepts either base64 `file_data` with `file_name`, or an `http`/`https` `file_url`.
+  The roughly 200KB ceiling applies to the base64 path, which most screenshots exceed.
+  A `file_url` works only if ClickUp's own side can fetch that URL, so a private repository's raw link does not qualify.
+  That end-to-end fetch is UNVERIFIED, because the recorded check stopped before completing any upload; treat the reachability condition as a requirement to satisfy first, not as a tested result, and do not reach for the URL path by default.
+- `clickup_request_attachment_upload` handles a local file of any size.
+  It returns a short-lived upload URL, ticket, HTTP method, and multipart field name, together with its own `instructions`.
+  Follow those returned instructions rather than a memorized recipe, because they are what the connector currently expects and the ticket expires quickly.
+
+Attach the artifact to the ClickUp task itself, then name the attached files in the milestone comment.
+`clickup_create_comment` takes text only and has no attachment parameter, so the task attachment, not the comment body, is what carries the evidence to the reader.
+[`docs/verification/evidence-artifacts.md`](../../../docs/verification/evidence-artifacts.md) holds the dated evidence for these mechanics, and is the place to re-prove them when the connector changes.
 
 ## Eligibility
 

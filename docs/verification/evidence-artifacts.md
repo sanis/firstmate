@@ -2,9 +2,9 @@
 
 Audience: maintainer verification.
 
-This record supports the per-surface upload mechanics in [`.agents/skills/evidence-artifacts/SKILL.md`](../../.agents/skills/evidence-artifacts/SKILL.md).
-That skill states the operating contract; this record holds the dated evidence for the vendor behavior it depends on.
-Re-run these checks when a forge or connector surface changes, and update the skill only from a refreshed result.
+This record supports the per-surface upload mechanics wherever they are written, and stays the single dated record for all three surfaces.
+[`.agents/skills/evidence-artifacts/SKILL.md`](../../.agents/skills/evidence-artifacts/SKILL.md) states the operating contract and owns the forge mechanics; [`.agents/skills/clickup/SKILL.md`](../../.agents/skills/clickup/SKILL.md) owns the ClickUp attachment mechanics, because the connector is the main firstmate session's alone.
+Re-run these checks when a forge or connector surface changes, and update the owning instruction only from a refreshed result.
 
 ## GitHub pull request image embedding
 
@@ -100,8 +100,9 @@ The claude.ai ClickUp connector reaches ClickUp's attachment API through two too
      "upload_ticket":"<redacted>","http_method":"POST","multipart_field":"attachment",
      "file_name":"probe.png","expires_at":"<about 15 minutes ahead>","instructions":"<returned procedure>"}
 
-The ticket carries its own `instructions` and a short expiry, which is why the skill directs the caller to follow the returned instructions rather than a fixed recipe.
+The ticket carries its own `instructions` and a short expiry, which is why the `clickup` skill directs the caller to follow the returned instructions rather than a fixed recipe.
 
 This check deliberately stopped at the non-mutating ticket request.
 Completing the upload would have attached a probe file to a real task with no supported way to remove it, so the final transfer is not covered by this record.
 `clickup_create_comment` accepts only comment text and exposes no attachment parameter, which is why evidence is attached to the task rather than embedded in the comment body.
+The `file_url` alternative on `clickup_attach_task_file` was not exercised here, so whether ClickUp's own side can fetch a given URL is a condition the caller must satisfy rather than a result this record proves.

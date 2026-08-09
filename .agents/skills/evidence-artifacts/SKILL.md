@@ -65,16 +65,7 @@ Upload to the project that owns the merge request, because the same link pasted 
 
 ## ClickUp
 
-`clickup-axi` exposes no attachment command, so the upload runs through the claude.ai ClickUp connector.
-The `clickup` skill owns which session may call that connector and when these updates are posted; this section owns only how the artifact gets there.
-
-- `clickup_attach_task_file` takes base64 `file_data` plus `file_name`, and is limited to small files, roughly under 200KB, which most screenshots exceed.
-- `clickup_request_attachment_upload` handles a local file of any size.
-  It returns a short-lived upload URL, ticket, HTTP method, and multipart field name, together with its own `instructions`.
-  Follow those returned instructions rather than a memorized recipe, because they are what the connector currently expects and the ticket expires quickly.
-
-Attach the artifact to the ClickUp task itself, then name the attached files in the milestone comment.
-`clickup_create_comment` takes text only and has no attachment parameter, so the task attachment, not the comment body, is what carries the evidence to the reader.
+The tracker surface belongs to firstmate alone, a worker never posts to it, and the `clickup` skill owns that upload procedure in full.
 
 ## Relay
 

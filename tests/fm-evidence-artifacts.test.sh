@@ -14,6 +14,7 @@ set -u
 
 BRIEF="$ROOT/bin/fm-brief.sh"
 SKILL="$ROOT/.agents/skills/evidence-artifacts/SKILL.md"
+CLICKUP_SKILL="$ROOT/.agents/skills/clickup/SKILL.md"
 AGENTS="$ROOT/AGENTS.md"
 # The prefix deliberately avoids the skill name: generated briefs embed absolute
 # home paths, so a matching prefix would satisfy these assertions by accident.
@@ -133,7 +134,52 @@ EOF
   done <<EOF
 $hits
 EOF
+
+  # The connector arm of the same principle, after mechanics were filed by actor:
+  # naming the ClickUp surface is a legitimate cross-reference, so the narrowing
+  # is a connector CALL rather than the word ClickUp. Only the firstmate-only
+  # clickup skill may carry that procedure, plus the shared verification record.
+  hits=$(grep -rlF --include='*.md' -- 'clickup_attach_task_file' \
+    "$ROOT/AGENTS.md" "$ROOT/.agents/skills" "$ROOT/skills" "$ROOT/docs" 2>/dev/null | sort)
+  for hit in "$CLICKUP_SKILL" "$record"; do
+    printf '%s\n' "$hits" | grep -qxF -- "$hit" \
+      || fail "expected owner no longer states the ClickUp attachment procedure: $hit"
+  done
+  while IFS= read -r hit; do
+    [ -n "$hit" ] || continue
+    case "$hit" in
+      "$CLICKUP_SKILL"|"$record") ;;
+      *) fail "the ClickUp attachment procedure gained a second owner: $hit" ;;
+    esac
+  done <<EOF
+$hits
+EOF
   pass "forge mechanics live only in the owner skill and its verification record"
+}
+
+# The rule the generated brief emits routes a worker into a named file, and that
+# file is the worker's delivered instruction surface. It may not carry ClickUp
+# connector procedure: the connector is the main firstmate session's alone
+# (.agents/skills/clickup/SKILL.md), so a worker that followed it would attempt a
+# call it cannot make. The routed path is resolved from the generator's real
+# output rather than assumed.
+test_ship_brief_never_routes_a_worker_into_connector_procedure() {
+  local home brief rule target tool
+  home="$TMP_ROOT/routing"
+  mkdir -p "$home/data"
+  brief=$(scaffold "$home" evidence-routing sample --mode no-mistakes)
+  assert_present "$brief" "the routing brief was not scaffolded"
+
+  rule=$(grep -F -- '/.agents/skills/evidence-artifacts/SKILL.md' "$brief")
+  target=${rule#*\`}
+  target=${target%%\`*}
+  [ -f "$target" ] || fail "the generated brief routes the worker at a path that does not resolve: $target"
+
+  for tool in clickup_attach_task_file clickup_request_attachment_upload mcp__claude_ai_ClickUp__; do
+    assert_no_grep "$tool" "$target" \
+      "the brief routes a worker into ClickUp connector procedure it cannot run: $tool in $target"
+  done
+  pass "a ship brief routes workers only into instructions they can execute"
 }
 
 # A scout promoted in place keeps its scout brief, so the ship Rules block never
@@ -169,4 +215,5 @@ test_promotion_handoff_carries_the_rule() {
 test_ship_briefs_carry_the_rule_and_point_at_the_owner
 test_rule_stays_out_of_scaffolds_that_deliver_no_pull_request
 test_forge_mechanics_have_exactly_one_owner
+test_ship_brief_never_routes_a_worker_into_connector_procedure
 test_promotion_handoff_carries_the_rule
