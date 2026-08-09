@@ -54,6 +54,9 @@
 # it carries the AGENTS.md authoring bar (widely useful knowledge only, pointers
 # over copied detail) and has the crewmate add the fm-ensure-agents-md.sh
 # self-governance section when a touched project AGENTS.md lacks it.
+# Ship tasks also carry the evidence rule: an artifact shown in a PR or MR is
+# uploaded to it, never named by a local path. The mechanics stay in the
+# evidence-artifacts skill, which the generated rule points at by path.
 # Refuses to overwrite an existing brief.
 set -eu
 
@@ -448,6 +451,9 @@ $RULE1
 7. Never stop, restart, or update the shared \`no-mistakes\` daemon - it is one instance serving
    every lane/home, so restarting it kills other lanes' in-flight pipeline runs. On ANY no-mistakes
    daemon error, append \`blocked: {the daemon error}\` and stop; only firstmate manages the daemon.
+8. Evidence you present in a PR or MR must be uploaded to it and embedded so it renders - a path on
+   this machine is never the delivered form, because no reviewer can open it. If your work produces
+   screenshots or other evidence files, follow \`$FM_ROOT/.agents/skills/evidence-artifacts/SKILL.md\`.
 
 # Project memory
 If \`AGENTS.md\` or \`CLAUDE.md\` already exists, or if this task produced durable project-intrinsic knowledge, run \`$FM_ROOT/bin/fm-ensure-agents-md.sh .\` in the worktree.

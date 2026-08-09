@@ -50,7 +50,8 @@ These facts are the authoritative operating parameters for this procedure.
 - `clickup_get_task_comments` and `clickup_get_threaded_comments` - read all comments (including threads) for context.
 - `clickup_resolve_assignees` - resolve `"me"` to the connected user's id.
 - `clickup_update_task` - sets `assignees`, `status`, `markdown_description`, `custom_fields`, and `time_estimate`.
-- `clickup_create_comment` - post a comment on a task.
+- `clickup_create_comment` - post a comment on a task; it takes comment text only and has no attachment parameter.
+- `clickup_attach_task_file` and `clickup_request_attachment_upload` - attach a file to a task. `clickup-axi` has no attachment command, so these are the only route. When a milestone update carries a screenshot or other evidence file, follow `evidence-artifacts`, which owns the upload contract and these tools' mechanics.
 - The DEVELOPMENT space id and Project custom-field id are not hardcoded here; read them from `config/clickup.json` per the Configuration section above. The Project field is a dropdown naming the product a task belongs to; map its selected value to a registered project via `data/projects.md` (step 4).
 - Sprint points is ClickUp's native field and is NOT exposed by this connector: there is no points parameter on update and it does not appear in `custom_fields`.
   Never attempt to write sprint points through the connector; the confirmed estimate is recorded in the description only, under the durable-description contract below.
@@ -104,6 +105,7 @@ If an expected status name is missing on that task's list, stop, make no status 
      Parking never uses a `blocked` status or any other status change; the task simply stays `to do` and assigned, and a later `/clickup` resumes it from the accumulated description.
 7. **Code review milestone.**
    When the delegated ship task reaches its normal PR-ready signal - the PR open with checks green per section 7 - the main session posts a ClickUp comment (`clickup_create_comment`) containing a short implementation summary and the full PR URL, and moves the task to `code review` (after confirming that status exists).
+   If that update carries a screenshot or other evidence file, load `evidence-artifacts` and attach it before writing the comment.
 8. **QA milestone.**
    When that PR merges - detected by the normal merge monitoring - the main session moves the ClickUp task to `qa` (after confirming that status exists).
 
