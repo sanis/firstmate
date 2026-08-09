@@ -36,7 +36,7 @@ Firstmate's merge authority is unchanged throughout; the milestones only add Cli
 - The Project custom field is a dropdown naming the product a task belongs to; its selected value maps to a registered project through `data/projects.md`.
 - Sprint points is ClickUp's native field and is not exposed by this connector: no points parameter on update, and it does not appear in `custom_fields`.
 
-These facts were established interactively with the connector during design (2026-07-22) and are recorded in the skill as operating parameters.
+Except where a bullet above records a later date, these facts were established interactively with the connector during design (2026-07-22) and are recorded in the skill as operating parameters.
 This crewmate-authored change could not re-verify them - the connector only exists in the main session - so the first main-session run is the runtime verification point; any drift stops the affected step per the skill's safety rules.
 
 ## Captain-decided contracts and rationale
