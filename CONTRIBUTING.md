@@ -11,6 +11,8 @@ Pushing through it runs an AI-driven review/test/lint pipeline in an isolated wo
 
 A GitHub Actions check (`Require no-mistakes`) runs on PRs targeting `main` and fails if the body is missing the deterministic signature that no-mistakes writes.
 It evaluates every PR opening and body edit independently, so a later edit cannot replace an earlier pending compliance check.
+When the gate runs but cannot open the PR itself, so that the branch is pushed and the PR opened by hand, the check also accepts the gate's own commits: any commit in the PR whose subject starts with `no-mistakes(<step>):` proves the pipeline ran on the change.
+Neither proof is available to a PR that never went through the gate.
 GitHub Actions and Dependabot are exempt so their automation keeps working, but regular contributor PRs without the signature will not be reviewed or merged.
 
 ## Workflow
