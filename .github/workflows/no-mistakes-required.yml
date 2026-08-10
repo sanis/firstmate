@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 # GitHub concurrency groups retain at most one pending run, replacing older
 # pending runs even when cancel-in-progress is false. Give body-bearing events
@@ -28,14 +29,34 @@ jobs:
     steps:
       - name: Verify no-mistakes signature in PR body
         env:
+          GH_TOKEN: ${{ github.token }}
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_REPO: ${{ github.repository }}
         run: |
           set -eu
           marker='Updates from [git push no-mistakes](https://github.com/kunchenguid/no-mistakes)'
           if printf '%s' "${PR_BODY:-}" | grep -qF -- "$marker"; then
             echo "Found no-mistakes signature in PR #${PR_NUMBER} body."
+            exit 0
+          fi
+          # The gate does not always get to open the PR itself. When its push
+          # target is rejected (an unset fork URL against a repository the
+          # author cannot push to is the known case), the branch reaches the
+          # remote by hand and the body carries no signature even though every
+          # pipeline step ran on the change. The commits the gate writes are the
+          # same proof by a different route, so accept a `no-mistakes(<step>):`
+          # subject on any commit in the PR. That is no weaker than the body
+          # marker: both are deterministic pipeline output rather than something
+          # only the pipeline can produce.
+          subjects=$(gh api --paginate "repos/${PR_REPO}/pulls/${PR_NUMBER}/commits" \
+            --jq '.[].commit.message | split("\n")[0]') || {
+            echo "::error::Could not read the commits of PR #${PR_NUMBER}, so the gate-commit proof was not evaluated." >&2
+            exit 1
+          }
+          if printf '%s\n' "$subjects" | grep -qE '^no-mistakes\([a-z-]+\): '; then
+            echo "Found no-mistakes gate commits in PR #${PR_NUMBER}."
             exit 0
           fi
           {
@@ -46,6 +67,9 @@ jobs:
             echo "deterministic '## Pipeline' section into the PR body containing:"
             echo
             echo "    $marker"
+            echo
+            echo "Neither proof was found: the body carries no signature, and no commit"
+            echo "on this PR has a 'no-mistakes(<step>):' subject."
             echo
             echo "See CONTRIBUTING.md for setup and the full workflow."
             echo

@@ -23,19 +23,20 @@ One invocation processes at most one ClickUp task - it finds an eligible one, cr
 4. Propose repo (Project field mapped through `data/projects.md`) and a sprint-points estimate, then interview the captain on genuine uncertainties only.
 5. Append the interview outcome and confirmed estimate to the ClickUp description under a dated `## firstmate clarifications` section.
 6. Either move to `in progress` and dispatch a normal ship task, or park (assigned, still `to do`) and report what is missing.
-7. At PR-open-with-green-checks, post a ClickUp comment with the implementation summary and full PR URL, and move the task to `code review`.
+7. At PR-open-with-green-checks, attach any evidence file to the task first, then post a ClickUp comment with the implementation summary, the full PR URL, and the names of those attachments, and move the task to `code review`.
 8. At merge, move the task to `qa`.
 
 Firstmate's merge authority is unchanged throughout; the milestones only add ClickUp side effects to reporting points the lifecycle already has.
 
 ## Connector facts the skill encodes
 
-- Tools: `clickup_filter_tasks`, `clickup_get_task` (with `include: ["description", "custom_fields"]` and `expand_statuses: true`), `clickup_get_task_comments`, `clickup_get_threaded_comments`, `clickup_resolve_assignees`, `clickup_update_task` (`assignees`, `status`, `markdown_description`, `custom_fields`, `time_estimate`), `clickup_create_comment`, `clickup_create_task` (create-a-task branch only).
+- Tools: `clickup_filter_tasks`, `clickup_get_task` (with `include: ["description", "custom_fields"]` and `expand_statuses: true`), `clickup_get_task_comments`, `clickup_get_threaded_comments`, `clickup_resolve_assignees`, `clickup_update_task` (`assignees`, `status`, `markdown_description`, `custom_fields`, `time_estimate`), `clickup_create_comment`, `clickup_create_task` (create-a-task branch only), `clickup_attach_task_file` and `clickup_request_attachment_upload` (evidence attachments).
+- The two attachment tools were established later, on 2026-08-09, and their behavior is recorded in [`docs/verification/evidence-artifacts.md`](verification/evidence-artifacts.md); the delivery contract they serve is owned by the `evidence-artifacts` skill, while the ClickUp mechanics live in the `/clickup` skill because only the main session can call the connector.
 - The DEVELOPMENT space id and Project custom-field id are home-specific and are not hardcoded in the shared skill; they live in `config/clickup.json` (LOCAL, gitignored) and are read at `/clickup` start. See the skill's Configuration section for the file shape and the absent-config stop rule.
 - The Project custom field is a dropdown naming the product a task belongs to; its selected value maps to a registered project through `data/projects.md`.
 - Sprint points is ClickUp's native field and is not exposed by this connector: no points parameter on update, and it does not appear in `custom_fields`.
 
-These facts were established interactively with the connector during design (2026-07-22) and are recorded in the skill as operating parameters.
+Except where a bullet above records a later date, these facts were established interactively with the connector during design (2026-07-22) and are recorded in the skill as operating parameters.
 This crewmate-authored change could not re-verify them - the connector only exists in the main session - so the first main-session run is the runtime verification point; any drift stops the affected step per the skill's safety rules.
 
 ## Captain-decided contracts and rationale
