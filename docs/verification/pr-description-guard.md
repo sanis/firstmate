@@ -136,6 +136,13 @@ which side each case falls on.
 - **Short mktemp suffixes.** `/tmp/fm-evidence.Ab3kZq/x.png` carries the standard
   six-character `mktemp` template, which never reaches ten characters, so it
   passes. The opacity rule reaches run ids and ULIDs, not plain `mktemp` names.
+- **Markdown reference definitions.** A reference-style link, `[shot]: /tmp/shot.png`
+  on its own line, is a genuine delivery position but is not recognised as one:
+  only the inline `](target)` form is. Matching the reference shape would also
+  catch ordinary prose that ends a bracketed label with a colon before a path,
+  and a false refusal costs more here than a miss. The HTML half of this gap is
+  closed - `src=` and `href=` match in either case, because HTML attribute names
+  are case-insensitive and both forges render raw HTML in a description.
 - **Machine-local paths outside the known roots.** An evidence tool writing to
   `/opt/evidence/<run-id>/` or `/srv/…` is never considered, because the opacity
   test is applied only under the candidate roots. Widening it refuses the
@@ -149,6 +156,13 @@ which side each case falls on.
   elsewhere, so it is out of scope here;
   [`.agents/skills/evidence-artifacts/SKILL.md`](../../.agents/skills/evidence-artifacts/SKILL.md)
   owns that trap.
+- **A refused path containing a space is named only up to that space.** A path
+  token stops at the first character a path cannot contain, and a space is one of
+  them, so `see /Users/me/a b/out.png` is correctly refused but reported as
+  `/Users/me/a`. The author is then handed a string they cannot find verbatim in
+  their own description. Widening the character class to admit spaces would
+  swallow the surrounding prose into every token, so this is an accepted
+  tradeoff; the refusal header still says what kind of problem to look for.
 - **A path that is present but unreachable.** The guard proves the reader was
   not handed a local path. It cannot prove an uploaded link actually renders.
 - **Anything it cannot read.** An unreachable forge, a missing CLI, an

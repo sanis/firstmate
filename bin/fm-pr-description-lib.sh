@@ -116,10 +116,12 @@ function has_opaque_segment(p,   n, segs, i) {
 }
 
 # The reader is invited to open it: a markdown image or link target, or an HTML
-# src=/href= attribute.
+# src=/href= attribute. HTML attribute names are case-insensitive, so both cases
+# are spelled out as character classes rather than with an inline flag no POSIX
+# awk carries.
 function is_delivered(before) {
   if (before ~ "\\]\\($") return 1
-  if (before ~ "(src|href)[ \t]*=[ \t]*[\"']?$") return 1
+  if (before ~ "([sS][rR][cC]|[hH][rR][eE][fF])[ \t]*=[ \t]*[\"']?$") return 1
   return 0
 }
 
@@ -174,7 +176,7 @@ fm_pr_description_local_paths() {
 # caller must degrade to a warning rather than block, because a network hiccup
 # must never stop a legitimate ready report.
 fm_pr_description_fetch() {
-  local provider=$1 host=$2 project_path=$3 number=$4 owner=$5 repo=$6
+  local provider=$1 host=$2 project_path=$3 number=$4 owner=$5 repo=$6 rc=0
   case "$provider" in
     github)
       command -v gh >/dev/null 2>&1 || return 1
@@ -187,10 +189,17 @@ fm_pr_description_fetch() {
       # The JSON form is exact. Older glab builds without --jq still answer the
       # plain view, whose header lines carry no filesystem path, so scanning it
       # costs nothing and keeps the check working across versions.
+      # 124 is the one status that does not fall through to that fallback: the
+      # fallback exists for a build that rejects --jq, which fails instantly,
+      # whereas a hit bound means the host is not answering at all and retrying
+      # it would burn a second full bound before the warning is printed.
       fm_run_timed "$FM_PR_DESCRIPTION_TIMEOUT" \
-        glab mr view "$number" -R "$host/$project_path" -F json --jq .description 2>/dev/null \
-        || fm_run_timed "$FM_PR_DESCRIPTION_TIMEOUT" \
-          glab mr view "$number" -R "$host/$project_path" 2>/dev/null
+        glab mr view "$number" -R "$host/$project_path" -F json --jq .description 2>/dev/null || rc=$?
+      case "$rc" in
+        0|124) return "$rc" ;;
+      esac
+      fm_run_timed "$FM_PR_DESCRIPTION_TIMEOUT" \
+        glab mr view "$number" -R "$host/$project_path" 2>/dev/null
       ;;
     *)
       return 1

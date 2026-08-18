@@ -261,6 +261,12 @@ test_scratch_root_needs_a_second_signal() {
   assert_scan_equals "delivered target" "/tmp/build.log" \
     < <(printf -- '- Evidence: the run log\n\n  ![build log](/tmp/build.log)\n')
   assert_scan_equals "html src" "/tmp/shot.png" < <(printf '<img src="/tmp/shot.png">\n')
+  # HTML attribute names are case-insensitive and both forges render raw HTML.
+  assert_scan_equals "html SRC uppercase" "/tmp/shot.png" < <(printf '<IMG SRC="/tmp/shot.png">\n')
+  assert_scan_equals "html HREF uppercase" "/tmp/shot.png" \
+    < <(printf '<a HREF=/tmp/shot.png>the capture</a>\n')
+  assert_scan_equals "html Href mixed case" "/tmp/shot.png" \
+    < <(printf '<a Href="/tmp/shot.png">the capture</a>\n')
   assert_scan_equals "run-stamped" "/tmp/run-01M0A19WBRM7DGRAFZZM6ZQ2FC/out.json" \
     < <(printf 'written to /tmp/run-01M0A19WBRM7DGRAFZZM6ZQ2FC/out.json\n')
   pass "a shared scratch root refuses only when stamped or delivered"
