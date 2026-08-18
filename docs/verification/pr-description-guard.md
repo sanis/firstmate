@@ -15,17 +15,31 @@ refresh the fixtures when a new false refusal or miss is found in the field.
 
 Verified on 2026-08-18 with `gh version 2.97.0 (2026-07-31)` and
 `glab 1.113.0 (d62881304)`.
+The `glab` transcripts below were re-run on 2026-08-19 with the same versions
+after `-R` moved from a bare `<host>/<project-path>` to the project URL.
 
     gh pr view <number> --repo <owner>/<repo> --json body -q .body
-    glab mr view <number> -R <host>/<project-path> -F json --jq .description
+    glab mr view <number> -R https://<host>/<project-path> -F json --jq .description
 
 Both return the description on stdout and exit 0.
+`glab` needs the project URL, not a bare `host/path`: the bare form is answered
+by whichever instance `glab` is configured for, so a self-hosted host is
+silently dropped from the address.
+Measured against a host that cannot resolve, only the URL form dials it:
+
+    $ glab mr view 1 -R bogus.invalid/gitlab-org/cli -F json --jq .description
+    {"error":{"message":"failed to get merge request 1: 404 Not Found"}}
+    $ glab mr view 1 -R https://bogus.invalid/gitlab-org/cli -F json --jq .description
+    {"error":{"message":"failed to get merge request 1: Get \"https://bogus.invalid/api/v4/projects/gitlab-org%2Fcli/merge_requests/1?include_diverged_commits_count=true\u0026include_rebase_in_progress=true\u0026render_html=true\": dial tcp: lookup bogus.invalid: no such host"}}
+
+Both exit 1, so the guard degrades either way, but the bare form would read a
+same-path project on the default instance if one existed.
 Every transcript in this section was run against public projects so a
 maintainer can re-run it verbatim:
 
     $ gh pr view 7 --repo sanis/firstmate --json body -q .body >/dev/null 2>&1; echo $?
     0
-    $ glab mr view 3740 -R gitlab.com/gitlab-org/cli -F json --jq .description >/dev/null 2>&1; echo $?
+    $ glab mr view 3740 -R https://gitlab.com/gitlab-org/cli -F json --jq .description >/dev/null 2>&1; echo $?
     0
 
 Neither command needs a JSON processor on PATH, which is what keeps one off
@@ -36,7 +50,7 @@ internally, measured against a PATH holding only those two CLIs plus `git` and
 
     $ command -v jq >/dev/null 2>&1 && echo present || echo absent
     absent
-    $ glab mr view 3740 -R gitlab.com/gitlab-org/cli -F json --jq .description >/dev/null 2>&1; echo $?
+    $ glab mr view 3740 -R https://gitlab.com/gitlab-org/cli -F json --jq .description >/dev/null 2>&1; echo $?
     0
     $ gh pr view 7 --repo sanis/firstmate --json body -q .body >/dev/null 2>&1; echo $?
     0
@@ -59,9 +73,9 @@ degrade-to-warning path relies on:
 
     $ gh pr view 999999 --repo sanis/firstmate --json body -q .body >/dev/null 2>&1; echo $?
     1
-    $ glab mr view 999999 -R gitlab.com/gitlab-org/cli -F json --jq .description >/dev/null 2>&1; echo $?
+    $ glab mr view 999999 -R https://gitlab.com/gitlab-org/cli -F json --jq .description >/dev/null 2>&1; echo $?
     1
-    $ glab mr view 3740 -R gitlab.com/gitlab-org/no-such-project-fm -F json --jq .description >/dev/null 2>&1; echo $?
+    $ glab mr view 3740 -R https://gitlab.com/gitlab-org/no-such-project-fm -F json --jq .description >/dev/null 2>&1; echo $?
     1
 
 The plain `glab mr view` fallback prints a short header block, then `--`, then
@@ -127,6 +141,7 @@ Reproduce in the repo:
     ok - a refused twin path is named exactly as the description wrote it
     ok - a refusal names every path, points at the recipes, and changes nothing
     ok - both forges are checked, each with its own wording
+    ok - the GitLab fetch addresses the task's own instance, not glab's default
     ok - a clean description arms exactly as before
     ok - an unreadable description degrades to a warning and the report proceeds
     ok - a forge that never answers times out to a warning and the report arms
@@ -169,6 +184,7 @@ intact.
 Unrelated supervision-banner output from
 [`bin/fm-guard.sh`](../../bin/fm-guard.sh) is elided above; it is independent of
 this check and depends only on where the command was run.
+
 ## What this misses
 
 Every rule here fails in both directions, and choosing where was deliberate: a
@@ -179,8 +195,9 @@ which side each case falls on.
 ### False negatives - a local path that passes
 
 - **A plain scratch path in prose.** `written to /tmp/report.json`, with no
-  run-stamped segment and no link syntax, passes. It is indistinguishable in
-  shape from `curl -o /tmp/glab.tgz`, and refusing both would refuse !703.
+  run-stamped segment and no link syntax, passes.
+  It is indistinguishable in shape from `curl -o /tmp/glab.tgz`, and refusing
+  both would refuse !703.
 - **Reproducible-looking evidence directories.** `/tmp/pytest-of-user/run/x.png`
   has no segment long enough to read as machine-generated, so it passes.
 - **Run stamps that carry no letters.** `/tmp/run-1755500000/x.png` is a
@@ -191,27 +208,31 @@ which side each case falls on.
   ten characters, so no single run clears the threshold and it passes.
 - **Short mktemp suffixes.** `/tmp/fm-evidence.Ab3kZq/x.png` carries the standard
   six-character `mktemp` template, which never reaches ten characters, so it
-  passes. The opacity rule reaches run ids and ULIDs, not plain `mktemp` names.
+  passes.
+  The opacity rule reaches run ids and ULIDs, not plain `mktemp` names.
 - **Markdown reference definitions.** A reference-style link, `[shot]: /tmp/shot.png`
   on its own line, is a genuine delivery position but is not recognised as one:
-  only the inline `](target)` form is. Matching the reference shape would also
-  catch ordinary prose that ends a bracketed label with a colon before a path,
-  and a false refusal costs more here than a miss.
+  only the inline `](target)` form is.
+  Matching the reference shape would also catch ordinary prose that ends a
+  bracketed label with a colon before a path, and a false refusal costs more here
+  than a miss.
 - **An HTML attribute split across lines.** `src=` and `href=` are matched in
   either case, because HTML attribute names are case-insensitive and both forges
   render raw HTML in a description, but they count as a delivery only inside a
-  tag that is still open on the same line. An attribute on a continuation line -
-  `<img`, then `src=/tmp/shot.png` on the next - is therefore missed. That
-  narrowing is deliberate and is what stops `make SRC=/tmp/src` from being read
-  as a delivery: without it, an ordinary upper-case build or environment variable
-  refuses exactly the documented-command case !703 exists to protect. Carrying
-  the open-tag state across lines instead would fix the miss, but a single
-  unbalanced `<` anywhere in a fenced code block would then strand every later
-  line inside a phantom tag, and that trades a miss for a false refusal.
+  tag that is still open on the same line.
+  An attribute on a continuation line - `<img`, then `src=/tmp/shot.png` on the
+  next - is therefore missed.
+  That narrowing is deliberate and is what stops `make SRC=/tmp/src` from being
+  read as a delivery: without it, an ordinary upper-case build or environment
+  variable refuses exactly the documented-command case !703 exists to protect.
+  Carrying the open-tag state across lines instead would fix the miss, but a
+  single unbalanced `<` anywhere in a fenced code block would then strand every
+  later line inside a phantom tag, and that trades a miss for a false refusal.
 - **Machine-local paths outside the known roots.** An evidence tool writing to
   `/opt/evidence/<run-id>/` or `/srv/…` is never considered, because the opacity
-  test is applied only under the candidate roots. Widening it refuses the
-  correct GitLab `/uploads/<hash>/` form, so the roots stay.
+  test is applied only under the candidate roots.
+  Widening it refuses the correct GitLab `/uploads/<hash>/` form, so the roots
+  stay.
 - **Home paths written through a variable.** `~/out.png` and `$HOME/out.png`
   pass on purpose: `~/.config/tool.yml` is routinely documented as a location
   the reader has too, and refusing it would be a false refusal.
@@ -224,41 +245,49 @@ which side each case falls on.
 - **A refused path containing a space is named only up to that space.** A path
   token stops at the first character a path cannot contain, and a space is one of
   them, so `see /Users/me/a b/out.png` is correctly refused but reported as
-  `/Users/me/a`. The author is then handed a string they cannot find verbatim in
-  their own description. Widening the character class to admit spaces would
-  swallow the surrounding prose into every token, so this is an accepted
-  tradeoff; the refusal header still says what kind of problem to look for.
+  `/Users/me/a`.
+  The author is then handed a string they cannot find verbatim in their own
+  description.
+  Widening the character class to admit spaces would swallow the surrounding
+  prose into every token, so this is an accepted tradeoff; the refusal header
+  still says what kind of problem to look for.
 - **A path that is present but unreachable.** The guard proves the reader was
-  not handed a local path. It cannot prove an uploaded link actually renders.
+  not handed a local path.
+  It cannot prove an uploaded link actually renders.
 - **Anything it cannot read.** An unreachable forge, a missing CLI, an
   unsupported provider, or a forge that does not answer inside
   `FM_PR_DESCRIPTION_TIMEOUT` seconds degrades to a warning and the ready report
-  proceeds. The guard is a measurement, not a gate that survives being blinded.
+  proceeds.
+  The guard is a measurement, not a gate that survives being blinded.
 
 ### False refusals - a quoted path that is refused anyway
 
-These are the accepted cost of the minimum root set. They are decisions, not
-oversights.
+These are the accepted cost of the minimum root set.
+They are decisions, not oversights.
 
 - **A home-root path quoted as documentation.** A GitHub Actions log excerpt
   naming `/home/runner/work/<repo>/<repo>/out.log` in prose is refused with no
   second signal, because a home root is private by shape and `/home/` is part of
-  the required minimum root set. The refusal text tells the author to upload each
-  artifact, which does not fit a path that was only being quoted, and
+  the required minimum root set.
+  The refusal text tells the author to upload each artifact, which does not fit
+  a path that was only being quoted, and
   [`AGENTS.md`](../../AGENTS.md) forbids bypassing the refusal, so the author has
   to reword the excerpt - eliding the runner prefix, or quoting the file name
-  alone. Home roots sit in the same private-by-shape class as `/var/folders`,
-  which is where the 2026-08-18 defect actually shipped, so weakening that class
-  to require a second signal was not on the table.
+  alone.
+  Home roots sit in the same private-by-shape class as `/var/folders`, which is
+  where the 2026-08-18 defect actually shipped, so weakening that class to
+  require a second signal was not on the table.
 - **A per-user temp path discussed as the subject matter.** Observed in the
   field, not hypothesised:
   [`kovidgoyal/calibre#3262`](https://github.com/kovidgoyal/calibre/pull/3262)
   is a public pull request *about* `/var` versus `/private/var` resolution, and
   quotes elided paths such as `/var/folders/.../` and
-  `/private/var/folders/.../chigb/up.gif` in a log excerpt and in prose. The
-  scanner names four of them. Nothing is delivered and nothing is unopenable;
-  the paths are the bug being described. This is the same accepted cost as the
-  home-root case above - a private-by-shape root is refused with no second
-  signal - and it is the shape most likely to annoy someone whose change is
-  itself about filesystem paths. The refusal is a stop, not a silent edit, so
-  the author reads it and reworks the excerpt.
+  `/private/var/folders/.../chigb/up.gif` in a log excerpt and in prose.
+  The scanner names four of them.
+  Nothing is delivered and nothing is unopenable; the paths are the bug being
+  described.
+  This is the same accepted cost as the home-root case above - a
+  private-by-shape root is refused with no second signal - and it is the shape
+  most likely to annoy someone whose change is itself about filesystem paths.
+  The refusal is a stop, not a silent edit, so the author reads it and reworks
+  the excerpt.

@@ -204,13 +204,14 @@ fm_pr_description_fetch() {
       # fallback exists for a build that rejects --jq, which fails instantly,
       # whereas a hit bound means the host is not answering at all and retrying
       # it would burn a second full bound before the warning is printed.
+      # -R takes the project URL, not a bare host/path; see bin/fm-pr-poll.sh.
       fm_run_timed "$FM_PR_DESCRIPTION_TIMEOUT" \
-        glab mr view "$number" -R "$host/$project_path" -F json --jq .description 2>/dev/null || rc=$?
+        glab mr view "$number" -R "https://$host/$project_path" -F json --jq .description 2>/dev/null || rc=$?
       case "$rc" in
         0|124) return "$rc" ;;
       esac
       fm_run_timed "$FM_PR_DESCRIPTION_TIMEOUT" \
-        glab mr view "$number" -R "$host/$project_path" 2>/dev/null
+        glab mr view "$number" -R "https://$host/$project_path" 2>/dev/null
       ;;
     *)
       return 1

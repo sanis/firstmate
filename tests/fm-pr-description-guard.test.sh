@@ -171,11 +171,18 @@ case " $* " in
     ;;
 esac
 SH
+  # The stub records its own argv so a test can read back the address the fetch
+  # asked for, and FM_TEST_GLAB_NO_JQ models an older glab that rejects --jq,
+  # which is what drives the fetch onto its plain-view fallback.
   cat > "$fakebin/glab" <<'SH'
 #!/usr/bin/env bash
 case " $* " in
   *" mr view "*)
+    [ -z "${FM_TEST_GLAB_ARGV_FILE:-}" ] || printf '%s\n' "$*" >> "$FM_TEST_GLAB_ARGV_FILE"
     [ "${FM_TEST_FORGE_FAIL:-0}" = 0 ] || exit 1
+    case " $* " in
+      *" --jq "*) [ "${FM_TEST_GLAB_NO_JQ:-0}" = 0 ] || exit 1 ;;
+    esac
     [ -z "${FM_TEST_BODY_FILE:-}" ] || cat "$FM_TEST_BODY_FILE"
     ;;
 esac
@@ -197,6 +204,8 @@ run_check() {  # <case-dir> [args...]
     FM_TEST_BODY_FILE="${FM_TEST_BODY_FILE:-}" \
     FM_TEST_FORGE_FAIL="${FM_TEST_FORGE_FAIL:-0}" \
     FM_TEST_FORGE_HANG="${FM_TEST_FORGE_HANG:-0}" \
+    FM_TEST_GLAB_NO_JQ="${FM_TEST_GLAB_NO_JQ:-0}" \
+    FM_TEST_GLAB_ARGV_FILE="${FM_TEST_GLAB_ARGV_FILE:-}" \
     FM_PR_DESCRIPTION_TIMEOUT="${FM_PR_DESCRIPTION_TIMEOUT:-20}" \
     PATH="$dir/fakebin:$BASE_PATH" \
     "$PR_CHECK" "$@"
@@ -382,6 +391,30 @@ test_gitlab_refusal_uses_merge_request_wording() {
   pass "both forges are checked, each with its own wording"
 }
 
+test_gitlab_fetch_addresses_the_task_instance() {
+  local dir rc calls line repo
+  dir=$(make_case host-gitlab)
+  fixture_1328 > "$dir/body.md"
+  set +e
+  FM_TEST_BODY_FILE="$dir/body.md" FM_TEST_GLAB_NO_JQ=1 \
+    FM_TEST_GLAB_ARGV_FILE="$dir/argv" run_check "$dir" task-a \
+    https://gitlab.example/g/sub/p/-/merge_requests/17 > "$dir/out" 2> "$dir/err"
+  rc=$?
+  set -e
+  expect_code 0 "$rc" "a self-hosted merge request with a clean description"
+  [ -s "$dir/argv" ] || fail "the GitLab fetch never ran"
+  calls=$(wc -l < "$dir/argv" | tr -d ' ')
+  [ "$calls" = 2 ] || fail "expected the --jq form and its plain fallback, got $calls call(s)"
+  while IFS= read -r line; do
+    repo=${line#*-R }
+    repo=${repo%% *}
+    [ "$repo" = "https://gitlab.example/g/sub/p" ] || fail \
+      "the fetch dropped the task's instance from -R: $repo"
+  done < "$dir/argv"
+  [ ! -s "$dir/err" ] || fail "a readable description printed a diagnostic: $(cat "$dir/err")"
+  pass "the GitLab fetch addresses the task's own instance, not glab's default"
+}
+
 test_clean_description_arms_unchanged() {
   local dir rc out
   dir=$(make_case clean)
@@ -460,6 +493,7 @@ test_private_twin_roots_classify_as_their_canonical_root
 test_refusal_names_the_path_as_written
 test_refusal_names_paths_and_leaves_no_side_effect
 test_gitlab_refusal_uses_merge_request_wording
+test_gitlab_fetch_addresses_the_task_instance
 test_clean_description_arms_unchanged
 test_unreadable_description_warns_and_proceeds
 test_hanging_forge_times_out_and_the_report_still_arms
