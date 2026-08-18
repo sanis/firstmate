@@ -142,6 +142,7 @@ Reproduce in the repo:
     ok - a refusal names every path, points at the recipes, and changes nothing
     ok - both forges are checked, each with its own wording
     ok - the GitLab fetch addresses the task's own instance, not glab's default
+    ok - an absent glab is reported once, as the missing CLI
     ok - a clean description arms exactly as before
     ok - an unreadable description degrades to a warning and the report proceeds
     ok - a forge that never answers times out to a warning and the report arms
@@ -263,6 +264,9 @@ which side each case falls on.
   `FM_PR_DESCRIPTION_TIMEOUT` seconds degrades to a warning and the ready report
   proceeds.
   The guard is a measurement, not a gate that survives being blinded.
+  A GitLab merge request with no `glab` is the one case that does not reach the
+  warning: `bin/fm-pr-check.sh` refuses to arm a watch it cannot poll, and that
+  refusal comes first, so the absent CLI is reported instead of the description.
 
 ### False refusals - a quoted path that is refused anyway
 

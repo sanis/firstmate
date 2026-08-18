@@ -400,6 +400,39 @@ test_gitlab_refusal_uses_merge_request_wording() {
   pass "both forges are checked, each with its own wording"
 }
 
+test_absent_glab_reports_only_the_missing_cli() {
+  local dir rc err
+  dir=$(make_case no-glab)
+  rm -f "$dir/fakebin/glab"
+  fixture_1333 > "$dir/body.md"
+  set +e
+  FM_TEST_BODY_FILE="$dir/body.md" run_check "$dir" task-a \
+    https://gitlab.com/g/sub/p/-/merge_requests/17 > "$dir/out" 2> "$dir/err"
+  rc=$?
+  set -e
+  expect_code 1 "$rc" "a GitLab merge request with no glab on PATH"
+  err=$(cat "$dir/err")
+  assert_contains "$err" "requires glab on PATH" "the absent CLI was not named"
+  case "$err" in
+    *"could not read the description"*)
+      fail "the absent CLI was reported as a description problem too:"$'\n'"$err" ;;
+  esac
+  assert_absent "$dir/home/state/task-a.check.sh" "a watch was armed with no glab"
+  # The same body with glab present must still be refused. The CLI gate runs
+  # first, so this is what stops it from swallowing the check on GitLab.
+  dir=$(make_case no-glab-control)
+  fixture_1333 > "$dir/body.md"
+  set +e
+  FM_TEST_BODY_FILE="$dir/body.md" run_check "$dir" task-a \
+    https://gitlab.com/g/sub/p/-/merge_requests/17 > "$dir/out" 2> "$dir/err"
+  rc=$?
+  set -e
+  expect_code 3 "$rc" "the same body with glab present"
+  assert_contains "$(cat "$dir/err")" "07-no-config-refused.png" \
+    "the CLI gate swallowed the GitLab description check"
+  pass "an absent glab is reported once, as the missing CLI"
+}
+
 test_gitlab_fetch_addresses_the_task_instance() {
   local dir rc calls line repo
   dir=$(make_case host-gitlab)
@@ -503,6 +536,7 @@ test_refusal_names_the_path_as_written
 test_refusal_names_paths_and_leaves_no_side_effect
 test_gitlab_refusal_uses_merge_request_wording
 test_gitlab_fetch_addresses_the_task_instance
+test_absent_glab_reports_only_the_missing_cli
 test_clean_description_arms_unchanged
 test_unreadable_description_warns_and_proceeds
 test_hanging_forge_times_out_and_the_report_still_arms

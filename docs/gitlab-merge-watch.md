@@ -162,12 +162,12 @@ $ PATH="$noglab" fm-pr-poll.sh --validated $(tr '\n' ' ' < state/e3.pr-poll)
 
 Arming is the one point where that can be reported, so it refuses there instead of
 arming a watch that can never fire.
-Re-run 2026-08-18: the description check needs the same absent `glab`, so it
-degrades to its warning first and the refusal still follows.
+Re-run 2026-08-19: that refusal comes before the description check, which would
+have to read the description through the same absent `glab`, so the one thing
+actually wrong is reported once.
 
 ```
 $ PATH="$noglab" fm-pr-check.sh e5 https://gitlab.com/KarotKris/gitlab-merge-watch-fixture/-/merge_requests/1
-warning: could not read the description; the local-path check was skipped
 error: watching a GitLab merge request requires glab on PATH
 $ echo $?
 1

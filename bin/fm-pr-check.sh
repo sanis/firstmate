@@ -58,6 +58,18 @@ if [ ! -f "$META" ] || [ -L "$META" ] || [ "$(fm_pr_file_link_count "$META")" !=
   exit 1
 fi
 
+# Refuse to arm a GitLab watch with no glab on PATH. The poll is silent on
+# every error by design, so a missing CLI would be indistinguishable from a
+# merge request that is never merged. Arming is the one point where that can be
+# reported, so the absent tool stops the watch here instead of watching nothing.
+# This precedes the description check because that check reads the description
+# through the same absent CLI: it could only degrade to its warning, naming the
+# description rather than the one thing actually wrong.
+if [ "$PROVIDER" = gitlab ] && ! command -v glab >/dev/null 2>&1; then
+  echo "error: watching a GitLab merge request requires glab on PATH" >&2
+  exit 1
+fi
+
 # Measure the delivered description before any state is recorded or armed, so a
 # refusal leaves the task exactly as it was. Evidence named by a local path is
 # unopenable for a reader on another machine, and instructions alone never
@@ -83,15 +95,6 @@ fm_pr_poll_retirement_recover_one "$STATE" "$ID" "$SCRIPT_DIR/fm-pr-poll.sh" || 
   echo "error: pending PR poll retirement could not be validated" >&2
   exit 1
 }
-
-# Refuse to arm a GitLab watch with no glab on PATH. The poll is silent on
-# every error by design, so a missing CLI would be indistinguishable from a
-# merge request that is never merged. Arming is the one point where that can be
-# reported, so the absent tool stops the watch here instead of watching nothing.
-if [ "$PROVIDER" = gitlab ] && ! command -v glab >/dev/null 2>&1; then
-  echo "error: watching a GitLab merge request requires glab on PATH" >&2
-  exit 1
-fi
 
 # Neutralize any pre-fix poll before recording or arming this task. The
 # migration never executes legacy artifacts and holds watcher exclusion while
