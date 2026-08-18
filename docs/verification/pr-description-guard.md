@@ -20,28 +20,65 @@ Verified on 2026-08-18 with `gh version 2.97.0 (2026-07-31)` and
     glab mr view <number> -R <host>/<project-path> -F json --jq .description
 
 Both return the description on stdout and exit 0.
-`glab` carries its own jq implementation, so neither command needs a JSON
-processor on PATH, which is what keeps this off firstmate's dependency list.
+Every transcript in this section was run against public projects so a
+maintainer can re-run it verbatim:
+
+    $ gh pr view 7 --repo sanis/firstmate --json body -q .body >/dev/null 2>&1; echo $?
+    0
+    $ glab mr view 3740 -R gitlab.com/gitlab-org/cli -F json --jq .description >/dev/null 2>&1; echo $?
+    0
+
+Neither command needs a JSON processor on PATH, which is what keeps one off
+firstmate's dependency list.
+`gh` answers `-q` and `glab` answers `--jq` from an implementation each carries
+internally, measured against a PATH holding only those two CLIs plus `git` and
+`sh`:
+
+    $ command -v jq >/dev/null 2>&1 && echo present || echo absent
+    absent
+    $ glab mr view 3740 -R gitlab.com/gitlab-org/cli -F json --jq .description >/dev/null 2>&1; echo $?
+    0
+    $ gh pr view 7 --repo sanis/firstmate --json body -q .body >/dev/null 2>&1; echo $?
+    0
+
+`git` does have to be present: `glab` exits non-zero without it even when the
+project is named explicitly with `-R`.
+That costs nothing here because firstmate already requires `git`.
 
 Both are run under [`bin/fm-timeout-lib.sh`](../../bin/fm-timeout-lib.sh)'s
 `fm_run_timed`, bounded by `FM_PR_DESCRIPTION_TIMEOUT` (20 seconds by default),
 because a forge that accepts the connection and then never answers cannot be
-detected by an exit status. A hit bound returns 124 and is treated as any other
-fetch failure.
+detected by an exit status.
+A hit bound returns 124 and is treated as any other fetch failure:
+
+    $ fm_run_timed 1 sleep 5 >/dev/null 2>&1; echo $?
+    124
 
 Failure exits non-zero with no usable stdout, which is what the guard's
 degrade-to-warning path relies on:
 
-    $ gh pr view 999999 --repo <owner>/<repo> --json body -q .body >/dev/null 2>&1; echo $?
+    $ gh pr view 999999 --repo sanis/firstmate --json body -q .body >/dev/null 2>&1; echo $?
     1
-    $ glab mr view 999999 -R <host>/<project-path> -F json --jq .description >/dev/null 2>&1; echo $?
+    $ glab mr view 999999 -R gitlab.com/gitlab-org/cli -F json --jq .description >/dev/null 2>&1; echo $?
     1
-    $ glab mr view 703 -R <host>/<absent-project> -F json --jq .description >/dev/null 2>&1; echo $?
+    $ glab mr view 3740 -R gitlab.com/gitlab-org/no-such-project-fm -F json --jq .description >/dev/null 2>&1; echo $?
     1
 
-The plain `glab mr view` fallback prints a short header block (title, state,
-author, labels, assignees, reviewers, comments, number, url) followed by `--`
-and then the description verbatim.
+The plain `glab mr view` fallback prints a short header block, then `--`, then
+the description verbatim:
+
+    title:  chore(deps): update module golang.org/x/crypto to v0.55.0
+    state:  open
+    author: gitlab-dependency-update-bot
+    labels: Category:GitLab CLI, automation:bot-authored, ...
+    assignees: gitlab-dependency-update-bot
+    reviewers: hacks4oats, GitLabDuo
+    comments: 3
+    number: 3740
+    url: https://gitlab.com/gitlab-org/cli/-/merge_requests/3740
+    --
+    This MR contains the following updates:
+
 Scanning that header costs nothing because none of its fields carry a
 filesystem path.
 
@@ -83,6 +120,7 @@ Reproduce in the repo:
     ok - !1328: a clean description and correct /uploads/ links pass
     ok - !703: quoted CI install commands under /tmp pass
     ok - a shared scratch root refuses only when stamped or delivered
+    ok - attribute-shaped bytes deliver only inside an open tag
     ok - a user home or file:// URL is refused with no second signal
     ok - a /home or /tmp segment inside a URL is not a local path
     ok - a /private twin decides as its canonical root, and nothing else does
@@ -94,25 +132,43 @@ Reproduce in the repo:
     ok - a forge that never answers times out to a warning and the report arms
     ok - the merge path records metadata without re-litigating the description
 
-A 16,726-byte real GitHub pull request body from this repo was scanned on the
-same date and produced no findings, so the rule does not fire on ordinary
-firstmate release prose.
+Real bodies were scanned on the same date as a field check that the rule does
+not fire on ordinary prose.
+The three largest pull request bodies in this repo - 9,901, 6,625 and 5,334
+bytes - produced no findings, and neither did the 11,199-byte body of the
+unrelated public
+[`Infisical/ansible-collection#27`](https://github.com/Infisical/ansible-collection/pull/27).
+
+The refusal is also proven against a live forge, not only against the fixtures.
+[`Seth-Peters/treebox#41`](https://github.com/Seth-Peters/treebox/pull/41) is an
+unrelated public pull request whose 36,986-byte body carries the same evidence
+shape the four defective bodies did - artifacts under
+`/var/folders/.../no-mistakes-evidence/<run-id>/` - and the scanner names 39
+paths in it, read through the real `gh`.
+The four defective bodies themselves were corrected before this guard existed
+and cannot be re-created without publishing a broken description, so that public
+body is what stands in for them end to end.
 
 End to end through the real CLIs on 2026-08-18, against a throwaway `FM_HOME`
 and both live forges:
 
-    $ bin/fm-pr-check.sh t1 <live merge request URL>
+    $ bin/fm-pr-check.sh t1 https://gitlab.com/gitlab-org/cli/-/merge_requests/3740
     armed: state/t1.check.sh
-    $ bin/fm-pr-check.sh t2 <live pull request URL>
+    (exit 0)
+    $ bin/fm-pr-check.sh t2 https://github.com/sanis/firstmate/pull/7
     armed: state/t2.check.sh
-    $ bin/fm-pr-check.sh t3 <pull request URL that does not exist>
+    (exit 0)
+    $ bin/fm-pr-check.sh t3 https://github.com/sanis/firstmate/pull/999999
     warning: could not read the description; the local-path check was skipped
     armed: state/t3.check.sh
+    (exit 0)
 
-The refusal itself is proven end to end in the test above rather than against a
-live forge, because all four defective bodies were corrected before this guard
-existed and none can be re-created without publishing a broken description.
-
+Each of the three recorded its `pr=` line and armed its poll, so a clean
+description on either forge and an unreadable one all leave the ready report
+intact.
+Unrelated supervision-banner output from
+[`bin/fm-guard.sh`](../../bin/fm-guard.sh) is elided above; it is independent of
+this check and depends only on where the command was run.
 ## What this misses
 
 Every rule here fails in both directions, and choosing where was deliberate: a
@@ -140,9 +196,18 @@ which side each case falls on.
   on its own line, is a genuine delivery position but is not recognised as one:
   only the inline `](target)` form is. Matching the reference shape would also
   catch ordinary prose that ends a bracketed label with a colon before a path,
-  and a false refusal costs more here than a miss. The HTML half of this gap is
-  closed - `src=` and `href=` match in either case, because HTML attribute names
-  are case-insensitive and both forges render raw HTML in a description.
+  and a false refusal costs more here than a miss.
+- **An HTML attribute split across lines.** `src=` and `href=` are matched in
+  either case, because HTML attribute names are case-insensitive and both forges
+  render raw HTML in a description, but they count as a delivery only inside a
+  tag that is still open on the same line. An attribute on a continuation line -
+  `<img`, then `src=/tmp/shot.png` on the next - is therefore missed. That
+  narrowing is deliberate and is what stops `make SRC=/tmp/src` from being read
+  as a delivery: without it, an ordinary upper-case build or environment variable
+  refuses exactly the documented-command case !703 exists to protect. Carrying
+  the open-tag state across lines instead would fix the miss, but a single
+  unbalanced `<` anywhere in a fenced code block would then strand every later
+  line inside a phantom tag, and that trades a miss for a false refusal.
 - **Machine-local paths outside the known roots.** An evidence tool writing to
   `/opt/evidence/<run-id>/` or `/srv/…` is never considered, because the opacity
   test is applied only under the candidate roots. Widening it refuses the
@@ -185,3 +250,15 @@ oversights.
   alone. Home roots sit in the same private-by-shape class as `/var/folders`,
   which is where the 2026-08-18 defect actually shipped, so weakening that class
   to require a second signal was not on the table.
+- **A per-user temp path discussed as the subject matter.** Observed in the
+  field, not hypothesised:
+  [`kovidgoyal/calibre#3262`](https://github.com/kovidgoyal/calibre/pull/3262)
+  is a public pull request *about* `/var` versus `/private/var` resolution, and
+  quotes elided paths such as `/var/folders/.../` and
+  `/private/var/folders/.../chigb/up.gif` in a log excerpt and in prose. The
+  scanner names four of them. Nothing is delivered and nothing is unopenable;
+  the paths are the bug being described. This is the same accepted cost as the
+  home-root case above - a private-by-shape root is refused with no second
+  signal - and it is the shape most likely to annoy someone whose change is
+  itself about filesystem paths. The refusal is a stop, not a silent edit, so
+  the author reads it and reworks the excerpt.

@@ -272,6 +272,25 @@ test_scratch_root_needs_a_second_signal() {
   pass "a shared scratch root refuses only when stamped or delivered"
 }
 
+# shellcheck disable=SC2016 # Literal shell and markdown bytes are scanner test data.
+test_attribute_bytes_outside_a_tag_are_not_a_delivery() {
+  # "src" and "href" are attribute names only inside a tag. The same bytes are
+  # an everyday variable assignment in a build or shell snippet, and reading
+  # those as a delivery would refuse exactly the documented-command case !703
+  # exists to protect - in upper case, where a make or environment variable is
+  # most likely to live.
+  assert_scan_equals "make variable" "" < <(printf 'run `make SRC=/tmp/src` to rebuild\n')
+  assert_scan_equals "bare assignment" "" < <(printf 'SRC=/tmp/x\n')
+  assert_scan_equals "env assignment" "" < <(printf 'HREF=/tmp/out.log\n')
+  assert_scan_equals "lower-case operand" "" < <(printf './build src=/tmp/staging\n')
+  # The attribute still counts wherever a tag is genuinely open, including after
+  # an earlier tag has closed on the same line.
+  assert_scan_equals "tag closed before the bytes" "" < <(printf '<p>build with src=/tmp/x</p>\n')
+  assert_scan_equals "second tag on the line" "/tmp/a.png" < <(printf '<div><img src="/tmp/a.png">\n')
+  assert_scan_equals "after a closing tag" "/tmp/b.png" < <(printf '</p> <img src="/tmp/b.png">\n')
+  pass "attribute-shaped bytes deliver only inside an open tag"
+}
+
 test_private_roots_always_refuse() {
   assert_scan_equals "user home" "/Users/someone/work/out.png" \
     < <(printf 'see /Users/someone/work/out.png for the capture\n')
@@ -434,6 +453,7 @@ test_fixture_1331_refuses_json_and_php_artifacts
 test_fixture_1328_passes
 test_fixture_703_passes
 test_scratch_root_needs_a_second_signal
+test_attribute_bytes_outside_a_tag_are_not_a_delivery
 test_private_roots_always_refuse
 test_paths_inside_urls_are_not_local_paths
 test_private_twin_roots_classify_as_their_canonical_root

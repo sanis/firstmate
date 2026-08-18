@@ -30,8 +30,8 @@
 #      run of at least 10 characters carrying at least two digits and at least
 #      two letters, which is what a run id or a ULID looks like and what a
 #      human-authored name never does), or it sits in a DELIVERY POSITION (a
-#      markdown image or link target, or an HTML src=/href= attribute), where
-#      the reader is literally invited to open it.
+#      markdown image or link target, or an HTML src=/href= attribute inside an
+#      open tag), where the reader is literally invited to open it.
 #
 # The opacity test is the shape rule the fixed root list cannot be: it catches
 # any evidence tool that stamps a run id, whatever root it writes under and
@@ -115,13 +115,24 @@ function has_opaque_segment(p,   n, segs, i) {
   return 0
 }
 
+# Is this position inside an HTML tag that is still open? Everything through the
+# last ">" belongs to tags already closed, so only the text after it can hold an
+# open one, and a "<" opens a tag only when a tag name follows it.
+function in_open_tag(before,   rest) {
+  rest = before
+  sub(/^.*>/, "", rest)
+  return rest ~ /<[A-Za-z]/
+}
+
 # The reader is invited to open it: a markdown image or link target, or an HTML
 # src=/href= attribute. HTML attribute names are case-insensitive, so both cases
 # are spelled out as character classes rather than with an inline flag no POSIX
-# awk carries.
+# awk carries - but reading those bytes as a delivery ANYWHERE would refuse
+# "make SRC=/tmp/src", an ordinary documented build command, so the attribute
+# counts only inside a tag that is actually open.
 function is_delivered(before) {
   if (before ~ "\\]\\($") return 1
-  if (before ~ "([sS][rR][cC]|[hH][rR][eE][fF])[ \t]*=[ \t]*[\"']?$") return 1
+  if (before ~ "([sS][rR][cC]|[hH][rR][eE][fF])[ \t]*=[ \t]*[\"']?$" && in_open_tag(before)) return 1
   return 0
 }
 
