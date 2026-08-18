@@ -80,7 +80,8 @@ Re-run 2026-08-18 under `glab 1.113.0 (d62881304)` and
 `fm-pr-check.sh` now reads the description first, so the placeholder host - which
 resolves nowhere - reports that it could not be read and arms anyway.
 That degrade is the intended behaviour: an unreachable forge must never block a
-ready report. [`bin/fm-pr-description-lib.sh`](../bin/fm-pr-description-lib.sh)
+ready report.
+[`bin/fm-pr-description-lib.sh`](../bin/fm-pr-description-lib.sh)
 owns the rule and
 [`docs/verification/pr-description-guard.md`](verification/pr-description-guard.md)
 its verification.

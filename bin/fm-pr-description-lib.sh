@@ -152,20 +152,26 @@ BEGIN {
 
 {
   line = $0
+  # How much of the record "line" has already given up. Both the delivery
+  # position and the preceding character are properties of the whole record, so
+  # they are read from $0 at the absolute position rather than from the
+  # remainder, whose own start is not the start of anything.
+  consumed = 0
   while (length(line) > 0 && match(line, candidate)) {
-    start = RSTART
+    start = consumed + RSTART
     len = RLENGTH
-    token = substr(line, start, len)
-    before = substr(line, 1, start - 1)
+    token = substr($0, start, len)
+    before = substr($0, 1, start - 1)
     # A leading path character means this "/tmp" is the tail of something
     # longer - a URL path, a longer directory name - and not a root at all.
-    if (start == 1 || substr(line, start - 1, 1) !~ boundary) {
+    if (start == 1 || substr($0, start - 1, 1) !~ boundary) {
       token = strip_trailing(token)
       kind = classify(token)
       if (kind == "private") report(token)
       else if (kind == "scratch" && (has_opaque_segment(token) || is_delivered(before))) report(token)
     }
-    line = substr(line, start + len)
+    consumed = start + len - 1
+    line = substr($0, consumed + 1)
   }
 }
 AWK

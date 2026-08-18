@@ -222,6 +222,10 @@ which side each case falls on.
   tag that is still open on the same line.
   An attribute on a continuation line - `<img`, then `src=/tmp/shot.png` on the
   next - is therefore missed.
+  Only the line break is missed: the tag a position sits in is read from the
+  whole line, so `<img alt="/tmp/a.png" src="/tmp/b.png">` still refuses
+  `/tmp/b.png`, and an earlier candidate path in the same tag does not hide the
+  delivered one.
   That narrowing is deliberate and is what stops `make SRC=/tmp/src` from being
   read as a delivery: without it, an ordinary upper-case build or environment
   variable refuses exactly the documented-command case !703 exists to protect.

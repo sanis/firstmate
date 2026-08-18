@@ -297,6 +297,15 @@ test_attribute_bytes_outside_a_tag_are_not_a_delivery() {
   assert_scan_equals "tag closed before the bytes" "" < <(printf '<p>build with src=/tmp/x</p>\n')
   assert_scan_equals "second tag on the line" "/tmp/a.png" < <(printf '<div><img src="/tmp/a.png">\n')
   assert_scan_equals "after a closing tag" "/tmp/b.png" < <(printf '</p> <img src="/tmp/b.png">\n')
+  # An earlier candidate path in the same tag must not hide the delivered one:
+  # the tag a position sits in is a property of the whole line, not of whatever
+  # is left of it once earlier paths have been read.
+  assert_scan_equals "alt beside src" "/tmp/b.png" \
+    < <(printf '<img alt="/tmp/a.png" src="/tmp/b.png">\n')
+  assert_scan_equals "title beside href" "/tmp/shot.png" \
+    < <(printf '<a title="/tmp/note" href="/tmp/shot.png">x</a>\n')
+  assert_scan_equals "two open tags, both delivering" "/tmp/a.png
+/tmp/b.png" < <(printf '<a href="/tmp/a.png"><img src="/tmp/b.png">\n')
   pass "attribute-shaped bytes deliver only inside an open tag"
 }
 
