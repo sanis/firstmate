@@ -77,3 +77,6 @@ A public reply already has its own upload path.
 Say so plainly on the surface, name where the evidence actually lives, and route the gap to firstmate.
 An honest statement that the artifact could not be embedded is an acceptable outcome.
 A local file path presented as though the reader could open it is the one outcome this skill exists to prevent.
+
+That outcome is now measured rather than only instructed: `bin/fm-pr-check.sh` reads the delivered description when work is reported ready and refuses it, naming every offending path, before anything is recorded.
+[`bin/fm-pr-description-lib.sh`](../../../bin/fm-pr-description-lib.sh) owns exactly which paths it refuses and [`docs/verification/pr-description-guard.md`](../../../docs/verification/pr-description-guard.md) records what it misses; neither replaces doing the upload right the first time.

@@ -5,7 +5,16 @@
 # live only in a private sidecar and are never interpolated into shell source.
 # A GitHub pull request URL and a GitLab merge request URL are both accepted,
 # including a merge request on a self-hosted GitLab instance.
-# Usage: fm-pr-check.sh <task-id> <pr-url>
+#
+# This is also where the delivered description is measured: a request whose
+# description hands the reader a local filesystem path is refused with exit 3
+# before anything is recorded or armed, because this is the exact moment work
+# is about to be called ready. bin/fm-pr-description-lib.sh owns that rule.
+# The refusal never fires on trouble: a description that cannot be fetched or
+# read degrades to a warning and the ready report proceeds.
+# --no-description-check skips only that stage, for the merge path, where the
+# request is already authorized and a refusal would block landed work.
+# Usage: fm-pr-check.sh [--no-description-check] <task-id> <pr-url>
 set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -17,6 +26,14 @@ STATE="${FM_STATE_OVERRIDE:-$FM_HOME/state}"
 . "$SCRIPT_DIR/fm-pr-lib.sh"
 # shellcheck source=bin/fm-wake-lib.sh
 . "$SCRIPT_DIR/fm-wake-lib.sh"
+# shellcheck source=bin/fm-pr-description-lib.sh
+. "$SCRIPT_DIR/fm-pr-description-lib.sh"
+
+DESCRIPTION_CHECK=on
+if [ "${1:-}" = --no-description-check ]; then
+  DESCRIPTION_CHECK=off
+  shift
+fi
 
 if [ "$#" -ne 2 ]; then
   echo "error: invalid PR check request" >&2
@@ -39,6 +56,24 @@ META="$STATE/$ID.meta"
 if [ ! -f "$META" ] || [ -L "$META" ] || [ "$(fm_pr_file_link_count "$META")" != 1 ]; then
   echo "error: task metadata is unavailable" >&2
   exit 1
+fi
+
+# Measure the delivered description before any state is recorded or armed, so a
+# refusal leaves the task exactly as it was. Evidence named by a local path is
+# unopenable for a reader on another machine, and instructions alone never
+# caught it because nothing checked what actually shipped.
+if [ "$DESCRIPTION_CHECK" = on ]; then
+  if DESCRIPTION_BODY=$(fm_pr_description_fetch "$PROVIDER" "$HOST" "$PROJECT_PATH" \
+    "$NUMBER" "$FM_PR_OWNER" "$FM_PR_REPO"); then
+    LOCAL_PATHS=$(printf '%s\n' "$DESCRIPTION_BODY" | fm_pr_description_local_paths)
+    if [ -n "$LOCAL_PATHS" ]; then
+      fm_pr_description_refuse "$PROVIDER" "$LOCAL_PATHS"
+      exit 3
+    fi
+  else
+    # Never fail closed: an unreachable forge must not stop a ready report.
+    echo "warning: could not read the description; the local-path check was skipped" >&2
+  fi
 fi
 
 # A prior exact merged result may have queued its durable wake immediately
