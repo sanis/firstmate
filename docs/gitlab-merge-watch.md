@@ -2,9 +2,10 @@
 
 Empirical record for the merge watch on GitLab, alongside the existing GitHub watch.
 Every command below was run and its output is reproduced exactly, on 2026-07-21
-except for the three `fm-pr-check.sh` transcripts, which were re-run on
-2026-08-18 after that command gained its description check.
-Those three are marked where they appear, with the versions they ran under.
+except for the three `fm-pr-check.sh` transcripts, which were re-run after that
+command gained its description check.
+Those three carry no single date: each is marked where it appears with the date
+it actually ran and the versions it ran under.
 
 ## Versions
 

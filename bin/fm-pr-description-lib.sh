@@ -192,8 +192,25 @@ fm_pr_description_local_paths() {
 # be reached, read, or answered inside FM_PR_DESCRIPTION_TIMEOUT seconds; every
 # caller must degrade to a warning rather than block, because a network hiccup
 # must never stop a legitimate ready report.
+# Keep only the description from a plain `glab mr view`, which prefixes a header
+# block closed by a line that is exactly "--". The subject of this measurement is
+# the description alone: a header field carries free text, and a title naming a
+# path would otherwise refuse a body that never mentioned one, which the author
+# could not act on by editing the description.
+# Output with no such line is an unrecognised format, and is passed through
+# whole rather than measured as empty, because a guard that silently reads
+# nothing is the defect this exists to prevent.
+fm_pr_description_strip_header() {
+  LC_ALL=C awk '
+    body { print; next }
+    $0 == "--" { body = 1; next }
+    { held[n++] = $0 }
+    END { if (!body) for (i = 0; i < n; i++) print held[i] }
+  '
+}
+
 fm_pr_description_fetch() {
-  local provider=$1 host=$2 project_path=$3 number=$4 owner=$5 repo=$6 rc=0
+  local provider=$1 host=$2 project_path=$3 number=$4 owner=$5 repo=$6 rc=0 plain
   case "$provider" in
     github)
       command -v gh >/dev/null 2>&1 || return 1
@@ -204,8 +221,8 @@ fm_pr_description_fetch() {
     gitlab)
       command -v glab >/dev/null 2>&1 || return 1
       # The JSON form is exact. Older glab builds without --jq still answer the
-      # plain view, whose header lines carry no filesystem path, so scanning it
-      # costs nothing and keeps the check working across versions.
+      # plain view, whose description is recovered by dropping its header, so
+      # the check keeps working across versions.
       # 124 is the one status that does not fall through to that fallback: the
       # fallback exists for a build that rejects --jq, which fails instantly,
       # whereas a hit bound means the host is not answering at all and retrying
@@ -216,8 +233,9 @@ fm_pr_description_fetch() {
       case "$rc" in
         0|124) return "$rc" ;;
       esac
-      fm_run_timed "$FM_PR_DESCRIPTION_TIMEOUT" \
-        glab mr view "$number" -R "https://$host/$project_path" 2>/dev/null
+      plain=$(fm_run_timed "$FM_PR_DESCRIPTION_TIMEOUT" \
+        glab mr view "$number" -R "https://$host/$project_path" 2>/dev/null) || return "$?"
+      printf '%s\n' "$plain" | fm_pr_description_strip_header
       ;;
     *)
       return 1

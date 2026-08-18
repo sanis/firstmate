@@ -400,6 +400,61 @@ test_gitlab_refusal_uses_merge_request_wording() {
   pass "both forges are checked, each with its own wording"
 }
 
+test_plain_view_header_cannot_decide_the_verdict() {
+  local dir rc err
+  # The plain `glab mr view` fallback prefixes a header block closed by "--".
+  # A title is free text, so it can name a path the description never does.
+  dir=$(make_case fallback-header)
+  {
+    printf 'title:\tfix: resolve /var/folders paths on macOS\n'
+    printf 'state:\topen\n'
+    printf 'url:\thttps://gitlab.com/g/sub/p/-/merge_requests/17\n'
+    printf -- '--\n'
+    fixture_1328
+  } > "$dir/body.md"
+  set +e
+  FM_TEST_BODY_FILE="$dir/body.md" FM_TEST_GLAB_NO_JQ=1 run_check "$dir" task-a \
+    https://gitlab.com/g/sub/p/-/merge_requests/17 > "$dir/out" 2> "$dir/err"
+  rc=$?
+  set -e
+  expect_code 0 "$rc" "a path in the title with a clean description"
+  assert_contains "$(cat "$dir/out")" "armed: state/task-a.check.sh" \
+    "a merge request title refused a description that carries nothing"
+  [ ! -s "$dir/err" ] || fail "the header still reached the scan: $(cat "$dir/err")"
+
+  # The description below the separator is still measured in full.
+  dir=$(make_case fallback-body)
+  {
+    printf 'title:\tan ordinary subject\n'
+    printf -- '--\n'
+    fixture_1333
+  } > "$dir/body.md"
+  set +e
+  FM_TEST_BODY_FILE="$dir/body.md" FM_TEST_GLAB_NO_JQ=1 run_check "$dir" task-a \
+    https://gitlab.com/g/sub/p/-/merge_requests/17 > "$dir/out" 2> "$dir/err"
+  rc=$?
+  set -e
+  expect_code 3 "$rc" "a defective description below the separator"
+  assert_contains "$(cat "$dir/err")" "07-no-config-refused.png" \
+    "dropping the header dropped the description too"
+
+  # An output carrying no separator is an unrecognised format. It is scanned
+  # whole rather than read as empty, because measuring nothing is the defect
+  # this guard exists to prevent.
+  dir=$(make_case fallback-unrecognised)
+  fixture_1333 > "$dir/body.md"
+  set +e
+  FM_TEST_BODY_FILE="$dir/body.md" FM_TEST_GLAB_NO_JQ=1 run_check "$dir" task-a \
+    https://gitlab.com/g/sub/p/-/merge_requests/17 > "$dir/out" 2> "$dir/err"
+  rc=$?
+  set -e
+  expect_code 3 "$rc" "an output with no separator line"
+  err=$(cat "$dir/err")
+  assert_contains "$err" "07-no-config-refused.png" \
+    "an unrecognised format silently disabled the check"
+  pass "the plain view's header is dropped, its description is not"
+}
+
 test_absent_glab_reports_only_the_missing_cli() {
   local dir rc err
   dir=$(make_case no-glab)
@@ -536,6 +591,7 @@ test_refusal_names_the_path_as_written
 test_refusal_names_paths_and_leaves_no_side_effect
 test_gitlab_refusal_uses_merge_request_wording
 test_gitlab_fetch_addresses_the_task_instance
+test_plain_view_header_cannot_decide_the_verdict
 test_absent_glab_reports_only_the_missing_cli
 test_clean_description_arms_unchanged
 test_unreadable_description_warns_and_proceeds

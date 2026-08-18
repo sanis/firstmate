@@ -93,8 +93,40 @@ the description verbatim:
     --
     This MR contains the following updates:
 
-Scanning that header costs nothing because none of its fields carry a
-filesystem path.
+That header is not scanned.
+Only its field names are fixed; the values are free text, and a title naming a
+path would otherwise refuse a description that never mentioned one, which the
+author could not act on by editing the description.
+The fallback therefore drops everything through the first line that is exactly
+`--` before the body is measured.
+Measured on 2026-08-19 against the same live merge request, and against a
+header whose title names a path:
+
+    $ glab mr view 3740 -R https://gitlab.com/gitlab-org/cli | sed -n 1p
+    title:	chore(deps): update module golang.org/x/crypto to v0.55.0
+    $ glab mr view 3740 -R https://gitlab.com/gitlab-org/cli | fm_pr_description_strip_header | sed -n 1p
+    This MR contains the following updates:
+    $ printf 'title:\tfix: resolve /var/folders paths on macOS\n--\nthe body names nothing local\n' | fm_pr_description_local_paths
+    /var/folders
+    $ printf 'title:\tfix: resolve /var/folders paths on macOS\n--\nthe body names nothing local\n' | fm_pr_description_strip_header | fm_pr_description_local_paths
+
+The last command prints nothing, so the header can no longer reach a verdict.
+The strip is scoped to this fallback alone.
+The `-F json --jq .description` form returns the description directly and
+carries no separator line at all, so nothing there can be removed by it:
+
+    $ glab mr view 3740 -R https://gitlab.com/gitlab-org/cli -F json --jq .description | grep -c '^--$'
+    0
+    $ glab mr view 3740 -R https://gitlab.com/gitlab-org/cli | grep -n '^--$'
+    10:--
+
+One residual: output carrying no `--` line at all is an unrecognised format, and
+is scanned whole rather than read as empty, because a guard that silently
+measures nothing is the defect this exists to prevent.
+Such output is therefore still exposed to the header shape it does not have:
+
+    $ printf 'see /Users/me/out.log\n' | fm_pr_description_strip_header | fm_pr_description_local_paths
+    /Users/me/out.log
 
 ## Measured discrimination
 
@@ -142,6 +174,7 @@ Reproduce in the repo:
     ok - a refusal names every path, points at the recipes, and changes nothing
     ok - both forges are checked, each with its own wording
     ok - the GitLab fetch addresses the task's own instance, not glab's default
+    ok - the plain view's header is dropped, its description is not
     ok - an absent glab is reported once, as the missing CLI
     ok - a clean description arms exactly as before
     ok - an unreadable description degrades to a warning and the report proceeds
@@ -270,7 +303,8 @@ which side each case falls on.
 
 ### False refusals - a quoted path that is refused anyway
 
-These are the accepted cost of the minimum root set.
+These are the accepted cost of the minimum root set and of the delivery-position
+rule that decides a shared scratch root.
 They are decisions, not oversights.
 
 - **A home-root path quoted as documentation.** A GitHub Actions log excerpt
@@ -299,3 +333,31 @@ They are decisions, not oversights.
   most likely to annoy someone whose change is itself about filesystem paths.
   The refusal is a stop, not a silent edit, so the author reads it and reworks
   the excerpt.
+- **Markup quoted as documentation, in a delivery position.** A shared scratch
+  root needs a second signal, and being written as a markdown image or an HTML
+  `src=` is one - including inside a fenced block, because the scanner is
+  deliberately fence-blind, which is what makes it read the four defective
+  bodies whose paths were fenced.
+  Documentation that quotes the markup itself is refused on that signal:
+
+      $ printf '```html\n<img src="/tmp/preview.png">\n```\n' | fm_pr_description_local_paths
+      /tmp/preview.png
+      $ printf '```markdown\n![shot](/tmp/x.png)\n```\n' | fm_pr_description_local_paths
+      /tmp/x.png
+
+  This is the same category as !703, which passes only because its `/tmp` path
+  sits in a shell command rather than in a delivery position.
+  Teaching the scanner about fences would close it and reopen the miss that
+  matters more, since a fenced defective body is exactly what shipped.
+- **A bare `<` before a letter reads as an open tag.** The open-tag narrowing
+  asks whether a `<` after the last `>` is followed by a tag name, and an
+  inequality on the same line satisfies that, which then admits the attribute
+  bytes the narrowing exists to exclude:
+
+      $ printf 'if a<b then make SRC=/tmp/x\n' | fm_pr_description_local_paths
+      /tmp/x
+
+  `make SRC=/tmp/x` on its own passes, as !703 requires.
+  Parsing well enough to tell an inequality from a tag is more machinery than a
+  description scan warrants, and the narrowing already covers the ordinary
+  documented-command line.
