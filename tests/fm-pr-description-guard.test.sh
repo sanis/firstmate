@@ -163,6 +163,9 @@ SH
 case " $* " in
   *" headRefOid "*) printf '%s\n' 0123456789abcdef0123456789abcdef01234567 ;;
   *" body "*)
+    # A forge that accepts the connection and then never answers, which is the
+    # failure a non-zero exit cannot express.
+    [ "${FM_TEST_FORGE_HANG:-0}" = 0 ] || sleep 10
     [ "${FM_TEST_FORGE_FAIL:-0}" = 0 ] || exit 1
     [ -z "${FM_TEST_BODY_FILE:-}" ] || cat "$FM_TEST_BODY_FILE"
     ;;
@@ -193,6 +196,8 @@ run_check() {  # <case-dir> [args...]
   FM_ROOT_OVERRIDE="$dir/root" FM_HOME="$dir/home" \
     FM_TEST_BODY_FILE="${FM_TEST_BODY_FILE:-}" \
     FM_TEST_FORGE_FAIL="${FM_TEST_FORGE_FAIL:-0}" \
+    FM_TEST_FORGE_HANG="${FM_TEST_FORGE_HANG:-0}" \
+    FM_PR_DESCRIPTION_TIMEOUT="${FM_PR_DESCRIPTION_TIMEOUT:-20}" \
     PATH="$dir/fakebin:$BASE_PATH" \
     "$PR_CHECK" "$@"
 }
@@ -269,6 +274,40 @@ test_private_roots_always_refuse() {
   assert_scan_equals "file url" "file:///Users/someone/out.png" \
     < <(printf 'open file:///Users/someone/out.png\n')
   pass "a user home or file:// URL is refused with no second signal"
+}
+
+# shellcheck disable=SC2016 # Literal markdown and shell bytes are scanner test data.
+test_private_twin_roots_classify_as_their_canonical_root() {
+  # macOS mounts these roots through /private, so a realpath-normalised evidence
+  # path arrives in the twin form and must decide exactly as the canonical one.
+  assert_scan_equals "twin scratch, run-stamped" "/private/var/tmp/01M0A19WBRM7DGRAFZZM6ZQ2FC/x.png" \
+    < <(printf 'written to /private/var/tmp/01M0A19WBRM7DGRAFZZM6ZQ2FC/x.png\n')
+  assert_scan_equals "twin scratch, delivered" "/private/var/tmp/run1/a.png" \
+    < <(printf -- '![x](/private/var/tmp/run1/a.png)\n')
+  assert_scan_equals "twin scratch, quoted" "" \
+    < <(printf 'run `cp build.log /private/var/tmp/build.log` after the job\n')
+  assert_scan_equals "twin tmp, delivered" "/private/tmp/shot.png" \
+    < <(printf -- '![x](/private/tmp/shot.png)\n')
+  assert_scan_equals "twin tmp, quoted" "" \
+    < <(printf 'run `curl -o /private/tmp/glab.tgz "$url"` first\n')
+  assert_scan_equals "twin per-user temp" \
+    "/private/var/folders/qz/8xk3mhpn1t95c2rv7_gbdlr40000gn/T/out.png" \
+    < <(printf 'see /private/var/folders/qz/8xk3mhpn1t95c2rv7_gbdlr40000gn/T/out.png\n')
+  # Folding away /private must not invent roots: /etc is not a candidate root,
+  # and neither is a directory that merely starts with the same bytes.
+  assert_scan_equals "non-twin private path" "" \
+    < <(printf -- '- Evidence: the resolver config at /private/etc/hosts\n')
+  assert_scan_equals "private-prefixed name" "" \
+    < <(printf -- '![x](/privatetmp/shot.png)\n')
+  pass "a /private twin decides as its canonical root, and nothing else does"
+}
+
+test_refusal_names_the_path_as_written() {
+  # Normalisation is for classification only: the author has to find the exact
+  # string back in their own description, so a rewritten form would be useless.
+  assert_scan_equals "unnormalised report" "/private/var/tmp/01M0A19WBRM7DGRAFZZM6ZQ2FC/x.png" \
+    < <(printf 'see /private/var/tmp/01M0A19WBRM7DGRAFZZM6ZQ2FC/x.png\n')
+  pass "a refused twin path is named exactly as the description wrote it"
 }
 
 test_paths_inside_urls_are_not_local_paths() {
@@ -352,6 +391,22 @@ test_unreadable_description_warns_and_proceeds() {
   pass "an unreadable description degrades to a warning and the report proceeds"
 }
 
+test_hanging_forge_times_out_and_the_report_still_arms() {
+  local dir rc err out
+  dir=$(make_case forge-hang)
+  set +e
+  FM_TEST_FORGE_HANG=1 FM_PR_DESCRIPTION_TIMEOUT=1 run_check "$dir" task-a \
+    https://github.com/o/r/pull/1 > "$dir/out" 2> "$dir/err"
+  rc=$?
+  set -e
+  expect_code 0 "$rc" "a hanging forge must not block the ready report"
+  out=$(cat "$dir/out")
+  err=$(cat "$dir/err")
+  assert_contains "$out" "armed: state/task-a.check.sh" "a forge timeout blocked the ready report"
+  assert_contains "$err" "warning" "a forge timeout was silent instead of warning"
+  pass "a forge that never answers times out to a warning and the report arms"
+}
+
 test_merge_path_skips_the_description_check() {
   local dir rc out
   dir=$(make_case merge-path)
@@ -375,8 +430,11 @@ test_fixture_703_passes
 test_scratch_root_needs_a_second_signal
 test_private_roots_always_refuse
 test_paths_inside_urls_are_not_local_paths
+test_private_twin_roots_classify_as_their_canonical_root
+test_refusal_names_the_path_as_written
 test_refusal_names_paths_and_leaves_no_side_effect
 test_gitlab_refusal_uses_merge_request_wording
 test_clean_description_arms_unchanged
 test_unreadable_description_warns_and_proceeds
+test_hanging_forge_times_out_and_the_report_still_arms
 test_merge_path_skips_the_description_check

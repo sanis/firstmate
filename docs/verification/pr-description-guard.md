@@ -23,6 +23,12 @@ Both return the description on stdout and exit 0.
 `glab` carries its own jq implementation, so neither command needs a JSON
 processor on PATH, which is what keeps this off firstmate's dependency list.
 
+Both are run under [`bin/fm-timeout-lib.sh`](../../bin/fm-timeout-lib.sh)'s
+`fm_run_timed`, bounded by `FM_PR_DESCRIPTION_TIMEOUT` (20 seconds by default),
+because a forge that accepts the connection and then never answers cannot be
+detected by an exit status. A hit bound returns 124 and is treated as any other
+fetch failure.
+
 Failure exits non-zero with no usable stdout, which is what the guard's
 degrade-to-warning path relies on:
 
@@ -79,10 +85,13 @@ Reproduce in the repo:
     ok - a shared scratch root refuses only when stamped or delivered
     ok - a user home or file:// URL is refused with no second signal
     ok - a /home or /tmp segment inside a URL is not a local path
+    ok - a /private twin decides as its canonical root, and nothing else does
+    ok - a refused twin path is named exactly as the description wrote it
     ok - a refusal names every path, points at the recipes, and changes nothing
     ok - both forges are checked, each with its own wording
     ok - a clean description arms exactly as before
     ok - an unreadable description degrades to a warning and the report proceeds
+    ok - a forge that never answers times out to a warning and the report arms
     ok - the merge path records metadata without re-litigating the description
 
 A 16,726-byte real GitHub pull request body from this repo was scanned on the
@@ -106,14 +115,27 @@ existed and none can be re-created without publishing a broken description.
 
 ## What this misses
 
-Every rule here has false negatives, and choosing them was deliberate: a guard
-that cries wolf gets ignored, which is worse than the defect it prevents.
+Every rule here fails in both directions, and choosing where was deliberate: a
+guard that cries wolf gets ignored, which is worse than the defect it prevents.
+The two directions are listed separately below, because a reader needs to see
+which side each case falls on.
+
+### False negatives - a local path that passes
 
 - **A plain scratch path in prose.** `written to /tmp/report.json`, with no
   run-stamped segment and no link syntax, passes. It is indistinguishable in
   shape from `curl -o /tmp/glab.tgz`, and refusing both would refuse !703.
 - **Reproducible-looking evidence directories.** `/tmp/pytest-of-user/run/x.png`
   has no segment long enough to read as machine-generated, so it passes.
+- **Run stamps that carry no letters.** `/tmp/run-1755500000/x.png` is a
+  ten-digit epoch stamp, and the opacity rule wants at least two letters as well
+  as two digits in the same run, so it passes.
+- **Hyphen-split identifiers.** `/tmp/evidence/550e8400-e29b-41d4-a716-446655440000/x.png`
+  is unmistakably machine-generated, but every run between its hyphens is under
+  ten characters, so no single run clears the threshold and it passes.
+- **Short mktemp suffixes.** `/tmp/fm-evidence.Ab3kZq/x.png` carries the standard
+  six-character `mktemp` template, which never reaches ten characters, so it
+  passes. The opacity rule reaches run ids and ULIDs, not plain `mktemp` names.
 - **Machine-local paths outside the known roots.** An evidence tool writing to
   `/opt/evidence/<run-id>/` or `/srv/…` is never considered, because the opacity
   test is applied only under the candidate roots. Widening it refuses the
@@ -129,6 +151,23 @@ that cries wolf gets ignored, which is worse than the defect it prevents.
   owns that trap.
 - **A path that is present but unreachable.** The guard proves the reader was
   not handed a local path. It cannot prove an uploaded link actually renders.
-- **Anything it cannot read.** An unreachable forge, a missing CLI, or an
-  unsupported provider degrades to a warning and the ready report proceeds. The
-  guard is a measurement, not a gate that survives being blinded.
+- **Anything it cannot read.** An unreachable forge, a missing CLI, an
+  unsupported provider, or a forge that does not answer inside
+  `FM_PR_DESCRIPTION_TIMEOUT` seconds degrades to a warning and the ready report
+  proceeds. The guard is a measurement, not a gate that survives being blinded.
+
+### False refusals - a quoted path that is refused anyway
+
+These are the accepted cost of the minimum root set. They are decisions, not
+oversights.
+
+- **A home-root path quoted as documentation.** A GitHub Actions log excerpt
+  naming `/home/runner/work/<repo>/<repo>/out.log` in prose is refused with no
+  second signal, because a home root is private by shape and `/home/` is part of
+  the required minimum root set. The refusal text tells the author to upload each
+  artifact, which does not fit a path that was only being quoted, and
+  [`AGENTS.md`](../../AGENTS.md) forbids bypassing the refusal, so the author has
+  to reword the excerpt - eliding the runner prefix, or quoting the file name
+  alone. Home roots sit in the same private-by-shape class as `/var/folders`,
+  which is where the 2026-08-18 defect actually shipped, so weakening that class
+  to require a second signal was not on the table.

@@ -15,17 +15,20 @@
 #   1. Candidate roots - a path is looked at only when its root names a
 #      machine-local namespace: a "file://" URL, a user home under /Users or
 #      /home, a macOS per-user temp root under /var/folders, or scratch space
-#      under /tmp, /var/tmp or /private/tmp (and the /private twins macOS uses
-#      for the first two). Everything else is left alone, which is what keeps a
-#      GitLab "/uploads/<hash>/shot.png" link - the CORRECT delivered form -
-#      from being refused by the opacity rule below.
+#      under /tmp or /var/tmp. macOS mounts those roots as symlinks into
+#      /private, so a leading "/private" is folded away once before the root is
+#      read rather than carrying a twin for every entry in the list; the path is
+#      still reported exactly as the description wrote it. Everything else is
+#      left alone, which is what keeps a GitLab "/uploads/<hash>/shot.png" link
+#      - the CORRECT delivered form - from being refused by the opacity rule
+#      below.
 #
 #   2. Verdict - a "file://" URL, a user home and a per-user temp root are
 #      private by shape and always refused. Shared-shape scratch roots are
 #      refused only when the path also proves it cannot be resolved elsewhere:
 #      it carries an OPAQUE segment (a machine-generated token: an alphanumeric
-#      run of 10 or more characters carrying both digits and letters, which is
-#      what a mktemp directory, a run id or a ULID looks like and what a
+#      run of at least 10 characters carrying at least two digits and at least
+#      two letters, which is what a run id or a ULID looks like and what a
 #      human-authored name never does), or it sits in a DELIVERY POSITION (a
 #      markdown image or link target, or an HTML src=/href= attribute), where
 #      the reader is literally invited to open it.
@@ -38,6 +41,19 @@
 #
 # Known blind spots are recorded in docs/verification/pr-description-guard.md.
 
+# shellcheck source=bin/fm-timeout-lib.sh
+# shellcheck disable=SC1091
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-timeout-lib.sh"
+
+# The forge fetch is bounded. An unreachable forge already degrades through a
+# non-zero exit, but a blackholed connection would otherwise leave the CLI
+# waiting forever and hang the ready report before anything is armed. A hit
+# bound is just another fetch failure, never a refusal.
+# bin/fm-timeout-lib.sh owns the bound itself, and documents that a non-positive
+# value is not a bound, so a bad setting is rewritten rather than honoured.
+FM_PR_DESCRIPTION_TIMEOUT=${FM_PR_DESCRIPTION_TIMEOUT:-20}
+case "$FM_PR_DESCRIPTION_TIMEOUT" in ''|*[!0-9]*|0) FM_PR_DESCRIPTION_TIMEOUT=20 ;; esac
+
 # fm_pr_description_awk_program: the scanner, kept in a quoted heredoc so its
 # regexes carry both quote characters without shell escaping.
 fm_pr_description_awk_program() {
@@ -48,15 +64,23 @@ function strip_trailing(t) {
   return t
 }
 
-function classify(p) {
+# macOS mounts /tmp, /var and /etc as symlinks into /private, so any tool that
+# realpath-normalises an evidence path emits the /private twin of a root below.
+# Fold that one prefix away instead of lengthening the root list with a twin for
+# every entry. Classification only - the caller still reports the original.
+function canonical_root(p) {
+  if (p ~ "^/private/") return substr(p, 9)
+  return p
+}
+
+function classify(p,   c) {
   if (p ~ "^file://") return "private"
-  if (p ~ "^/Users/[^/]") return "private"
-  if (p ~ "^/home/[^/]") return "private"
-  if (p ~ "^/var/folders(/|$)") return "private"
-  if (p ~ "^/private/var/folders(/|$)") return "private"
-  if (p ~ "^/tmp(/|$)") return "scratch"
-  if (p ~ "^/private/tmp(/|$)") return "scratch"
-  if (p ~ "^/var/tmp(/|$)") return "scratch"
+  c = canonical_root(p)
+  if (c ~ "^/Users/[^/]") return "private"
+  if (c ~ "^/home/[^/]") return "private"
+  if (c ~ "^/var/folders(/|$)") return "private"
+  if (c ~ "^/tmp(/|$)") return "scratch"
+  if (c ~ "^/var/tmp(/|$)") return "scratch"
   return "none"
 }
 
@@ -146,23 +170,27 @@ fm_pr_description_local_paths() {
 
 # fm_pr_description_fetch <provider> <host> <project-path> <number> <owner> <repo>
 # Print the description body on stdout. Returns non-zero when the forge cannot
-# be reached or read; every caller must degrade to a warning rather than block,
-# because a network hiccup must never stop a legitimate ready report.
+# be reached, read, or answered inside FM_PR_DESCRIPTION_TIMEOUT seconds; every
+# caller must degrade to a warning rather than block, because a network hiccup
+# must never stop a legitimate ready report.
 fm_pr_description_fetch() {
   local provider=$1 host=$2 project_path=$3 number=$4 owner=$5 repo=$6
   case "$provider" in
     github)
       command -v gh >/dev/null 2>&1 || return 1
       [ -n "$owner" ] && [ -n "$repo" ] || return 1
-      gh pr view "$number" --repo "$owner/$repo" --json body -q .body 2>/dev/null
+      fm_run_timed "$FM_PR_DESCRIPTION_TIMEOUT" \
+        gh pr view "$number" --repo "$owner/$repo" --json body -q .body 2>/dev/null
       ;;
     gitlab)
       command -v glab >/dev/null 2>&1 || return 1
       # The JSON form is exact. Older glab builds without --jq still answer the
       # plain view, whose header lines carry no filesystem path, so scanning it
       # costs nothing and keeps the check working across versions.
-      glab mr view "$number" -R "$host/$project_path" -F json --jq .description 2>/dev/null \
-        || glab mr view "$number" -R "$host/$project_path" 2>/dev/null
+      fm_run_timed "$FM_PR_DESCRIPTION_TIMEOUT" \
+        glab mr view "$number" -R "$host/$project_path" -F json --jq .description 2>/dev/null \
+        || fm_run_timed "$FM_PR_DESCRIPTION_TIMEOUT" \
+          glab mr view "$number" -R "$host/$project_path" 2>/dev/null
       ;;
     *)
       return 1
