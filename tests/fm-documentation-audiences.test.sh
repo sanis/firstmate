@@ -135,7 +135,52 @@ MD
   pass "local links resolve while dates, versions, commands, and incident prose remain semantically reviewed"
 }
 
+test_code_targets_are_not_links_but_list_continuation_still_is() {
+  local repo="$TMP_ROOT/code-aware"
+  mkdir -p "$repo/docs"
+  git -C "$repo" init -q
+  printf '%s\n' '[Setup](docs/setup.md) [Policy](docs/policy.md)' > "$repo/README.md"
+  printf '%s\n' '# Setup' > "$repo/docs/setup.md"
+  printf '%s\n' '# Policy' > "$repo/docs/policy.md"
+  # An absolute target is unopenable as a link, so each of these would be
+  # reported if the extractor read it as one. None of them is a link: they are
+  # a fenced sample, an indented transcript, and a code span.
+  cat > "$repo/docs/evidence.md" <<'MD'
+# Code-shaped targets on 2026-08-19
+
+```markdown
+![shot](/tmp/x.png)
+```
+
+The indented transcript form:
+
+    $ printf '<img src="/tmp/preview.png">' | scan
+
+Prose naming `<img alt="/tmp/a.png" src="/tmp/b.png">` as a code span.
+MD
+  write_fixture_inventory "$repo"
+  git -C "$repo" add README.md docs
+  "$CHECK" --root "$repo" >/dev/null \
+    || fail "a target inside code was read as a link"
+
+  # A link indented under a list is list continuation, not an indented code
+  # block, and must still be validated. Reading it as code would silently drop
+  # coverage, which costs more than the sample it would stop reporting.
+  cat >> "$repo/docs/evidence.md" <<'MD'
+
+1. The first step.
+
+   a. A nested item that carries a pointer.
+
+      See [the rest](../docs/missing-target.md) for it.
+MD
+  git -C "$repo" add docs
+  run_expect_failure "unresolved local link" "$CHECK" --root "$repo"
+  pass "code targets are ignored while an indented list continuation stays validated"
+}
+
 test_repository_inventory_passes
 test_duplicate_and_setup_classification_fail
 test_required_pointer_fails
 test_local_links_and_no_keyword_heuristic
+test_code_targets_are_not_links_but_list_continuation_still_is
