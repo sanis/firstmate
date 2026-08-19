@@ -187,7 +187,7 @@ fm_pr_description_local_paths() {
   LC_ALL=C awk "$(fm_pr_description_awk_program)"
 }
 
-# fm_pr_description_fetch <provider> <host> <project-path> <number> <owner> <repo>
+# fm_pr_description_fetch <provider> <host> <project-path> <number> <url>
 # Print the description body on stdout. Returns non-zero when the forge cannot
 # be reached, read, or answered inside FM_PR_DESCRIPTION_TIMEOUT seconds; every
 # caller must degrade to a warning rather than block, because a network hiccup
@@ -210,13 +210,17 @@ fm_pr_description_strip_header() {
 }
 
 fm_pr_description_fetch() {
-  local provider=$1 host=$2 project_path=$3 number=$4 owner=$5 repo=$6 rc=0 plain
+  local provider=$1 host=$2 project_path=$3 number=$4 url=$5 rc=0 plain described
   case "$provider" in
     github)
       command -v gh >/dev/null 2>&1 || return 1
-      [ -n "$owner" ] && [ -n "$repo" ] || return 1
+      [ -n "$url" ] || return 1
+      # The URL addresses the instance the task was validated against. A bare
+      # number with --repo is answered by whichever instance gh is configured
+      # for, so a repository of the same name elsewhere could supply a
+      # description this request never carried.
       fm_run_timed "$FM_PR_DESCRIPTION_TIMEOUT" \
-        gh pr view "$number" --repo "$owner/$repo" --json body -q .body 2>/dev/null
+        gh pr view "$url" --json body -q .body 2>/dev/null
       ;;
     gitlab)
       command -v glab >/dev/null 2>&1 || return 1
@@ -228,10 +232,14 @@ fm_pr_description_fetch() {
       # whereas a hit bound means the host is not answering at all and retrying
       # it would burn a second full bound before the warning is printed.
       # -R takes the project URL, not a bare host/path; see bin/fm-pr-poll.sh.
-      fm_run_timed "$FM_PR_DESCRIPTION_TIMEOUT" \
-        glab mr view "$number" -R "https://$host/$project_path" -F json --jq .description 2>/dev/null || rc=$?
+      # The attempt is captured rather than streamed: a failing glab answers on
+      # STDOUT too, and letting that reach the caller would prepend an error
+      # blob to the fallback body and measure both as one description.
+      described=$(fm_run_timed "$FM_PR_DESCRIPTION_TIMEOUT" \
+        glab mr view "$number" -R "https://$host/$project_path" -F json --jq .description 2>/dev/null) || rc=$?
       case "$rc" in
-        0|124) return "$rc" ;;
+        0) printf '%s\n' "$described"; return 0 ;;
+        124) return 124 ;;
       esac
       plain=$(fm_run_timed "$FM_PR_DESCRIPTION_TIMEOUT" \
         glab mr view "$number" -R "https://$host/$project_path" 2>/dev/null) || return "$?"

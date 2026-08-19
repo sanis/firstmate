@@ -76,7 +76,7 @@ fi
 # caught it because nothing checked what actually shipped.
 if [ "$DESCRIPTION_CHECK" = on ]; then
   if DESCRIPTION_BODY=$(fm_pr_description_fetch "$PROVIDER" "$HOST" "$PROJECT_PATH" \
-    "$NUMBER" "$FM_PR_OWNER" "$FM_PR_REPO"); then
+    "$NUMBER" "$URL"); then
     LOCAL_PATHS=$(printf '%s\n' "$DESCRIPTION_BODY" | fm_pr_description_local_paths)
     if [ -n "$LOCAL_PATHS" ]; then
       fm_pr_description_refuse "$PROVIDER" "$LOCAL_PATHS"

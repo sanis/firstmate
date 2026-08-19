@@ -4,6 +4,7 @@
 # Usage:
 #   bin/fm-doc-audience-check.sh
 #   bin/fm-doc-audience-check.sh --root <repo> [--inventory <path>]
+#   bin/fm-doc-audience-check.sh --code-excluded-links
 #
 # The inventory owns classification and setup routing.
 # This check validates structure only and does not keyword-lint prose.
@@ -200,6 +201,38 @@ def markdown_local_links(root: Path, source: Path) -> list[tuple[str, Path]]:
     return result
 
 
+def local_shape_links(text: str) -> Counter[str]:
+    """Count every link target that addresses this repository rather than the network."""
+    found: Counter[str] = Counter()
+    for raw in MARKDOWN_LINK_RE.findall(text) + HTML_LINK_RE.findall(text):
+        split = urlsplit(normalized_link_value(raw))
+        if not split.scheme and not split.netloc:
+            found[raw] += 1
+    return found
+
+
+def code_excluded_links(root: Path) -> list[str]:
+    """Report each local link that code awareness hides, as "<surface>\\t<target>".
+
+    Treating a target inside code as a sample costs link coverage on every
+    prose surface, not only the one that needed it. This makes that cost
+    measurable, so a colocated test can pin which targets stop being checked
+    instead of the reduction spreading unobserved.
+    """
+    lines: list[str] = []
+    for path in git_tracked(root, REQUIRED_TRACKED_PATTERNS):
+        if Path(path).suffix.lower() not in {".md", ".mdx"}:
+            continue
+        source = root / path
+        try:
+            text = source.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            fail(f"cannot read prose surface {path}: {exc}")
+        hidden = local_shape_links(text) - local_shape_links(blank_code(text))
+        lines.extend(f"{path}\t{raw}" for raw in hidden.elements())
+    return sorted(lines)
+
+
 def github_heading_slug(value: str) -> str:
     value = re.sub(r"<[^>]+>", "", value)
     value = value.replace("`", "").strip().lower()
@@ -340,11 +373,25 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Validate Firstmate documentation audiences and local links.")
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--inventory", type=Path)
+    parser.add_argument(
+        "--code-excluded-links",
+        action="store_true",
+        help="list the local links code awareness hides, one \"<surface>\\t<target>\" per line",
+    )
     args = parser.parse_args()
     root = args.root.resolve()
     inventory_path = args.inventory or (root / "docs/documentation-audiences.json")
     if not inventory_path.is_absolute():
         inventory_path = root / inventory_path
+    if args.code_excluded_links:
+        try:
+            hidden = code_excluded_links(root)
+        except CheckError as exc:
+            print(f"fm-doc-audience-check: {exc}", file=sys.stderr)
+            return 1
+        for line in hidden:
+            print(line)
+        return 0
     try:
         surfaces, links = validate(root, inventory_path)
     except CheckError as exc:

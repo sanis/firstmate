@@ -163,6 +163,7 @@ SH
 case " $* " in
   *" headRefOid "*) printf '%s\n' 0123456789abcdef0123456789abcdef01234567 ;;
   *" body "*)
+    [ -z "${FM_TEST_GH_ARGV_FILE:-}" ] || printf '%s\n' "$*" >> "$FM_TEST_GH_ARGV_FILE"
     # A forge that accepts the connection and then never answers, which is the
     # failure a non-zero exit cannot express.
     [ "${FM_TEST_FORGE_HANG:-0}" = 0 ] || sleep 10
@@ -173,15 +174,24 @@ esac
 SH
   # The stub records its own argv so a test can read back the address the fetch
   # asked for, and FM_TEST_GLAB_NO_JQ models an older glab that rejects --jq,
-  # which is what drives the fetch onto its plain-view fallback.
+  # which is what drives the fetch onto its plain-view fallback. That rejection
+  # answers on STDOUT before it fails, the way the real CLI reports an error,
+  # and FM_TEST_GLAB_JQ_STDOUT chooses what it says.
   cat > "$fakebin/glab" <<'SH'
 #!/usr/bin/env bash
+noise=${FM_TEST_GLAB_JQ_STDOUT:-}
 case " $* " in
   *" mr view "*)
     [ -z "${FM_TEST_GLAB_ARGV_FILE:-}" ] || printf '%s\n' "$*" >> "$FM_TEST_GLAB_ARGV_FILE"
     [ "${FM_TEST_FORGE_FAIL:-0}" = 0 ] || exit 1
     case " $* " in
-      *" --jq "*) [ "${FM_TEST_GLAB_NO_JQ:-0}" = 0 ] || exit 1 ;;
+      *" --jq "*)
+        if [ "${FM_TEST_GLAB_NO_JQ:-0}" != 0 ]; then
+          [ -n "$noise" ] || noise='{"error":{"message":"unknown flag: --jq"}}'
+          printf '%s\n' "$noise"
+          exit 1
+        fi
+        ;;
     esac
     [ -z "${FM_TEST_BODY_FILE:-}" ] || cat "$FM_TEST_BODY_FILE"
     ;;
@@ -206,6 +216,8 @@ run_check() {  # <case-dir> [args...]
     FM_TEST_FORGE_HANG="${FM_TEST_FORGE_HANG:-0}" \
     FM_TEST_GLAB_NO_JQ="${FM_TEST_GLAB_NO_JQ:-0}" \
     FM_TEST_GLAB_ARGV_FILE="${FM_TEST_GLAB_ARGV_FILE:-}" \
+    FM_TEST_GLAB_JQ_STDOUT="${FM_TEST_GLAB_JQ_STDOUT:-}" \
+    FM_TEST_GH_ARGV_FILE="${FM_TEST_GH_ARGV_FILE:-}" \
     FM_PR_DESCRIPTION_TIMEOUT="${FM_PR_DESCRIPTION_TIMEOUT:-20}" \
     PATH="$dir/fakebin:$BASE_PATH" \
     "$PR_CHECK" "$@"
@@ -512,6 +524,57 @@ test_gitlab_fetch_addresses_the_task_instance() {
   pass "the GitLab fetch addresses the task's own instance, not glab's default"
 }
 
+test_github_fetch_addresses_the_task_url() {
+  local dir rc argv
+  dir=$(make_case host-github)
+  fixture_1328 > "$dir/body.md"
+  set +e
+  FM_TEST_BODY_FILE="$dir/body.md" FM_TEST_GH_ARGV_FILE="$dir/argv" \
+    run_check "$dir" task-a https://github.com/o/r/pull/1 > "$dir/out" 2> "$dir/err"
+  rc=$?
+  set -e
+  expect_code 0 "$rc" "a pull request with a clean description"
+  [ -s "$dir/argv" ] || fail "the GitHub fetch never ran"
+  argv=$(head -1 "$dir/argv")
+  # A bare number is resolved against whichever instance gh is configured for.
+  # Only the URL names the instance the task itself was validated against.
+  case " $argv " in
+    *" https://github.com/o/r/pull/1 "*) ;;
+    *) fail "the fetch did not address the task's own URL: $argv" ;;
+  esac
+  [ ! -s "$dir/err" ] || fail "a readable description printed a diagnostic: $(cat "$dir/err")"
+  pass "the GitHub fetch addresses the task's own URL, not gh's default instance"
+}
+
+test_a_failed_jq_attempt_is_not_read_as_description() {
+  local dir body expected rc
+  dir=$(make_case jq-noise)
+  {
+    printf 'title:\tan ordinary subject\n'
+    printf 'state:\topen\n'
+    printf -- '--\n'
+    fixture_1328
+  } > "$dir/body.md"
+  # A glab that rejects --jq reports the failure on STDOUT before exiting
+  # non-zero. Those bytes are not the description, and measuring them with the
+  # fallback body would refuse a request over the CLI's own diagnostics.
+  set +e
+  body=$(FM_TEST_BODY_FILE="$dir/body.md" FM_TEST_GLAB_NO_JQ=1 \
+    FM_TEST_GLAB_JQ_STDOUT='{"error":{"message":"failed to read /Users/ci/.config/glab-cli/config.yml"}}' \
+    PATH="$dir/fakebin:$BASE_PATH" \
+    fm_pr_description_fetch gitlab gitlab.example g/sub/p 17 \
+    https://gitlab.example/g/sub/p/-/merge_requests/17)
+  rc=$?
+  set -e
+  expect_code 0 "$rc" "the plain-view fallback after a rejected --jq"
+  expected=$(fixture_1328)
+  [ "$body" = "$expected" ] || fail \
+    "the fallback returned more than the description"$'\n'"--- expected ---"$'\n'"$expected"$'\n'"--- actual ---"$'\n'"$body"
+  [ -z "$(printf '%s\n' "$body" | scan)" ] || fail \
+    "the failed attempt's own output was measured as part of the description"
+  pass "a rejected --jq attempt contributes nothing to the measured description"
+}
+
 test_clean_description_arms_unchanged() {
   local dir rc out
   dir=$(make_case clean)
@@ -591,6 +654,8 @@ test_refusal_names_the_path_as_written
 test_refusal_names_paths_and_leaves_no_side_effect
 test_gitlab_refusal_uses_merge_request_wording
 test_gitlab_fetch_addresses_the_task_instance
+test_github_fetch_addresses_the_task_url
+test_a_failed_jq_attempt_is_not_read_as_description
 test_plain_view_header_cannot_decide_the_verdict
 test_absent_glab_reports_only_the_missing_cli
 test_clean_description_arms_unchanged

@@ -16,12 +16,16 @@ refresh the fixtures when a new false refusal or miss is found in the field.
 Verified on 2026-08-18 with `gh version 2.97.0 (2026-07-31)` and
 `glab 1.113.0 (d62881304)`.
 The `glab` transcripts below were re-run on 2026-08-19 with the same versions
-after `-R` moved from a bare `<host>/<project-path>` to the project URL.
+after `-R` moved from a bare `<host>/<project-path>` to the project URL, and the
+`gh` transcripts on the same day after its address moved from a bare number with
+`--repo` to the request URL.
 
-    gh pr view <number> --repo <owner>/<repo> --json body -q .body
+    gh pr view <url> --json body -q .body
     glab mr view <number> -R https://<host>/<project-path> -F json --jq .description
 
 Both return the description on stdout and exit 0.
+Each is addressed by the URL the task itself was validated from, because both
+CLIs otherwise resolve against whichever instance they are configured for.
 `glab` needs the project URL, not a bare `host/path`: the bare form is answered
 by whichever instance `glab` is configured for, so a self-hosted host is
 silently dropped from the address.
@@ -34,10 +38,18 @@ Measured against a host that cannot resolve, only the URL form dials it:
 
 Both exit 1, so the guard degrades either way, but the bare form would read a
 same-path project on the default instance if one existed.
+`gh` carries the same distinction in `GH_HOST`, which redirects a bare number
+with `--repo` while leaving a request URL alone:
+
+    $ GH_HOST=bogus.invalid gh pr view 7 --repo sanis/firstmate --json body -q .body >/dev/null 2>&1; echo $?
+    1
+    $ GH_HOST=bogus.invalid gh pr view https://github.com/sanis/firstmate/pull/7 --json body -q .body >/dev/null 2>&1; echo $?
+    0
+
 Every transcript in this section was run against public projects so a
 maintainer can re-run it verbatim:
 
-    $ gh pr view 7 --repo sanis/firstmate --json body -q .body >/dev/null 2>&1; echo $?
+    $ gh pr view https://github.com/sanis/firstmate/pull/7 --json body -q .body >/dev/null 2>&1; echo $?
     0
     $ glab mr view 3740 -R https://gitlab.com/gitlab-org/cli -F json --jq .description >/dev/null 2>&1; echo $?
     0
@@ -52,7 +64,7 @@ internally, measured against a PATH holding only those two CLIs plus `git` and
     absent
     $ glab mr view 3740 -R https://gitlab.com/gitlab-org/cli -F json --jq .description >/dev/null 2>&1; echo $?
     0
-    $ gh pr view 7 --repo sanis/firstmate --json body -q .body >/dev/null 2>&1; echo $?
+    $ gh pr view https://github.com/sanis/firstmate/pull/7 --json body -q .body >/dev/null 2>&1; echo $?
     0
 
 `git` does have to be present: `glab` exits non-zero without it even when the
@@ -71,7 +83,7 @@ A hit bound returns 124 and is treated as any other fetch failure:
 Failure exits non-zero with no usable stdout, which is what the guard's
 degrade-to-warning path relies on:
 
-    $ gh pr view 999999 --repo sanis/firstmate --json body -q .body >/dev/null 2>&1; echo $?
+    $ gh pr view https://github.com/sanis/firstmate/pull/999999 --json body -q .body >/dev/null 2>&1; echo $?
     1
     $ glab mr view 999999 -R https://gitlab.com/gitlab-org/cli -F json --jq .description >/dev/null 2>&1; echo $?
     1
@@ -119,6 +131,12 @@ carries no separator line at all, so nothing there can be removed by it:
     0
     $ glab mr view 3740 -R https://gitlab.com/gitlab-org/cli | grep -n '^--$'
     10:--
+
+The `-F json --jq` attempt that precedes this fallback is captured rather than
+streamed, because a `glab` that cannot answer it reports the failure on stdout,
+as the `bogus.invalid` transcripts above show.
+Streamed, that error object would be prepended to the fallback body and the two
+measured as one description.
 
 One residual: output carrying no `--` line at all is an unrecognised format, and
 is scanned whole rather than read as empty, because a guard that silently
