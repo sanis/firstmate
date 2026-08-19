@@ -143,6 +143,24 @@ worker_recover_quarantine() { # <account-home>
   rm -f -- "$WORKER_LOCK/quarantine"
 }
 
+# Every ownership file is staged as an mktemp neighbour inside the lock
+# directory and published with mv, so a worker killed between the two steps
+# leaves that staging file behind. Reclaiming a proven-stale lock has to clear
+# residue nobody can name by hand: rmdir refuses a non-empty directory, so a
+# single leftover would otherwise wedge worker ownership for every later worker,
+# permanently rather than for one restart. A directory is refused instead of
+# removed because nothing here ever creates one, and rm on a symlink unlinks the
+# link rather than following it.
+worker_clear_lock_residue() {
+  local entry
+  for entry in "$WORKER_LOCK"/* "$WORKER_LOCK"/.*; do
+    case "${entry##*/}" in .|..) continue ;; esac
+    [ -e "$entry" ] || [ -L "$entry" ] || continue
+    if [ -d "$entry" ] && [ ! -L "$entry" ]; then return 1; fi
+    rm -f -- "$entry" || return 1
+  done
+}
+
 worker_acquire_lock() {
   local account_home=$1 attempt=0
   while [ "$attempt" -lt 150 ]; do
@@ -164,6 +182,7 @@ worker_acquire_lock() {
     fi
     [ ! -L "$WORKER_LOCK/pid" ] && [ ! -L "$WORKER_LOCK/start" ] && [ ! -L "$WORKER_LOCK/command" ] || return 1
     rm -f -- "$WORKER_LOCK/pid" "$WORKER_LOCK/start" "$WORKER_LOCK/command" || return 1
+    worker_clear_lock_residue || return 1
     rmdir "$WORKER_LOCK" || return 1
   done
   return 1
