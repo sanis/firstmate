@@ -76,6 +76,10 @@ Hints only affect balance: the coverage guard keeps the partition complete and d
 | `portable-serial-4of4` | 19 | 285944 ms (~285.9 s) |
 | imbalance | | 16 ms |
 
+This table is known stale, last confirmed stale on 2026-08-19: the lanes now select materially more scripts than the counts recorded above.
+Do not plan shard balance or capacity from these numbers.
+Refresh them with the procedure below rather than editing the counts alone, because counts corrected beside unrefreshed weight hints read as a completed refresh that never happened.
+
 The single longest script, `tests/fm-pr-check-security.test.sh` at 199573 ms, is the floor for any shard count.
 
 Refresh the hints by downloading the per-shard timing artifacts from a green CI run, replacing the `portable_serial_weight_hints` table in `bin/fm-test-run.sh` with the measured `path`/`duration_ms` pairs, and updating the table above:
