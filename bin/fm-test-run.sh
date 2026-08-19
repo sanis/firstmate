@@ -138,7 +138,7 @@ family_for_basename() {
     fm-classify-decision-key.test.sh|fm-clickup-contract.test.sh|\
     fm-composer-ghost.test.sh|fm-composer-lib.test.sh|\
     fm-crew-state.test.sh|fm-decision-hold-lifecycle.test.sh|\
-    fm-documentation-audiences.test.sh|fm-ensure-agents-md.test.sh|fm-grok-harness.test.sh|\
+    fm-ensure-agents-md.test.sh|fm-grok-harness.test.sh|\
     fm-kimi-harness.test.sh|fm-muse-harness.test.sh|fm-herdr-lab.test.sh|fm-lint.test.sh|\
     fm-operational-input.test.sh|fm-pi-primary-types.test.sh|\
     fm-send-popup-settle.test.sh|fm-send-settle.test.sh|\
@@ -223,6 +223,9 @@ family_for_basename() {
     fm-backend-orca.test.sh)
       printf '%s\n' orca
       ;;
+    fm-documentation-audiences.test.sh)
+      printf '%s\n' documentation-audiences
+      ;;
     *)
       printf '%s\n' unclassified
       ;;
@@ -254,6 +257,7 @@ snapshot-bearings
 cmux
 zellij
 orca
+documentation-audiences
 unclassified
 EOF
 }
@@ -841,6 +845,15 @@ families_for_test_reference() {
 # Never expands to the complete suite.
 families_for_changed_path() {
   local path=$1 fixture_ref
+  # Every tracked prose surface, and the inventory beside it, is an input to the
+  # documentation audience check and to the link set its suite pins. Emitted
+  # ahead of the map below because prose also carries whatever family its own
+  # path already selects.
+  case "$path" in
+    *.md|*.mdx|*.rst|*.txt|docs/examples/*|docs/documentation-audiences.json)
+      printf '%s\n' documentation-audiences
+      ;;
+  esac
   case "$path" in
     tests/fm-test-run.test.sh)
       printf '%s\n' pure-contract-unit

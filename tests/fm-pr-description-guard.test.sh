@@ -336,13 +336,21 @@ test_a_root_named_in_prose_delivers_nothing() {
   # a refusal asks the author to upload something that does not exist.
   assert_scan_equals "the guard's own root list" "" \
     < <(printf 'roots: /var/folders/, /tmp/, /Users/, /home/, file://\n')
+  # The scheme's own slashes are not a path, so every empty-path spelling of it
+  # is a name rather than a delivery.
   assert_scan_equals "bare scheme" "" \
     < <(printf 'the file:// scheme\n')
+  assert_scan_equals "empty authority" "" \
+    < <(printf 'the file:/// URL form\n')
+  assert_scan_equals "empty authority and root" "" \
+    < <(printf 'the file://// spelling\n')
   assert_scan_equals "bare per-user temp root" "" \
     < <(printf 'macOS resolves /var/folders through /private\n')
   # A child segment under the same root is still refused with no second signal.
   assert_scan_equals "per-user temp path" "/var/folders/qz/T/out.png" \
     < <(printf 'see /var/folders/qz/T/out.png\n')
+  assert_scan_equals "file url with a host" "file://host/share/shot.png" \
+    < <(printf 'open file://host/share/shot.png\n')
   pass "a root named in prose is not a delivery, a path under it still is"
 }
 

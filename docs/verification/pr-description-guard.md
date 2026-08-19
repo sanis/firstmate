@@ -223,10 +223,20 @@ unrelated public
 
 The refusal is also proven against a live forge, not only against the fixtures.
 [`Seth-Peters/treebox#41`](https://github.com/Seth-Peters/treebox/pull/41) is an
-unrelated public pull request whose 36,986-byte body carries the same evidence
-shape the four defective bodies did - artifacts under
+unrelated public pull request whose body carries the same evidence shape the four
+defective bodies did - artifacts under
 `/var/folders/.../no-mistakes-evidence/<run-id>/` - and the scanner names 39
 paths in it, read through the real `gh`.
+Its size depends on how the body is read, so the reading is named with the
+figure; both were measured on 2026-08-19:
+
+    $ gh pr view https://github.com/Seth-Peters/treebox/pull/41 --json body | python3 -c 'import json,sys; print(len(json.load(sys.stdin)["body"].encode()))'
+    36987
+    $ gh pr view https://github.com/Seth-Peters/treebox/pull/41 --json body -q .body | wc -c
+       36988
+
+The first is the body itself in UTF-8 bytes; the second adds the trailing
+newline `-q` emits, which is the form the guard actually scans.
 The four defective bodies themselves were corrected before this guard existed
 and cannot be re-created without publishing a broken description, so that public
 body is what stands in for them end to end.
@@ -266,12 +276,14 @@ which side each case falls on.
   run-stamped segment and no link syntax, passes.
   It is indistinguishable in shape from `curl -o /tmp/glab.tgz`, and refusing
   both would refuse !703.
-- **A root named with nothing under it.** `/var/folders`, `/Users`, `/home` and a
-  bare `file://` all pass, because a root on its own hands the reader no
-  artifact and a refusal naming one asks the author to upload a file that does
-  not exist.
-  Every root therefore requires a segment beneath it, which is what the sentence
-  listing the roots of this very guard depends on to pass.
+- **A root named with nothing under it.** `/var/folders`, `/Users`, `/home` and
+  every empty-path spelling of the scheme - `file://`, `file:///`, `file:////` -
+  all pass, because a root on its own hands the reader no artifact and a refusal
+  naming one asks the author to upload a file that does not exist.
+  Every root therefore requires a non-slash segment beneath it, which is what the
+  sentence listing the roots of this very guard depends on to pass.
+  `file:///Users/someone/out.png` and `file://host/share/shot.png` both carry one
+  and are still refused.
 - **Reproducible-looking evidence directories.** `/tmp/pytest-of-user/run/x.png`
   has no segment long enough to read as machine-generated, so it passes.
 - **Run stamps that carry no letters.** `/tmp/run-1755500000/x.png` is a

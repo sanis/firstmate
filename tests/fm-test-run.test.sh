@@ -109,7 +109,8 @@ init_changed_fixture_repo() {
     fm-bearings-snapshot.test.sh \
     fm-backend-cmux.test.sh \
     fm-backend-zellij.test.sh \
-    fm-backend-orca.test.sh; do
+    fm-backend-orca.test.sh \
+    fm-documentation-audiences.test.sh; do
     printf '#!/usr/bin/env bash\n# tests/lib.sh\n' >"$repo/tests/$script"
     chmod +x "$repo/tests/$script"
   done
@@ -120,8 +121,13 @@ init_changed_fixture_repo() {
   printf '# .claude/settings.json\n# .pi/extensions/fm-primary-turnend-guard.ts\n' \
     >>"$repo/tests/fm-cd-pretool-check.test.sh"
   printf '# .pi/extensions/fm-primary-pi-watch.ts\n' >>"$repo/tests/fm-pi-watch-extension.test.sh"
-  mkdir -p "$repo/.agents/skills/example" "$repo/.claude" "$repo/.pi/extensions" "$repo/src"
+  mkdir -p "$repo/.agents/skills/example" "$repo/.claude" "$repo/.pi/extensions" "$repo/src" \
+    "$repo/docs"
   : >"$repo/.agents/skills/example/SKILL.md"
+  : >"$repo/README.md"
+  : >"$repo/docs/prose.md"
+  : >"$repo/docs/documentation-audiences.json"
+  : >"$repo/.gitignore"
   : >"$repo/.claude/settings.json"
   : >"$repo/.pi/extensions/fm-primary-pi-watch.ts"
   : >"$repo/.pi/extensions/fm-primary-turnend-guard.ts"
@@ -182,12 +188,57 @@ test_changed_dependency_selection_and_unmapped_failure() {
   pass "changed selection covers dependents and fails closed for unmapped source"
 }
 
+test_prose_only_change_selects_the_documentation_suite() {
+  local tmp repo listed
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-prose.XXXXXX")
+  repo="$tmp/repo"
+  init_changed_fixture_repo "$repo"
+
+  # The documentation suite pins which links the audience checker stops
+  # extracting, and its input is tracked prose. A prose-only commit is exactly
+  # the change that moves that set, so it has to select the suite that measures
+  # it rather than nothing at all.
+  printf 'see [a link](docs/prose.md)\n' >>"$repo/README.md"
+  listed=$(cd "$repo" && bin/fm-test-run.sh --list --changed --base HEAD)
+  assert_contains "$listed" "tests/fm-documentation-audiences.test.sh" \
+    "a README change selects no documentation coverage"
+  git -C "$repo" add README.md
+  git -C "$repo" -c user.name=test -c user.email=test@example.invalid commit -qm readme-change
+
+  printf 'a sample target wrapped as code, which stops being a checked link\n' \
+    >>"$repo/docs/prose.md"
+  listed=$(cd "$repo" && bin/fm-test-run.sh --list --changed --base HEAD)
+  assert_contains "$listed" "tests/fm-documentation-audiences.test.sh" \
+    "a docs prose change selects no documentation coverage"
+  git -C "$repo" add docs
+  git -C "$repo" -c user.name=test -c user.email=test@example.invalid commit -qm docs-change
+
+  printf '{}\n' >>"$repo/docs/documentation-audiences.json"
+  listed=$(cd "$repo" && bin/fm-test-run.sh --list --changed --base HEAD)
+  assert_contains "$listed" "tests/fm-documentation-audiences.test.sh" \
+    "an inventory change selects no documentation coverage"
+  git -C "$repo" add docs
+  git -C "$repo" -c user.name=test -c user.email=test@example.invalid commit -qm inventory-change
+
+  # Prose outside docs/ carries its own family as well as the documentation one.
+  printf '\n' >>"$repo/.agents/skills/example/SKILL.md"
+  listed=$(cd "$repo" && bin/fm-test-run.sh --list --changed --base HEAD)
+  assert_contains "$listed" "tests/fm-documentation-audiences.test.sh" \
+    "a skill prose change selects no documentation coverage"
+  assert_contains "$listed" "tests/fm-ask-user-authority.test.sh" \
+    "a skill prose change lost the family it already selected"
+  rm -rf "$tmp"
+  pass "a prose-only change selects the suite that measures prose"
+}
+
 test_empty_selection_emits_summary() {
   local tmp repo out json
   tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-empty.XXXXXX")
   repo="$tmp/repo"
   init_changed_fixture_repo "$repo"
-  printf 'documentation only\n' >"$repo/README.md"
+  # Not prose and not a source: nothing consumes it, so the selection is empty
+  # while still being a valid one.
+  printf 'artifacts/\n' >"$repo/.gitignore"
   out=$(cd "$repo" && bin/fm-test-run.sh --changed --base HEAD --json "$tmp/artifacts/timing.json" 2>"$tmp/err") \
     || fail "empty valid changed selection must pass"
   [ "$out" = "FM_TEST_SUMMARY total=0 failed=0 skipped_gate=0 duration_ms=0" ] \
@@ -708,6 +759,7 @@ test_family_selection
 test_single_script_selection
 test_changed_file_selection_is_conservative
 test_changed_dependency_selection_and_unmapped_failure
+test_prose_only_change_selects_the_documentation_suite
 test_empty_selection_emits_summary
 test_timing_markers_and_json
 test_aggregate_exit_behavior
