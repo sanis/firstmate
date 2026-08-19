@@ -331,6 +331,21 @@ test_private_roots_always_refuse() {
   pass "a user home or file:// URL is refused with no second signal"
 }
 
+test_a_root_named_in_prose_delivers_nothing() {
+  # A root with nothing under it hands the reader no artifact, so naming it in
+  # a refusal asks the author to upload something that does not exist.
+  assert_scan_equals "the guard's own root list" "" \
+    < <(printf 'roots: /var/folders/, /tmp/, /Users/, /home/, file://\n')
+  assert_scan_equals "bare scheme" "" \
+    < <(printf 'the file:// scheme\n')
+  assert_scan_equals "bare per-user temp root" "" \
+    < <(printf 'macOS resolves /var/folders through /private\n')
+  # A child segment under the same root is still refused with no second signal.
+  assert_scan_equals "per-user temp path" "/var/folders/qz/T/out.png" \
+    < <(printf 'see /var/folders/qz/T/out.png\n')
+  pass "a root named in prose is not a delivery, a path under it still is"
+}
+
 # shellcheck disable=SC2016 # Literal markdown and shell bytes are scanner test data.
 test_private_twin_roots_classify_as_their_canonical_root() {
   # macOS mounts these roots through /private, so a realpath-normalised evidence
@@ -418,7 +433,7 @@ test_plain_view_header_cannot_decide_the_verdict() {
   # A title is free text, so it can name a path the description never does.
   dir=$(make_case fallback-header)
   {
-    printf 'title:\tfix: resolve /var/folders paths on macOS\n'
+    printf 'title:\tfix: resolve /var/folders/qz/T/out.png on macOS\n'
     printf 'state:\topen\n'
     printf 'url:\thttps://gitlab.com/g/sub/p/-/merge_requests/17\n'
     printf -- '--\n'
@@ -648,6 +663,7 @@ test_fixture_703_passes
 test_scratch_root_needs_a_second_signal
 test_attribute_bytes_outside_a_tag_are_not_a_delivery
 test_private_roots_always_refuse
+test_a_root_named_in_prose_delivers_nothing
 test_paths_inside_urls_are_not_local_paths
 test_private_twin_roots_classify_as_their_canonical_root
 test_refusal_names_the_path_as_written

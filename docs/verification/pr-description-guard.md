@@ -118,9 +118,9 @@ header whose title names a path:
     title:	chore(deps): update module golang.org/x/crypto to v0.55.0
     $ glab mr view 3740 -R https://gitlab.com/gitlab-org/cli | fm_pr_description_strip_header | sed -n 1p
     This MR contains the following updates:
-    $ printf 'title:\tfix: resolve /var/folders paths on macOS\n--\nthe body names nothing local\n' | fm_pr_description_local_paths
-    /var/folders
-    $ printf 'title:\tfix: resolve /var/folders paths on macOS\n--\nthe body names nothing local\n' | fm_pr_description_strip_header | fm_pr_description_local_paths
+    $ printf 'title:\tfix: resolve /var/folders/qz/T/out.png on macOS\n--\nthe body names nothing local\n' | fm_pr_description_local_paths
+    /var/folders/qz/T/out.png
+    $ printf 'title:\tfix: resolve /var/folders/qz/T/out.png on macOS\n--\nthe body names nothing local\n' | fm_pr_description_strip_header | fm_pr_description_local_paths
 
 The last command prints nothing, so the header can no longer reach a verdict.
 The strip is scoped to this fallback alone.
@@ -133,8 +133,20 @@ carries no separator line at all, so nothing there can be removed by it:
     10:--
 
 The `-F json --jq` attempt that precedes this fallback is captured rather than
-streamed, because a `glab` that cannot answer it reports the failure on stdout,
-as the `bogus.invalid` transcripts above show.
+streamed, because a `glab` that cannot answer it reports the failure on stdout.
+The transcripts above cannot show which stream that is, since they were run with
+none, so the pair was re-run on 2026-08-19 with the two separated into files:
+
+    $ glab mr view 1 -R bogus.invalid/gitlab-org/cli -F json --jq .description >out 2>err; echo $?
+    1
+    $ wc -c < out; cat out
+          69
+    {"error":{"message":"failed to get merge request 1: 404 Not Found"}}
+    $ wc -c < err
+         153
+
+The machine-readable error object is on stdout and the human `ERROR` banner is
+the 153 bytes on stderr, which the fetch already discards.
 Streamed, that error object would be prepended to the fallback body and the two
 measured as one description.
 
@@ -186,12 +198,15 @@ Reproduce in the repo:
     ok - a shared scratch root refuses only when stamped or delivered
     ok - attribute-shaped bytes deliver only inside an open tag
     ok - a user home or file:// URL is refused with no second signal
+    ok - a root named in prose is not a delivery, a path under it still is
     ok - a /home or /tmp segment inside a URL is not a local path
     ok - a /private twin decides as its canonical root, and nothing else does
     ok - a refused twin path is named exactly as the description wrote it
     ok - a refusal names every path, points at the recipes, and changes nothing
     ok - both forges are checked, each with its own wording
     ok - the GitLab fetch addresses the task's own instance, not glab's default
+    ok - the GitHub fetch addresses the task's own URL, not gh's default instance
+    ok - a rejected --jq attempt contributes nothing to the measured description
     ok - the plain view's header is dropped, its description is not
     ok - an absent glab is reported once, as the missing CLI
     ok - a clean description arms exactly as before
@@ -217,7 +232,8 @@ and cannot be re-created without publishing a broken description, so that public
 body is what stands in for them end to end.
 
 End to end through the real CLIs on 2026-08-18, against a throwaway `FM_HOME`
-and both live forges:
+and both live forges, and re-run unchanged on 2026-08-19 after the fetch address
+and the root-shape corrections:
 
     $ bin/fm-pr-check.sh t1 https://gitlab.com/gitlab-org/cli/-/merge_requests/3740
     armed: state/t1.check.sh
@@ -250,6 +266,12 @@ which side each case falls on.
   run-stamped segment and no link syntax, passes.
   It is indistinguishable in shape from `curl -o /tmp/glab.tgz`, and refusing
   both would refuse !703.
+- **A root named with nothing under it.** `/var/folders`, `/Users`, `/home` and a
+  bare `file://` all pass, because a root on its own hands the reader no
+  artifact and a refusal naming one asks the author to upload a file that does
+  not exist.
+  Every root therefore requires a segment beneath it, which is what the sentence
+  listing the roots of this very guard depends on to pass.
 - **Reproducible-looking evidence directories.** `/tmp/pytest-of-user/run/x.png`
   has no segment long enough to read as machine-generated, so it passes.
 - **Run stamps that carry no letters.** `/tmp/run-1755500000/x.png` is a
@@ -343,7 +365,8 @@ They are decisions, not oversights.
   is a public pull request *about* `/var` versus `/private/var` resolution, and
   quotes elided paths such as `/var/folders/.../` and
   `/private/var/folders/.../chigb/up.gif` in a log excerpt and in prose.
-  The scanner names four of them.
+  Re-measured against that live body on 2026-08-19, the scanner names two of
+  them, both carrying a segment under the root.
   Nothing is delivered and nothing is unopenable; the paths are the bug being
   described.
   This is the same accepted cost as the home-root case above - a

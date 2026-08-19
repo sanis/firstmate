@@ -74,11 +74,11 @@ function canonical_root(p) {
 }
 
 function classify(p,   c) {
-  if (p ~ "^file://") return "private"
+  if (p ~ "^file://.") return "private"
   c = canonical_root(p)
   if (c ~ "^/Users/[^/]") return "private"
   if (c ~ "^/home/[^/]") return "private"
-  if (c ~ "^/var/folders(/|$)") return "private"
+  if (c ~ "^/var/folders/[^/]") return "private"
   if (c ~ "^/tmp(/|$)") return "scratch"
   if (c ~ "^/var/tmp(/|$)") return "scratch"
   return "none"
