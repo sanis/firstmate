@@ -1,0 +1,11 @@
+docs/gitlab-merge-watch.md transcripts, re-run 2026-08-19T05:24:25Z
+glab glab 1.113.0 (d62881304), GNU bash, version 5.3.15(1)-release (aarch64-apple-darwin25.4.0)
+
+$ fm-pr-check.sh e3 https://gitlab.example/group/subgroup/project/-/merge_requests/7
+warning: could not read the description; the local-path check was skipped
+armed: state/e3.check.sh
+(exit 0; poll armed: yes)
+
+$ PATH=/usr/bin:/bin:/usr/sbin:/sbin fm-pr-check.sh e5 https://gitlab.com/KarotKris/gitlab-merge-watch-fixture/-/merge_requests/1
+error: watching a GitLab merge request requires glab on PATH
+(exit 1; poll armed: no)

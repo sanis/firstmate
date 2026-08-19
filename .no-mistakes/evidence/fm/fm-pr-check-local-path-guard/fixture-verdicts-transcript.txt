@@ -1,0 +1,55 @@
+bin/fm-pr-check.sh over a fake GitLab CLI, 2026-08-19T05:19:30Z
+Bodies are the fragments of the five merge requests checked by hand on 2026-08-18
+(project nouns neutralised), plus the two attribute-shape cases from correction 1.
+exit 3 = refused; exit 0 + armed = passed. fm-guard.sh's banner is elided.
+
+--- !1333 seven screenshot paths under a run id (hand-checked verdict: REFUSE) ---
+  error: the merge request description delivers evidence as local file paths no reader can open
+    /var/folders/qz/8xk3mhpn1t95c2rv7_gbdlr40000gn/T/no-mistakes-evidence/01M0A19WBRM7DGRAFZZM6ZQ2FC/shots/01-record-row-action.png
+    /var/folders/qz/8xk3mhpn1t95c2rv7_gbdlr40000gn/T/no-mistakes-evidence/01M0A19WBRM7DGRAFZZM6ZQ2FC/shots/02-confirmation-page.png
+    /var/folders/qz/8xk3mhpn1t95c2rv7_gbdlr40000gn/T/no-mistakes-evidence/01M0A19WBRM7DGRAFZZM6ZQ2FC/shots/03-retry-success-status-sent.png
+    /var/folders/qz/8xk3mhpn1t95c2rv7_gbdlr40000gn/T/no-mistakes-evidence/01M0A19WBRM7DGRAFZZM6ZQ2FC/shots/04-second-list-row-action.png
+    /var/folders/qz/8xk3mhpn1t95c2rv7_gbdlr40000gn/T/no-mistakes-evidence/01M0A19WBRM7DGRAFZZM6ZQ2FC/shots/05-second-list-retry-sent.png
+    /var/folders/qz/8xk3mhpn1t95c2rv7_gbdlr40000gn/T/no-mistakes-evidence/01M0A19WBRM7DGRAFZZM6ZQ2FC/shots/06-permanent-failure-acknowledgement.png
+    /var/folders/qz/8xk3mhpn1t95c2rv7_gbdlr40000gn/T/no-mistakes-evidence/01M0A19WBRM7DGRAFZZM6ZQ2FC/shots/07-no-config-refused.png
+  upload each artifact to the merge request and embed the link it returns; the recipes are in
+    .agents/skills/evidence-artifacts/SKILL.md
+  => exit 3; poll armed: no; pr= recorded: 0
+
+--- !1325 three YAML/JSON evidence paths (hand-checked verdict: REFUSE) ---
+  error: the merge request description delivers evidence as local file paths no reader can open
+    /var/folders/qz/8xk3mhpn1t95c2rv7_gbdlr40000gn/T/no-mistakes-evidence/01KZZTJB6ZKJR0D4S3D3VGPS12/merged-ci.yml
+    /var/folders/qz/8xk3mhpn1t95c2rv7_gbdlr40000gn/T/no-mistakes-evidence/01KZZTJB6ZKJR0D4S3D3VGPS12/ci-lint-response.json
+    /var/folders/qz/8xk3mhpn1t95c2rv7_gbdlr40000gn/T/no-mistakes-evidence/01KZZTJB6ZKJR0D4S3D3VGPS12/ci-lint-dryrun-master-push.json
+  upload each artifact to the merge request and embed the link it returns; the recipes are in
+    .agents/skills/evidence-artifacts/SKILL.md
+  => exit 3; poll armed: no; pr= recorded: 0
+
+--- !1331 a JSON transcript and a PHP capture script (hand-checked verdict: REFUSE) ---
+  error: the merge request description delivers evidence as local file paths no reader can open
+    /var/folders/qz/8xk3mhpn1t95c2rv7_gbdlr40000gn/T/no-mistakes-evidence/01M08HCNG26R96B3RX8C8H395Y/mcp-transcript.json
+    /var/folders/qz/8xk3mhpn1t95c2rv7_gbdlr40000gn/T/no-mistakes-evidence/01M08HCNG26R96B3RX8C8H395Y/McpProbe40127TranscriptCapture.php
+  upload each artifact to the merge request and embed the link it returns; the recipes are in
+    .agents/skills/evidence-artifacts/SKILL.md
+  => exit 3; poll armed: no; pr= recorded: 0
+
+--- !1328 clean body plus the correct /uploads/ links (hand-checked verdict: PASS) ---
+  armed: state/1328cleanbodyplusthecorrectuploadslinks.check.sh
+  => exit 0; poll armed: yes; pr= recorded: 1
+
+--- !703 quoted glab install commands under /tmp (hand-checked verdict: PASS) ---
+  armed: state/703quotedglabinstallcommandsundertmp.check.sh
+  => exit 0; poll armed: yes; pr= recorded: 1
+
+--- an upper-case make/env assignment outside any tag (hand-checked verdict: PASS) ---
+  armed: state/anuppercasemakeenvassignmentoutsideanytag.check.sh
+  => exit 0; poll armed: yes; pr= recorded: 1
+
+--- the same bytes inside an open HTML tag (hand-checked verdict: REFUSE) ---
+  error: the merge request description delivers evidence as local file paths no reader can open
+    /tmp/run-a1b2c3d4e5/shot.png
+  upload each artifact to the merge request and embed the link it returns; the recipes are in
+    .agents/skills/evidence-artifacts/SKILL.md
+  => exit 3; poll armed: no; pr= recorded: 0
+
+# throwaway FM_HOME removed

@@ -1,0 +1,67 @@
+bin/fm-pr-check.sh - live public-forge transcript, 2026-08-19T05:16:43Z
+gh 2.97.0; throwaway FM_HOME under /tmp, removed at the end.
+fm-guard.sh's unrelated supervision banner is elided from each block.
+
+== 1. Live public PR whose description delivers /var/folders evidence paths ==
+$ bin/fm-pr-check.sh t-refuse https://github.com/Seth-Peters/treebox/pull/41
+error: the pull request description delivers evidence as local file paths no reader can open
+  /var/folders/1x/yt5x5hj1355b7695yfwsdxvw0000gn/T/no-mistakes-evidence/01KZE3V4CZW5R7BNWAV2KKHRX1/treebox-e2e.qeOZqp
+  /var/folders/1x/yt5x5hj1355b7695yfwsdxvw0000gn/T/no-mistakes-evidence/01KZE3V4CZW5R7BNWAV2KKHRX1/treebox-e2e.qeOZqp/repo
+  /var/folders/1x/yt5x5hj1355b7695yfwsdxvw0000gn/T/no-mistakes-evidence/01KZE3V4CZW5R7BNWAV2KKHRX1/treebox-e2e.qeOZqp/wts
+  /var/folders/1x/yt5x5hj1355b7695yfwsdxvw0000gn/T/no-mistakes-evidence/01KZE3V4CZW5R7BNWAV2KKHRX1/treebox-e2e.qeOZqp/treebox-home
+  /var/folders/1x/yt5x5hj1355b7695yfwsdxvw0000gn/T/no-mistakes-evidence/01KZE3V4CZW5R7BNWAV2KKHRX1/treebox-e2e.qeOZqp/repo/uv.lock
+  /var/folders/1x/yt5x5hj1355b7695yfwsdxvw0000gn/T/no-mistakes-evidence/01KZE3V4CZW5R7BNWAV2KKHRX1/treebox-e2e.qeOZqp/repo/pnpm-lock.yaml
+  /var/folders/1x/yt5x5hj1355b7695yfwsdxvw0000gn/T/no-mistakes-evidence/01KZE3V4CZW5R7BNWAV2KKHRX1/treebox-e2e.qeOZqp/shared/uv
+  /var/folders/1x/yt5x5hj1355b7695yfwsdxvw0000gn/T/no-mistakes-evidence/01KZE3V4CZW5R7BNWAV2KKHRX1/treebox-e2e.qeOZqp/shared/pnpm
+  /var/folders/1x/yt5x5hj1355b7695yfwsdxvw0000gn/T/no-mistakes-evidence/01KZE3V4CZW5R7BNWAV2KKHRX1/treebox-e2e.qeOZqp/shared/npm
+  /var/folders/1x/yt5x5hj1355b7695yfwsdxvw0000gn/T/no-mistakes-evidence/01KZE3V4CZW5R7BNWAV2KKHRX1/treebox-e2e.qeOZqp/shared/go
+  /var/folders/1x/yt5x5hj1355b7695yfwsdxvw0000gn/T/no-mistakes-evidence/01KZE3V4CZW5R7BNWAV2KKHRX1/treebox-e2e.qeOZqp/shared/cargo
+  /var/folders/1x/yt5x5hj1355b7695yfwsdxvw0000gn/T/no-mistakes-evidence/01KZE3V4CZW5R7BNWAV2KKHRX1/host-warm-json.stderr.txt
+  /var/folders/1x/yt5x5hj1355b7695yfwsdxvw0000gn/T/no-mistakes-evidence/01KZE3V4CZW5R7BNWAV2KKHRX1/host-cold-json.stderr.txt
+  /var/folders/1x/yt5x5hj1355b7695yfwsdxvw0000gn/T/no-mistakes-evidence/01KZE3V4CZW5R7BNWAV2KKHRX1/docker-warm-json.stderr.txt
+  /var/folders/1x/yt5x5hj1355b7695yfwsdxvw0000gn/T/no-mistakes-evidence/01KZE3V4CZW5R7BNWAV2KKHRX1/docker-cold-json.stderr.txt
+  /var/folders/1x/yt5x5hj1355b7695yfwsdxvw0000gn/T/no-mistakes-evidence/01KZE3V4CZW5R7BNWAV2KKHRX1/host-warm.json
+  /var/folders/1x/yt5x5hj1355b7695yfwsdxvw0000gn/T/no-mistakes-evidence/01KZE3V4CZW5R7BNWAV2KKHRX1/host-cold.json
+  /var/folders/1x/yt5x5hj1355b7695yfwsdxvw0000gn/T/no-mistakes-evidence/01KZE3V4CZW5R7BNWAV2KKHRX1/docker-warm.json
+  /var/folders/1x/yt5x5hj1355b7695yfwsdxvw0000gn/T/no-mistakes-evidence/01KZE3V4CZW5R7BNWAV2KKHRX1/docker-cold.json
+  /var/folders/1x/yt5x5hj1355b7695yfwsdxvw0000gn/T/no-mistakes-evidence/01KZE3V4CZW5R7BNWAV2KKHRX1/treebox-e2e.qeOZqp/checkout.json
+  ... and 19 more
+upload each artifact to the pull request and embed the link it returns; the recipes are in
+  .agents/skills/evidence-artifacts/SKILL.md
+(exit 3)
+# task state after the run: t-refuse.meta 
+# pr= recorded in t-refuse.meta: 0
+
+== 2. Live public PR with a clean description ==
+$ bin/fm-pr-check.sh t-clean https://github.com/sanis/firstmate/pull/7
+armed: state/t-clean.check.sh
+(exit 0)
+# task state after the run: t-clean.check.sh t-clean.meta t-clean.pr-poll t-clean.pr-poll-registration 
+# pr= recorded in t-clean.meta: 1
+
+== 3. Description cannot be read (request does not exist): degrade to warning ==
+$ bin/fm-pr-check.sh t-degrade https://github.com/sanis/firstmate/pull/999999
+warning: could not read the description; the local-path check was skipped
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+armed: state/t-degrade.check.sh
+(exit 0)
+# task state after the run: t-degrade.check.sh t-degrade.meta t-degrade.pr-poll t-degrade.pr-poll-registration 
+# pr= recorded in t-degrade.meta: 1
+
+== 4. The refusing PR again with --no-description-check (the merge path) ==
+$ bin/fm-pr-check.sh --no-description-check t-merge https://github.com/Seth-Peters/treebox/pull/41
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+armed: state/t-merge.check.sh
+(exit 0)
+# task state after the run: t-merge.check.sh t-merge.meta t-merge.pr-poll t-merge.pr-poll-registration 
+# pr= recorded in t-merge.meta: 1
+
+== 5. A forge that accepts and never answers: FM_PR_DESCRIPTION_TIMEOUT bound ==
+$ FM_PR_DESCRIPTION_TIMEOUT=2 bin/fm-pr-check.sh t-timeout https://github.com/sanis/firstmate/pull/7   # gh stub never answers
+warning: could not read the description; the local-path check was skipped
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+armed: state/t-timeout.check.sh
+(exit 0 after 5s, bound was 2s)
+# task state after the run: t-timeout.check.sh t-timeout.meta t-timeout.pr-poll t-timeout.pr-poll-registration 
+
+# throwaway FM_HOME removed

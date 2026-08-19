@@ -1,0 +1,40 @@
+Reproducing the transcripts recorded in docs/verification/pr-description-guard.md
+on 2026-08-19T05:23:17Z with gh 2.97.0 and glab 1.113.0 (d62881304)
+
+$ gh pr view https://github.com/Seth-Peters/treebox/pull/41 --json body | python3 -c "...len(body.encode())"
+36987
+$ gh pr view https://github.com/Seth-Peters/treebox/pull/41 --json body -q .body | wc -c
+   36988
+$ gh pr view https://github.com/sanis/firstmate/pull/7 --json body -q .body >/dev/null 2>&1; echo $?
+0
+$ GH_HOST=bogus.invalid gh pr view 7 --repo sanis/firstmate --json body -q .body >/dev/null 2>&1; echo $?
+1
+$ GH_HOST=bogus.invalid gh pr view https://github.com/sanis/firstmate/pull/7 --json body -q .body >/dev/null 2>&1; echo $?
+0
+$ gh pr view https://github.com/sanis/firstmate/pull/999999 --json body -q .body >/dev/null 2>&1; echo $?
+1
+
+$ glab mr view 3740 -R https://gitlab.com/gitlab-org/cli -F json --jq .description >/dev/null 2>&1; echo $?
+0
+$ glab mr view 1 -R bogus.invalid/gitlab-org/cli -F json --jq .description 2>/dev/null
+{"error":{"message":"failed to get merge request 1: 404 Not Found"}}
+$ glab mr view 1 -R https://bogus.invalid/gitlab-org/cli -F json --jq .description 2>/dev/null
+{"error":{"message":"failed to get merge request 1: Get \"https://bogus.invalid/api/v4/projects/gitlab-org%2Fcli/merge_requests/1?include_diverged_commits_count=true\u0026include_rebase_in_progress=true\u0026render_html=true\": dial tcp: lookup bogus.invalid: no such host"}}
+
+$ . bin/fm-pr-description-lib.sh
+$ printf "title:\tfix: resolve /var/folders/qz/T/out.png on macOS\n--\nthe body names nothing local\n" | fm_pr_description_local_paths
+/var/folders/qz/T/out.png
+$ ...same body... | fm_pr_description_strip_header | fm_pr_description_local_paths
+(no output: the header no longer reaches the verdict)
+$ printf "see /Users/me/out.log\n" | fm_pr_description_strip_header | fm_pr_description_local_paths
+/Users/me/out.log
+$ fm_run_timed 1 sleep 5 >/dev/null 2>&1; echo $?
+124
+$ glab mr view 3740 -R https://gitlab.com/gitlab-org/cli | sed -n 1p
+title:	chore(deps): update module golang.org/x/crypto to v0.55.0
+$ glab mr view 3740 -R https://gitlab.com/gitlab-org/cli | fm_pr_description_strip_header | sed -n 1p
+This MR contains the following updates:
+$ glab mr view 3740 -R https://gitlab.com/gitlab-org/cli -F json --jq .description | grep -c "^--$"
+0
+$ glab mr view 3740 -R https://gitlab.com/gitlab-org/cli | grep -n "^--$"
+10:--
