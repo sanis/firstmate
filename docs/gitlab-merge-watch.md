@@ -1,7 +1,11 @@
 # GitLab merge request watch verification
 
 Empirical record for the merge watch on GitLab, alongside the existing GitHub watch.
-Every command below was run on 2026-07-21 and its output is reproduced exactly.
+Every command below was run and its output is reproduced exactly, on 2026-07-21
+except for the three `fm-pr-check.sh` transcripts, which were re-run after that
+command gained its description check.
+Those three carry no single date: each is marked where it appears with the date
+it actually ran and the versions it ran under.
 
 ## Versions
 
@@ -71,7 +75,17 @@ open
 
 ## End to end: arming and polling a real merge request
 
-Three tasks were armed, two against the fixture and one against the placeholder host:
+Three tasks were armed, two against the fixture and one against the placeholder host.
+Re-run 2026-08-18 under `glab 1.113.0 (d62881304)` and
+`GNU bash, version 5.3.15(1)-release (aarch64-apple-darwin25.4.0)`.
+`fm-pr-check.sh` now reads the description first, so the placeholder host - which
+resolves nowhere - reports that it could not be read and arms anyway.
+That degrade is the intended behaviour: an unreachable forge must never block a
+ready report.
+[`bin/fm-pr-description-lib.sh`](../bin/fm-pr-description-lib.sh)
+owns the rule and
+[`docs/verification/pr-description-guard.md`](verification/pr-description-guard.md)
+its verification.
 
 ```
 $ fm-pr-check.sh e1 https://gitlab.com/KarotKris/gitlab-merge-watch-fixture/-/merge_requests/1
@@ -79,6 +93,7 @@ armed: state/e1.check.sh
 $ fm-pr-check.sh e2 https://gitlab.com/KarotKris/gitlab-merge-watch-fixture/-/merge_requests/2
 armed: state/e2.check.sh
 $ fm-pr-check.sh e3 https://gitlab.example/group/subgroup/project/-/merge_requests/7
+warning: could not read the description; the local-path check was skipped
 armed: state/e3.check.sh
 ```
 
@@ -146,7 +161,11 @@ $ PATH="$noglab" fm-pr-poll.sh --validated $(tr '\n' ' ' < state/e1.pr-poll)
 $ PATH="$noglab" fm-pr-poll.sh --validated $(tr '\n' ' ' < state/e3.pr-poll)
 ```
 
-Arming is the one point where that can be reported, so it refuses there instead of arming a watch that can never fire:
+Arming is the one point where that can be reported, so it refuses there instead of
+arming a watch that can never fire.
+Re-run 2026-08-19: that refusal comes before the description check, which would
+have to read the description through the same absent `glab`, so the one thing
+actually wrong is reported once.
 
 ```
 $ PATH="$noglab" fm-pr-check.sh e5 https://gitlab.com/KarotKris/gitlab-merge-watch-fixture/-/merge_requests/1
@@ -155,7 +174,9 @@ $ echo $?
 1
 ```
 
-A GitHub task is unaffected by a missing `glab`:
+A GitHub task is unaffected by a missing `glab`.
+Re-run 2026-08-18 unchanged: `gh` is still present, so the description check reads
+the body and finds nothing to refuse.
 
 ```
 $ PATH="$noglab" fm-pr-check.sh e6 https://github.com/kunchenguid/firstmate/pull/750

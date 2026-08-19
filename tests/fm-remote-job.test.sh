@@ -285,6 +285,28 @@ wait "$OTHER_PID" 2>/dev/null || true
 OTHER_PID=
 pass "stale ownership is reclaimed without signaling a reused pid"
 
+# Every ownership file is staged as an mktemp neighbour inside the lock
+# directory and published with mv, so a worker killed between those two steps
+# leaves the staging file behind. Reclaiming the lock has to clear that residue:
+# rmdir refuses a non-empty directory, so a single leftover nobody can name by
+# hand wedged worker ownership for every later worker rather than for one
+# restart, which is how a replaced worker stopped reporting ready at all.
+fm_remote_job_stop_worker_tree "$NEW_WORKER_PID" \
+  || fail "the ownership residue fixture could not stop the running worker"
+rm -rf -- "$STATE_ROOT/worker.lock"
+(umask 077; mkdir "$STATE_ROOT/worker.lock") || fail "the ownership residue fixture could not stage a lock"
+LOCK_RESIDUE="$STATE_ROOT/worker.lock/.quarantine.Ab3xYz"
+: > "$LOCK_RESIDUE"
+chmod 600 "$LOCK_RESIDUE"
+touch -t 200001010000 "$STATE_ROOT/worker.lock"
+fm_remote_job_ensure_worker "$REMOTE_ROOT" "$ACCOUNT_HOME" \
+  || fail "$FM_REMOTE_JOB_ERROR"
+assert_absent "$LOCK_RESIDUE" "reclaiming the lock left the unpublished staging residue behind"
+NEW_WORKER_PID=$(cat "$STATE_ROOT/worker.pid")
+fm_remote_job_worker_identity_matches "$REMOTE_ROOT" "$ACCOUNT_HOME" \
+  || fail "unpublished staging residue kept the current worker from taking ownership"
+pass "ownership is reclaimed from a lock holding unpublished staging residue"
+
 FM_REMOTE_JOB_TIMEOUT=1
 fm_remote_job_stage "$ACCOUNT_HOME" "$REMOTE_ROOT" "$REMOTE_HOME" fm-timeout-job.sh < /dev/null > /dev/null
 JOB_ID=$FM_REMOTE_JOB_ID

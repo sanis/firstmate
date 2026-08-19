@@ -70,7 +70,10 @@ if [ ! -f "$META" ] || [ -L "$META" ]; then
   exit 1
 fi
 
-"$SCRIPT_DIR/fm-pr-check.sh" "$ID" "$URL"
+# Record canonical PR metadata only. The description's local-path guard belongs
+# to the ready report; refusing here would block a merge the captain already
+# authorized, and leave teardown without the metadata it verifies landed work by.
+"$SCRIPT_DIR/fm-pr-check.sh" --no-description-check "$ID" "$URL"
 grep -qxF "pr=$URL" "$META" || {
   echo "error: PR metadata recording failed" >&2
   exit 1

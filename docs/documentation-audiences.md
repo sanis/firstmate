@@ -2,6 +2,7 @@
 
 [`documentation-audiences.json`](documentation-audiences.json) is the machine-consumed classification owner for every maintained prose surface.
 `bin/fm-doc-audience-check.sh` validates exact inventory coverage, README setup routing, required owner pointers, and local link targets.
+Link validation is code-aware: a target inside a fenced block, an indented code block, or a code span is a sample rather than a pointer, so it is never resolved.
 Audience metadata is centralized there rather than copied into front matter on every page.
 
 The audience classes have one placement purpose each:
@@ -22,6 +23,9 @@ Run the structural check directly with:
 ```sh
 bin/fm-doc-audience-check.sh
 ```
+
+`bin/fm-doc-audience-check.sh --code-excluded-links` prints every local link that code awareness hides, one `<surface>` and `<target>` pair per line.
+Code awareness costs link coverage on every surface, so `tests/fm-documentation-audiences.test.sh` pins that hidden set and fails when a real pointer joins it.
 
 The check intentionally does not lint dates, versions, commands, paths, incident language, or transcript-like prose.
 Those forms are legitimate in maintainer verification and require semantic review rather than keyword heuristics.

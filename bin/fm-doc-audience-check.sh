@@ -4,6 +4,7 @@
 # Usage:
 #   bin/fm-doc-audience-check.sh
 #   bin/fm-doc-audience-check.sh --root <repo> [--inventory <path>]
+#   bin/fm-doc-audience-check.sh --code-excluded-links
 #
 # The inventory owns classification and setup routing.
 # This check validates structure only and does not keyword-lint prose.
@@ -26,6 +27,9 @@ from urllib.parse import unquote, urlsplit
 
 MARKDOWN_LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
 HTML_LINK_RE = re.compile(r"\b(?:href|src)=[\"']([^\"']+)[\"']", re.IGNORECASE)
+CODE_FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
+LIST_MARKER_RE = re.compile(r"^(\s*)(?:[-*+]|[0-9]+[.)])\s")
+BACKTICK_RUN_RE = re.compile(r"`+")
 REQUIRED_TRACKED_PATTERNS = ["*.md", "*.mdx", "*.rst", "*.txt", "docs/examples/*"]
 
 
@@ -96,11 +100,98 @@ def resolve_local_target(root: Path, source: Path, raw: str) -> Path | None:
     return target
 
 
+def blank_code_spans(line: str) -> str:
+    """Replace inline code spans with spaces, keeping every column in place."""
+    result: list[str] = []
+    pos = 0
+    while True:
+        opener = BACKTICK_RUN_RE.search(line, pos)
+        if opener is None:
+            result.append(line[pos:])
+            return "".join(result)
+        closer = None
+        search = opener.end()
+        while True:
+            candidate = BACKTICK_RUN_RE.search(line, search)
+            if candidate is None:
+                break
+            if candidate.group() == opener.group():
+                closer = candidate
+                break
+            search = candidate.end()
+        if closer is None:
+            result.append(line[pos : opener.end()])
+            pos = opener.end()
+            continue
+        result.append(line[pos : opener.start()])
+        result.append(" " * (closer.end() - opener.start()))
+        pos = closer.end()
+
+
+def blank_code(text: str) -> str:
+    """Blank out every construct that is code, preserving line numbering.
+
+    A target inside code is a sample, not a link, so link validation must not
+    see it. The indented-code rule is deliberately conservative: CommonMark
+    forbids an indented code block from interrupting a paragraph or standing in
+    for list continuation, so an indented run counts as code only when it is
+    blank-line separated and no list container is open. Misreading list
+    continuation as code would silently stop validating a real pointer, which
+    costs more than leaving a code sample validated.
+    """
+    lines = text.split("\n")
+    kept: list[str] = []
+    fence: str | None = None
+    list_indent: int | None = None
+    in_indented_code = False
+    after_blank = True
+    for line in lines:
+        marker = CODE_FENCE_RE.match(line)
+        if fence is not None:
+            if marker and marker.group(1)[0] == fence[0] \
+                    and len(marker.group(1)) >= len(fence) and not marker.group(2).strip():
+                fence = None
+            kept.append("")
+            after_blank = False
+            continue
+        if marker:
+            fence = marker.group(1)
+            kept.append("")
+            after_blank = False
+            continue
+        if not line.strip():
+            kept.append(line)
+            after_blank = True
+            continue
+        indent = len(line) - len(line.lstrip(" "))
+        if in_indented_code:
+            if indent >= 4:
+                kept.append("")
+                after_blank = False
+                continue
+            in_indented_code = False
+        opener = LIST_MARKER_RE.match(line)
+        if opener:
+            opened = len(opener.group(1))
+            list_indent = opened if list_indent is None else min(list_indent, opened)
+        elif list_indent is not None and indent <= list_indent:
+            list_indent = None
+        if list_indent is None and after_blank and indent >= 4:
+            in_indented_code = True
+            kept.append("")
+            after_blank = False
+            continue
+        kept.append(blank_code_spans(line))
+        after_blank = False
+    return "\n".join(kept)
+
+
 def markdown_local_links(root: Path, source: Path) -> list[tuple[str, Path]]:
     try:
         text = source.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as exc:
         fail(f"cannot read prose surface {source.relative_to(root)}: {exc}")
+    text = blank_code(text)
     raw_links = MARKDOWN_LINK_RE.findall(text) + HTML_LINK_RE.findall(text)
     result: list[tuple[str, Path]] = []
     for raw in raw_links:
@@ -108,6 +199,38 @@ def markdown_local_links(root: Path, source: Path) -> list[tuple[str, Path]]:
         if target is not None:
             result.append((raw, target))
     return result
+
+
+def local_shape_links(text: str) -> Counter[str]:
+    """Count every link target that addresses this repository rather than the network."""
+    found: Counter[str] = Counter()
+    for raw in MARKDOWN_LINK_RE.findall(text) + HTML_LINK_RE.findall(text):
+        split = urlsplit(normalized_link_value(raw))
+        if not split.scheme and not split.netloc:
+            found[raw] += 1
+    return found
+
+
+def code_excluded_links(root: Path) -> list[str]:
+    """Report each local link that code awareness hides, as "<surface>\\t<target>".
+
+    Treating a target inside code as a sample costs link coverage on every
+    prose surface, not only the one that needed it. This makes that cost
+    measurable, so a colocated test can pin which targets stop being checked
+    instead of the reduction spreading unobserved.
+    """
+    lines: list[str] = []
+    for path in git_tracked(root, REQUIRED_TRACKED_PATTERNS):
+        if Path(path).suffix.lower() not in {".md", ".mdx"}:
+            continue
+        source = root / path
+        try:
+            text = source.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            fail(f"cannot read prose surface {path}: {exc}")
+        hidden = local_shape_links(text) - local_shape_links(blank_code(text))
+        lines.extend(f"{path}\t{raw}" for raw in hidden.elements())
+    return sorted(lines)
 
 
 def github_heading_slug(value: str) -> str:
@@ -250,11 +373,25 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Validate Firstmate documentation audiences and local links.")
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--inventory", type=Path)
+    parser.add_argument(
+        "--code-excluded-links",
+        action="store_true",
+        help="list the local links code awareness hides, one \"<surface>\\t<target>\" per line",
+    )
     args = parser.parse_args()
     root = args.root.resolve()
     inventory_path = args.inventory or (root / "docs/documentation-audiences.json")
     if not inventory_path.is_absolute():
         inventory_path = root / inventory_path
+    if args.code_excluded_links:
+        try:
+            hidden = code_excluded_links(root)
+        except CheckError as exc:
+            print(f"fm-doc-audience-check: {exc}", file=sys.stderr)
+            return 1
+        for line in hidden:
+            print(line)
+        return 0
     try:
         surfaces, links = validate(root, inventory_path)
     except CheckError as exc:

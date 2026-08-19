@@ -135,7 +135,85 @@ MD
   pass "local links resolve while dates, versions, commands, and incident prose remain semantically reviewed"
 }
 
+test_code_targets_are_not_links_but_list_continuation_still_is() {
+  local repo="$TMP_ROOT/code-aware"
+  mkdir -p "$repo/docs"
+  git -C "$repo" init -q
+  printf '%s\n' '[Setup](docs/setup.md) [Policy](docs/policy.md)' > "$repo/README.md"
+  printf '%s\n' '# Setup' > "$repo/docs/setup.md"
+  printf '%s\n' '# Policy' > "$repo/docs/policy.md"
+  # An absolute target is unopenable as a link, so each of these would be
+  # reported if the extractor read it as one. None of them is a link: they are
+  # a fenced sample, an indented transcript, and a code span.
+  cat > "$repo/docs/evidence.md" <<'MD'
+# Code-shaped targets on 2026-08-19
+
+```markdown
+![shot](/tmp/x.png)
+```
+
+The indented transcript form:
+
+    $ printf '<img src="/tmp/preview.png">' | scan
+
+Prose naming `<img alt="/tmp/a.png" src="/tmp/b.png">` as a code span.
+MD
+  write_fixture_inventory "$repo"
+  git -C "$repo" add README.md docs
+  "$CHECK" --root "$repo" >/dev/null \
+    || fail "a target inside code was read as a link"
+
+  # A link indented under a list is list continuation, not an indented code
+  # block, and must still be validated. Reading it as code would silently drop
+  # coverage, which costs more than the sample it would stop reporting.
+  cat >> "$repo/docs/evidence.md" <<'MD'
+
+1. The first step.
+
+   a. A nested item that carries a pointer.
+
+      See [the rest](../docs/missing-target.md) for it.
+MD
+  git -C "$repo" add docs
+  run_expect_failure "unresolved local link" "$CHECK" --root "$repo"
+  pass "code targets are ignored while an indented list continuation stays validated"
+}
+
+# Every local link the code awareness above stops extracting, repository-wide.
+# Code awareness is a coverage reduction on every prose surface, so what it
+# costs has to be visible: today it is exactly the three absolute targets that
+# the guard's own verification record quotes as scanner input.
+expected_code_excluded_links() {
+  printf '%s\t%s\n' \
+    docs/verification/pr-description-guard.md /tmp/b.png \
+    docs/verification/pr-description-guard.md /tmp/preview.png \
+    docs/verification/pr-description-guard.md /tmp/x.png
+}
+
+test_the_hidden_link_set_is_pinned() {
+  local actual added revealed message
+  actual=$("$CHECK" --code-excluded-links) \
+    || fail "the checker could not report which links its code awareness hides"
+  [ "$actual" = "$(expected_code_excluded_links)" ] && {
+    pass "the set of links hidden by code awareness is exactly the pinned samples"
+    return
+  }
+  # The set, not only its size: a change that hides a real pointer and reveals
+  # a sample keeps the count and still has to fail.
+  added=$(comm -13 <(expected_code_excluded_links) <(printf '%s\n' "$actual" | sed '/^$/d'))
+  revealed=$(comm -23 <(expected_code_excluded_links) <(printf '%s\n' "$actual" | sed '/^$/d'))
+  message="the set of local links hidden by code awareness moved"
+  [ -z "$added" ] || message+=$'\n'"no longer checked, surface and target:"$'\n'"$added"
+  [ -z "$revealed" ] || message+=$'\n'"checked again, surface and target:"$'\n'"$revealed"
+  message+=$'\n'"A link inside a fence, an indented block or a code span is read as a sample and is never resolved."
+  message+=$'\n'"So either the code markers around it are wrong, or the link belongs in prose where it is checked."
+  message+=$'\n'"Update expected_code_excluded_links in this file only once every target above is a sample on purpose."
+  fail "$message"
+}
+
 test_repository_inventory_passes
+test_the_hidden_link_set_is_pinned
 test_duplicate_and_setup_classification_fail
 test_required_pointer_fails
 test_local_links_and_no_keyword_heuristic
+test_code_targets_are_not_links_but_list_continuation_still_is
