@@ -9,17 +9,19 @@ We require this to reduce the maintainer's burden of reviewing and merging contr
 `no-mistakes` puts a local git proxy in front of your real remote.
 Pushing through it runs an AI-driven review/test/lint pipeline in an isolated worktree, forwards the push upstream only after every check passes, and opens a clean PR automatically.
 
-A GitHub Actions check (`Require no-mistakes`) runs on PRs targeting `main` and fails if the body is missing the deterministic signature that no-mistakes writes.
+A GitHub Actions check (`Require no-mistakes`) runs on PRs targeting `main` and requires two things in the body: the deterministic signature that no-mistakes writes, and the `<!-- no-mistakes-pipeline-attestation:v1 ... -->` comment written beside it, with the `review`, `test`, and `document` steps each carrying status exactly `completed`.
+A quota skip or an agent skip on one of those steps is deliberately not compliant.
+A body carrying the signature is decided on that body alone, so a signature whose attestation is missing or unparseable fails there rather than falling through to the commit proof below.
 It evaluates every PR opening and body edit independently, so a later edit cannot replace an earlier pending compliance check.
 When the gate runs but cannot open the PR itself, so that the branch is pushed and the PR opened by hand, the check also accepts the gate's own commits: any commit in the PR whose subject starts with `no-mistakes(<step>):` proves the pipeline ran on the change.
 Neither proof is available to a PR that never went through the gate.
-GitHub Actions and Dependabot are exempt so their automation keeps working, but regular contributor PRs without the signature will not be reviewed or merged.
+GitHub Actions and Dependabot are exempt so their automation keeps working, but regular contributor PRs carrying neither proof will not be reviewed or merged.
 
 ## Workflow
 
 1. Fork the repo, then clone the parent repo or set your local `origin` back to the parent (`git@github.com:kunchenguid/firstmate.git`).
 2. Create a branch and make your changes.
-3. Initialize the gate with your fork as the push target: `no-mistakes init --fork-url git@github.com:<you>/firstmate.git` (firstmate expects **no-mistakes v1.31.2+**; without a fork, plain `no-mistakes init` still works for maintainers with push access).
+3. Initialize the gate with your fork as the push target: `no-mistakes init --fork-url git@github.com:<you>/firstmate.git` (the attestation the check above requires needs **no-mistakes v1.46.0+**; without a fork, plain `no-mistakes init` still works for maintainers with push access).
 4. Commit your changes.
 5. Push through the gate instead of pushing to `origin`:
 
