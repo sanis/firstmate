@@ -21,6 +21,13 @@ WORKFLOW="$ROOT/.github/workflows/no-mistakes-required.yml"
 STEP_NAME="Verify no-mistakes signature in PR body"
 # The deterministic signature no-mistakes writes into a PR body it opens.
 MARKER='Updates from [git push no-mistakes](https://github.com/kunchenguid/no-mistakes)'
+# The structured step attestation the signature alone no longer stands in for.
+# no-mistakes >= 1.46.0 emits this comment beside the signature, and the check
+# requires review, test and document to each read exactly "completed" - a quota
+# skip or an agent skip is deliberately not compliant.
+ATTESTATION='<!-- no-mistakes-pipeline-attestation:v1 {"head_sha":"0123456789abcdef0123456789abcdef01234567","steps":[{"step":"review","status":"completed"},{"step":"test","status":"completed"},{"step":"document","status":"completed"}]} -->'
+# The same attestation with one required step skipped rather than completed.
+ATTESTATION_SKIPPED='<!-- no-mistakes-pipeline-attestation:v1 {"head_sha":"0123456789abcdef0123456789abcdef01234567","steps":[{"step":"review","status":"skipped"},{"step":"test","status":"completed"},{"step":"document","status":"completed"}]} -->'
 
 TMP_ROOT=$(fm_test_tmproot fm-nm-required)
 FAKEBIN=$(fm_fakebin "$TMP_ROOT")
@@ -142,12 +149,42 @@ test_signed_body_passes_without_calling_the_api() {
   write_commits "$TMP_ROOT/commits.json" "feat: something"
   write_fake_gh "$TMP_ROOT/commits.json"
 
-  run_check "## Pipeline"$'\n\n'"$MARKER"$'\n'
-  expect_code 0 "$RC" "a body carrying the no-mistakes signature must pass"
+  run_check "## Pipeline"$'\n\n'"$MARKER"$'\n\n'"$ATTESTATION"$'\n'
+  expect_code 0 "$RC" "a body carrying the signature and its step attestation must pass"
   assert_contains "$OUT" "Found no-mistakes signature in PR #7 body." \
     "the passing run must say the body signature was found"
+  assert_contains "$OUT" "Pipeline step attestation is valid" \
+    "the passing run must say the step attestation was accepted, not just the signature"
   assert_absent "$CALLS" "a signed body must not need the commits API"
-  pass "a PR body carrying the no-mistakes signature passes without an API call"
+  pass "a body carrying the signature and a complete attestation passes without an API call"
+}
+
+# The signature alone used to be the whole proof. It is not any more, and the
+# body is decided on its own contents: an unattested signature is refused inside
+# the signature branch rather than falling through to the commit proof, so a
+# gate-written commit cannot quietly stand in for the attestation.
+test_a_signature_without_attestation_fails() {
+  write_commits "$TMP_ROOT/commits.json" "no-mistakes(review): applied the findings"
+  write_fake_gh "$TMP_ROOT/commits.json"
+
+  run_check "## Pipeline"$'\n\n'"$MARKER"$'\n'
+  expect_code 1 "$RC" "a signature with no step attestation must fail"
+  assert_contains "$OUT" "structured pipeline step attestation is missing or unparseable" \
+    "the refusal must name the missing attestation, not report a generic policy violation"
+  assert_absent "$CALLS" \
+    "a signed body is decided on the body alone and is never rescued by the commit proof"
+  pass "a bare signature no longer proves the pipeline ran"
+}
+
+test_an_incomplete_required_step_fails() {
+  write_commits "$TMP_ROOT/commits.json" "feat: something"
+  write_fake_gh "$TMP_ROOT/commits.json"
+
+  run_check "## Pipeline"$'\n\n'"$MARKER"$'\n\n'"$ATTESTATION_SKIPPED"$'\n'
+  expect_code 1 "$RC" "a required step that only skipped must fail"
+  assert_contains "$OUT" "review=skipped" \
+    "the refusal must name the step that is not completed and the status it carried"
+  pass "a skipped required step is not a completed pipeline"
 }
 
 test_gate_commits_pass_an_unsigned_body() {
@@ -225,6 +262,8 @@ test_gate_wording_in_a_commit_body_is_not_a_proof() {
 }
 
 test_signed_body_passes_without_calling_the_api
+test_a_signature_without_attestation_fails
+test_an_incomplete_required_step_fails
 test_gate_commits_pass_an_unsigned_body
 test_missing_body_is_not_a_crash
 test_ungated_pr_still_fails
