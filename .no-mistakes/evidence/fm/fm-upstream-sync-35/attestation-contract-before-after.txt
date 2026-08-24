@@ -1,0 +1,14 @@
+$ bash tests/.base-nm-required.test.sh   # pre-merge (base 0988f74) test file, merged workflow
+not ok - a body carrying the no-mistakes signature must pass: expected exit 0, got 1
+exit=1
+
+$ bash tests/fm-no-mistakes-required.test.sh   # this change (0dca7f2)
+ok - a body carrying the signature and a complete attestation passes without an API call
+ok - a bare signature no longer proves the pipeline ran
+ok - a skipped required step is not a completed pipeline
+ok - a gate-signed commit passes a PR whose body no-mistakes never wrote
+ok - an absent PR body is handled instead of aborting the check
+ok - a PR with neither proof still fails with actionable guidance
+ok - an unreadable commits API fails as its own reason, not as a policy violation
+ok - only a gate-written commit subject counts as the second proof
+exit=0

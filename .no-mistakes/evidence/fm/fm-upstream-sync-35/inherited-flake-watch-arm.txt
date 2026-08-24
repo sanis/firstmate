@@ -1,0 +1,19 @@
+tests/fm-watch-arm.test.sh - inherited flake, not caused by this merge
+
+Same assertion fails on the merged tree and on a clean upstream/main checkout
+(8714c9a extracted with git archive), and the same run passes on upstream too.
+
+--- merged tree (HEAD 0dca7f2), run 1 ---
+ok - watch-arm: a delivered wake consumed by the handling turn still closes the attached arm cleanly
+ok - watch-arm: a cycle that delivered no wake of its own still fails loudly
+not ok - re-arm stayed live instead of surfacing durable wakes and the still-open remote decision
+rc=1
+
+--- clean upstream/main (8714c9a), run 1 ---
+ok assertions: 14
+no failures
+rc=0
+
+--- clean upstream/main (8714c9a), run 2 ---
+not ok - re-arm stayed live instead of surfacing durable wakes and the still-open remote decision
+rc=1

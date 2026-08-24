@@ -1,0 +1,69 @@
+================================================================
+PR scenario: opened by no-mistakes >= 1.46.0 (signature + complete attestation)
+----------------------------------------------------------------
+Found no-mistakes signature in PR #7 body.
+Pipeline step attestation is valid: review, test, and document are completed.
+--- check conclusion: exit 0 ---
+
+================================================================
+PR scenario: opened by an older no-mistakes (signature only, no attestation)
+----------------------------------------------------------------
+Found no-mistakes signature in PR #7 body.
+::error::This repository requires no-mistakes >= 1.46.0; structured pipeline step attestation is missing or unparseable.
+
+The no-mistakes signature was found, but this check also requires one
+HTML comment in the PR body:
+
+    <!-- no-mistakes-pipeline-attestation:v1 {"head_sha":"...","steps":[...]} -->
+
+That comment is emitted by no-mistakes >= 1.46.0 (the release that started
+emitting structured step attestation; see https://github.com/kunchenguid/no-mistakes/pull/670).
+An older no-mistakes that writes only the signature line is not enough.
+
+Re-run the pipeline with 'git push no-mistakes' using no-mistakes >= 1.46.0.
+See CONTRIBUTING.md for setup and the full workflow.
+
+PR author: contributor
+--- check conclusion: exit 1 ---
+
+================================================================
+PR scenario: attested pipeline that skipped a required step (review=skipped)
+----------------------------------------------------------------
+Found no-mistakes signature in PR #7 body.
+::error::Required no-mistakes pipeline steps are not completed: review=skipped.
+
+This repository requires review, test, and document to each have status
+exactly 'completed'. Quota skips and agent skips are not compliant.
+
+Re-run the pipeline with 'git push no-mistakes' using no-mistakes >= 1.46.0
+so those required steps complete rather than skip.
+See CONTRIBUTING.md for setup and the full workflow.
+
+PR author: contributor
+--- check conclusion: exit 1 ---
+
+================================================================
+PR scenario: fork fallback: hand-pushed branch, unsigned body, gate commits present
+----------------------------------------------------------------
+Found no-mistakes gate commits in PR #7.
+--- check conclusion: exit 0 ---
+
+================================================================
+PR scenario: never went through the gate (neither proof)
+----------------------------------------------------------------
+::error::This PR was not raised through no-mistakes.
+
+Contributions to this repository must be submitted via 'git push no-mistakes'.
+That pipeline runs the required review/test/lint/CI steps and writes a
+deterministic '## Pipeline' section into the PR body containing:
+
+    Updates from [git push no-mistakes](https://github.com/kunchenguid/no-mistakes)
+
+Neither proof was found: the body carries no signature, and no commit
+on this PR has a 'no-mistakes(<step>):' subject.
+
+See CONTRIBUTING.md for setup and the full workflow.
+
+PR author: contributor
+--- check conclusion: exit 1 ---
+

@@ -1,0 +1,69 @@
+Fork-sync conflict resolution: line-level survival of BOTH sides
+merge commit 11792e5  fork side 0988f74  upstream side 8714c9a  merge base bdae21e
+
+For each conflicted file: lines the fork added since the merge base, and lines
+upstream added since the merge base, counted against the merged file.
+
+.github/workflows/no-mistakes-required.yml   fork-side new lines  24 kept  24 | upstream new lines  54 kept  54
+AGENTS.md                                    fork-side new lines   4 kept   4 | upstream new lines  33 kept  33
+CONTRIBUTING.md                              fork-side new lines   2 kept   2 | upstream new lines   9 kept   9
+README.md                                    fork-side new lines   1 kept   1 | upstream new lines   3 kept   3
+bin/fm-brief.sh                              fork-side new lines   9 kept   9 | upstream new lines   8 kept   8
+bin/fm-pr-check.sh                           fork-side new lines  43 kept  43 | upstream new lines   2 kept   2
+bin/fm-pr-merge.sh                           fork-side new lines   4 kept   4 | upstream new lines 163 kept 163
+bin/fm-promote.sh                            fork-side new lines   9 kept   9 | upstream new lines  89 kept  89
+bin/fm-remote-job-worker.sh                  fork-side new lines  18 kept  18 | upstream new lines  11 kept  11
+bin/fm-test-run.sh                           fork-side new lines  18 kept  16 | upstream new lines 129 kept 127
+docs/configuration.md                        fork-side new lines   1 kept   1 | upstream new lines 104 kept 104
+docs/documentation-audiences.json            fork-side new lines  10 kept  10 | upstream new lines  13 kept  13
+docs/fm-test-portable-shards.md              fork-side new lines   3 kept   2 | upstream new lines  38 kept  38
+docs/gitlab-merge-watch.md                   fork-side new lines  25 kept  20 | upstream new lines  64 kept  63
+docs/scripts.md                              fork-side new lines   1 kept   1 | upstream new lines  13 kept  13
+tests/fm-remote-job.test.sh                  fork-side new lines  21 kept  21 | upstream new lines  58 kept  58
+
+The 11 lines that are not verbatim in the merge, with the merged text that replaced them:
+
+FORK-SIDE LINE NOT VERBATIM IN MERGE  bin/fm-test-run.sh
+          # snapshots, the vendor auth probe, the stow cascade's per-home step, and
+FORK-SIDE LINE NOT VERBATIM IN MERGE  bin/fm-test-run.sh
+          # the PR description fetch all depend on it.
+UPSTREAM LINE NOT VERBATIM IN MERGE  bin/fm-test-run.sh
+          # snapshots, the vendor auth probe, the stow cascade's per-home step, and
+UPSTREAM LINE NOT VERBATIM IN MERGE  bin/fm-test-run.sh
+          # the wedge detector's worktree write probe all depend on it.
+FORK-SIDE LINE NOT VERBATIM IN MERGE  docs/fm-test-portable-shards.md
+    This table is known stale, last confirmed stale on 2026-08-19: the lanes now select materially more scripts than the counts recorded above.
+FORK-SIDE LINE NOT VERBATIM IN MERGE  docs/gitlab-merge-watch.md
+    Every command below was run and its output is reproduced exactly, on 2026-07-21
+FORK-SIDE LINE NOT VERBATIM IN MERGE  docs/gitlab-merge-watch.md
+    Those three carry no single date: each is marked where it appears with the date
+FORK-SIDE LINE NOT VERBATIM IN MERGE  docs/gitlab-merge-watch.md
+    command gained its description check.
+FORK-SIDE LINE NOT VERBATIM IN MERGE  docs/gitlab-merge-watch.md
+    except for the three `fm-pr-check.sh` transcripts, which were re-run after that
+FORK-SIDE LINE NOT VERBATIM IN MERGE  docs/gitlab-merge-watch.md
+    it actually ran and the versions it ran under.
+UPSTREAM LINE NOT VERBATIM IN MERGE  docs/gitlab-merge-watch.md
+    Every command through "Upgrade path from an existing armed watch" was run on 2026-07-21; "Merging a merge request" was run on 2026-08-22.
+
+=== The merged text those 11 lines became (both intents present) ===
+
+--- bin/fm-test-run.sh (both dependency lists in one sentence) ---
+    bin/fm-timeout-lib.sh)
+      # The shared hard bound: session start's runtime bound, the fleet/bearings
+      # snapshots, the vendor auth probe, the stow cascade's per-home step, the
+      # PR description fetch, and the wedge detector's worktree write probe all
+      # depend on it.
+      printf '%s\n' session-bootstrap
+
+--- docs/gitlab-merge-watch.md (both provenance dates in one paragraph) ---
+Empirical record for the merge watch and the merge path on GitLab, alongside the existing GitHub ones.
+Every command through "Upgrade path from an existing armed watch" was run on 2026-07-21, except for the three `fm-pr-check.sh` transcripts, which were re-run after that command gained its description check.
+Those three carry no single date: each is marked where it appears with the date it actually ran and the versions it ran under.
+"Merging a merge request" was run on 2026-08-22.
+Every output is reproduced exactly.
+
+--- docs/fm-test-portable-shards.md (staleness note carried forward with current counts) ---
+This table is known stale, last confirmed stale on 2026-08-23: the lanes select 122 scripts against the 117 the counts above record, because five scripts still have no measured weight hint.
+Do not plan shard balance or capacity from these numbers.
+Refresh them with the procedure below rather than editing the counts alone, because counts corrected beside unrefreshed weight hints read as a completed refresh that never happened.

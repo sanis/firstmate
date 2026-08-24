@@ -1,0 +1,175 @@
+Fork behaviour that had to survive the sync - targeted suites on the merged tree (HEAD 0dca7f2)
+
+================================================================
+$ bash tests/fm-no-mistakes-required.test.sh
+ok - a body carrying the signature and a complete attestation passes without an API call
+ok - a bare signature no longer proves the pipeline ran
+ok - a skipped required step is not a completed pipeline
+ok - a gate-signed commit passes a PR whose body no-mistakes never wrote
+ok - an absent PR body is handled instead of aborting the check
+ok - a PR with neither proof still fails with actionable guidance
+ok - an unreadable commits API fails as its own reason, not as a policy violation
+ok - only a gate-written commit subject counts as the second proof
+exit=0
+
+================================================================
+$ bash tests/fm-clickup-contract.test.sh
+ok - clickup skill exists with captain-invocable internal frontmatter
+ok - clickup skill externalizes instance parameters and keeps connector facts
+ok - clickup instance parameters stay local and out of tracked files
+ok - clickup skill keeps its safety and idempotency contracts
+ok - AGENTS.md carries exactly the two clickup triggers
+ok - clickup contract stays single-owner with doc and README pointers
+exit=0
+
+================================================================
+$ bash tests/fm-evidence-artifacts.test.sh
+ok - every ship delivery mode carries the evidence rule and a resolvable owner pointer
+ok - scaffolds that open no pull request stay free of the rule
+ok - forge mechanics live only in the owner skill and its verification record
+ok - a ship brief routes workers only into instructions they can execute
+ok - a promoted scout receives the ship brief's evidence rule and owner pointer
+exit=0
+
+================================================================
+$ bash tests/fm-pr-description-guard.test.sh
+ok - !1333: seven screenshot paths refused, its relative shots/ index untouched
+ok - !1325: three YAML/JSON evidence paths refused, fenced or not
+ok - !1331: JSON transcript and PHP capture script both refused
+ok - !1328: a clean description and correct /uploads/ links pass
+ok - !703: quoted CI install commands under /tmp pass
+ok - a shared scratch root refuses only when stamped or delivered
+ok - attribute-shaped bytes deliver only inside an open tag
+ok - a user home or file:// URL is refused with no second signal
+ok - a root named in prose is not a delivery, a path under it still is
+ok - a /home or /tmp segment inside a URL is not a local path
+ok - a /private twin decides as its canonical root, and nothing else does
+ok - a refused twin path is named exactly as the description wrote it
+ok - a refusal names every path, points at the recipes, and changes nothing
+ok - both forges are checked, each with its own wording
+ok - the GitLab fetch addresses the task's own instance, not glab's default
+ok - the GitHub fetch addresses the task's own URL, not gh's default instance
+ok - a rejected --jq attempt contributes nothing to the measured description
+ok - the plain view's header is dropped, its description is not
+ok - an absent glab is reported once, as the missing CLI
+ok - a clean description arms exactly as before
+ok - an unreadable description degrades to a warning and the report proceeds
+ok - a forge that never answers times out to a warning and the report arms
+ok - the merge path records metadata without re-litigating the description
+exit=0
+
+================================================================
+$ bash tests/fm-ensure-agents-md.test.sh
+ok - fm-ensure-agents-md.sh: created AGENTS.md includes self-governance section
+ok - fm-ensure-agents-md.sh: fresh setup writes a real @AGENTS.md pointer
+ok - fm-ensure-agents-md.sh: promoted CLAUDE.md includes self-governance section
+ok - fm-ensure-agents-md.sh: newline-less promotion keeps a blank separator line
+ok - fm-ensure-agents-md.sh: existing symlinked AGENTS.md gains the section idempotently
+ok - fm-ensure-agents-md.sh: correct symlink migrates to pointer without clobbering AGENTS.md
+ok - fm-ensure-agents-md.sh: existing AGENTS.md without CLAUDE.md gains section and pointer
+ok - fm-ensure-agents-md.sh: AGENTS.md that already has the section stays unchanged
+ok - fm-ensure-agents-md.sh: CRLF AGENTS.md with the section stays unchanged
+ok - fm-ensure-agents-md.sh: CRLF injection preserves line endings idempotently
+ok - fm-ensure-agents-md.sh: canonical real CLAUDE.md pointer is not a conflict
+ok - fm-ensure-agents-md.sh: refuses distinct real AGENTS.md and CLAUDE.md
+ok - fm-ensure-agents-md.sh: refuses AGENTS.md when it is a symlink
+ok - fm-ensure-agents-md.sh: refuses a CLAUDE.md symlink that does not point to AGENTS.md
+ok - fm-ensure-agents-md.sh: refuses a non-regular CLAUDE.md
+ok - fm-ensure-agents-md.sh: refuses a case-variant lowercase agents.md (issue #389)
+exit=0
+
+================================================================
+$ bash tests/fm-procevent.test.sh
+ok - no configured source means no generated state and no process
+ok - one blocking completion yields exactly one bounded normalized event
+not-autohandled: direct-src (left for the handler; still unacknowledged)
+ok - public start owns the process group recorded by its claim
+ok - public start never claims an inherited caller process group
+ok - an unhandled result survives restart and repeat drains, and only explicit acknowledgement stops its re-announcement
+ok - publication cannot race a handled acknowledgement
+ok - handled acknowledgement creation is private and fails safely
+ok - automatic application waits for durable publication and failed publication remains recoverable
+ok - a self-announcing adapter applies quietly and still publishes what it could not apply
+not-autohandled: ends-src (left for the handler; still unacknowledged)
+ok - an adapter-classified terminal result is captured once, announced, and retires its source automatically
+not-autohandled: open-src (left for the handler; still unacknowledged)
+ok - a source stays armed unless its own adapter classifies the result terminal
+not-autohandled: replace-src (left for the handler; still unacknowledged)
+ok - terminal retirement preserves and releases a concurrently replaced registration
+ok - failed terminal retirement is fail-closed and idempotently recoverable
+ok - one Send & End yields exactly one captured result, automatic retirement, and no recurring poll
+ok - a drained-but-unhandled result survives a replacement session and is retired only by explicit handling, never twice
+ok - pending results preserve numeric order and distinct wake identity
+ok - one owner per canonical source across homes
+ok - retiring a never-completing source stops its runner and its blocked child
+ok - reconcile reaps a runner whose source registration is gone
+not-autohandled: stale-src (left for the handler; still unacknowledged)
+ok - stale-owner recovery removes abandoned output without displacing a live owner
+not-autohandled: cross-home-src (left for the handler; still unacknowledged)
+ok - cross-home stale recovery removes abandoned output from the old state directory
+not-autohandled: race-src (left for the handler; still unacknowledged)
+not-autohandled: race-src (left for the handler; still unacknowledged)
+not-autohandled: race-src (left for the handler; still unacknowledged)
+ok - concurrent stale-claim replacement starts exactly one runner
+ok - a crashed runner leader never lets a live owned group be reclaimed as stale
+ok - a truly dead generation with no surviving group is still safely reclaimed
+ok - claim replacement cannot produce a torn ownership snapshot
+ok - retirement and start share one serialized lifecycle boundary
+ok - PID reuse cannot signal an unrelated process
+ok - transient identity failure preserves the live source for retry
+ok - bounded home sweep preflights then retires every locally owned source
+ok - home sweep leaves foreign-home claims and runners untouched
+ok - home sweep refuses safely until runner identity is readable
+ok - healthy runtime behavior remains registration-only
+ok - registration rejects unrepresentable newline arguments
+ok - nonzero exit with no output stays armed and silent
+ok - oversized output is bounded rather than published whole or dropped
+ok - live output stays bounded and retirement reaps the whole source group
+ok - invalid output bounds fail closed
+ok - the adapter derives physical identity without newline path corruption
+ok - source-only homes trigger the general supervision guard
+ok - the adapter classifies published poll output safely
+ok - the adapter owns which Lavish results end a source, and payload text cannot forge one
+ok - the published interfaces state the loss limitation and claim no lossless delivery
+
+all procevent tests passed
+exit=0
+
+================================================================
+$ bash tests/fm-pr-merge.test.sh
+ok - fm-pr-merge records pr= and pr_head= before invoking gh-axi pr merge
+ok - fm-pr-merge propagates a real merge failure without silently succeeding
+ok - fm-pr-merge forwards extra flags to gh-axi pr merge after the -- separator
+ok - fm-pr-merge refuses before merging when task meta is missing
+ok - fm-pr-merge refuses malformed PR URLs before calling gh-axi
+ok - fm-pr-merge refuses unsafe PR URL segments before recording state
+ok - fm-pr-merge refuses repo override args before recording state
+ok - fm-pr-merge refuses a bundled short-option repo override and forwards other short flags
+ok - fm-pr-merge does not add default --squash when the caller passes an explicit merge method
+ok - fm-pr-merge respects --method=<value> as an explicit merge method
+ok - fm-pr-merge parses a GitHub PR URL into gh-axi number and --repo arguments
+ok - fm-pr-merge leaves GitHub extra-arg handling unchanged, including --sha
+ok - fm-pr-merge merges a GitLab merge request through glab instead of refusing it
+ok - fm-pr-merge takes the GitLab instance from the URL rather than assuming one
+ok - fm-pr-merge imposes no merge method on GitLab, leaving the project's own one
+ok - fm-pr-merge forwards extra flags to glab mr merge after the -- separator
+ok - fm-pr-merge propagates a real glab merge failure without silently succeeding
+ok - fm-pr-merge refuses on each GitLab pre-merge condition independently
+ok - fm-pr-merge reports every failing GitLab condition, not only the first
+ok - fm-pr-merge reports a stale recorded head and verifies the live one
+ok - fm-pr-merge refuses an unreadable GitLab merge request state rather than merging blind
+ok - fm-pr-merge refuses a GitLab head commit it cannot validate
+ok - fm-pr-merge refuses before recording anything when glab or jq is absent
+ok - fm-pr-merge refuses a GitLab head override before recording state
+exit=0
+
+================================================================
+$ bash tests/fm-brief.test.sh   (run earlier, log tail)
+ok - fm-brief.sh: investigation and visual-review completions load the shared decision policy
+ok - fm-brief: scout and secondmate code paths still scaffold well-formed briefs
+rc=0
+
+$ bash tests/fm-remote-secondmate-parent-binding.test.sh   (run earlier, log tail)
+ok - a remote secondmate's own committed relay token still refuses cleanup
+ALL TESTS PASSED
+rc=0
