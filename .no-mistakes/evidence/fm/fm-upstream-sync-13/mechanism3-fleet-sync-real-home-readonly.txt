@@ -1,0 +1,81 @@
+=== mechanism 3: real fm-fleet-sync.sh over this home's actual projects/ layout ===
+# home:            /Users/justinasbolys/Documents/projects/firstmate
+# project entries: 63
+# mutating git subcommands are blocked by a read-only shim (see BLOCKED lines);
+# the clone-root gate added by 801c083 runs for real against every entry.
+
+# read-only shim proof: 'git -C <dir> fetch origin' -> BLOCKED-BY-READONLY-SHIM (verified separately);
+#   FETCH_HEAD mtimes in the real clones stayed at 06:32, hours before this 11:47 run, so nothing was fetched.
+# outcome tally over the 63 real project clones:
+#      1            /Users/justinasbolys/Documents/projects/firstmate
+#      1 63
+#     63 already current
+#      1 real fm-fleet-sync.sh over this home's actual projects/ layout ===
+#   'skipped: not a clone root' : 0
+#   'skipped: not a git repo'   : 0
+
+ab-tests: already current
+amazon-php-client: already current
+ansible: already current
+api-tracker-source: already current
+bdi-cms-content-storage-php: already current
+bestvpnrating: already current
+brand-settings-api: already current
+brand-settings-php-client: already current
+cf-kv-access: already current
+ci-templates: already current
+cloudflare-logpush-logs: already current
+cloudflare-php-client: already current
+cloudflare-status-scheduled-worker: already current
+cloudflare-worker-failed-events: already current
+cloudflare-worker-vulnerability-scanner: already current
+cms-components-admin: already current
+cms-components-app: already current
+cms-components-content-storage-php: already current
+creators-api-php-client: already current
+ct-events: already current
+cybernews-cms-admin: already current
+cybernews-cms-app: already current
+cybernews-cms-content-storage-php: already current
+docker-images: already current
+editorjs-bundle: already current
+experiment-status-scheduled-worker: already current
+gaming: already current
+healthnews-cloudflare-worker: already current
+healthnews-cms-app: already current
+healthnews-cms-content-storage-php: already current
+investorsobserver-cms-app: already current
+investorsobserver-cms-content-storage-php: already current
+media: already current
+medusa-warehouse: already current
+nexos-php-client: already current
+nip-containers: already current
+numerology: already current
+offerwall-api: already current
+offerwall-worker: already current
+phpcs: already current
+phpstan: already current
+ppc-cms-components-admin: already current
+ppc-cms-components-app: already current
+ppc-cms-cybernews-admin: already current
+ppc-cms-cybernews-app: already current
+ppc-cms-healthnews-admin: already current
+ppc-cms-vpnpro-app: already current
+product-settings-api: already current
+product-stock-tracker-php-client: already current
+releaser-pleaser: already current
+score-api-php-client: already current
+serity-api-php-client: already current
+shortener-api: already current
+shortener-worker: already current
+shortener-worker-productadvice-link: already current
+sonarqube: already current
+tail-cf-worker: already current
+tudosobre-worker: already current
+universal-cloudflare-worker: already current
+universal-queue-consumer-worker: already current
+uppc-admin: already current
+uppc-app: already current
+vpn-review: already current
+
+exit=0

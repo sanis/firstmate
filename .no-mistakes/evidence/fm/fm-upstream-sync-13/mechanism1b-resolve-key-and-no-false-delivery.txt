@@ -1,0 +1,34 @@
+=== mechanism 1b/1c: decision-key resolution and the no-false-delivery contract ===
+# live worker task t1, open decision in its status log:
+needs-decision [key=api-shape]: pick REST or RPC
+
+--- (1) answering an OPEN key: delivers AND closes the decision
+exit=0
+pending records: 0 -> 1
+status log now:
+needs-decision [key=api-shape]: pick REST or RPC
+resolved [key=api-shape]: answered: Go with REST.
+
+--- (2) answering a key that is NOT open (already closed above): refused, nothing sent
+error: --resolve-key 'api-shape': no open decision or blocker with that key in /tmp/fm-cl.SehFfT/home/state/t1.status, and no captain-held task 'api-shape' or 't1-decision-api-shape' still open (already closed or mistyped). Re-check the OPEN DECISIONS listing, then resend without that key or with the right one; nothing was sent.
+exit=1
+pending records: 1 -> 1   (unchanged = nothing was sent)
+status log unchanged: yes
+
+--- (3) answering a mistyped/never-open key: refused, nothing sent
+error: --resolve-key 'api-shpae': no open decision or blocker with that key in /tmp/fm-cl.SehFfT/home/state/t1.status, and no captain-held task 'api-shpae' or 't1-decision-api-shpae' still open (already closed or mistyped). Re-check the OPEN DECISIONS listing, then resend without that key or with the right one; nothing was sent.
+exit=1
+pending records: 1 -> 1   (unchanged = nothing was sent)
+
+--- (4) unresolvable target: refused loudly, no record anywhere in the home
+error: target 'does-not-exist' is not resolvable (tried meta=/tmp/fm-cl.SehFfT/home/state/does-not-exist.meta; metadata window/terminal lookup; backend=none). Use fm-does-not-exist for a recorded task/lane, or pass a well-formed explicit backend target such as session:window.
+exit=1
+inbox dirs in this home: t1.inbox 
+does-not-exist.inbox created: no
+
+--- (5) the delivered answer really is on the worker's inbox plane
+/tmp/fm-cl.SehFfT/home/state/t1.inbox/003.msg
+schema=fm-task-inbox.v1
+at=2026-08-24T08:44:07Z
+--
+Go with REST.

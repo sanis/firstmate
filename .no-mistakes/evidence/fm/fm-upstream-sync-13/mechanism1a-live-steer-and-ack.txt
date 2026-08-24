@@ -1,0 +1,26 @@
+=== mechanism 1a: steer -> live worker terminal -> ack -> watcher ladder ===
+# live worker: claude v2.1.241, launched idle in an isolated tmux server (window cl:w1)
+
+--- fm-send.sh (the real one) delivers a second steer
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+fm-send exit=0
+
+--- durable record written (state/<id>.inbox, schema-owned format)
+/tmp/fm-cl.SehFfT/home/state/t1.inbox/002.msg
+schema=fm-task-inbox.v1
+at=2026-08-24T08:43:32Z
+--
+Second live check: create /tmp/fm-cl.SehFfT/acted2.flag, then mv this message into handled/.
+--- constant self-describing doorbell line, submitted into the LIVE worker's composer
+❯ Firstmate instruction waiting: list /tmp/fm-cl.SehFfT/home/state/t1.inbox/*.msg and, in numeric order, read and act on each, then mv each handled file to
+  /tmp/fm-cl.SehFfT/home/state/t1.inbox/handled/.
+
+--- watcher ladder while unacknowledged (real fm_task_inbox_due_action)
+ring /tmp/fm-cl.SehFfT/home/state/t1.inbox/002.msg
+--- worker honours the doorbell: act, then acknowledge with the mv
+acted: /tmp/fm-cl.SehFfT/acted2.flag -> present
+pending msgs: 0
+handled msgs: 2  -> 001.msg 002.msg 
+
+--- watcher ladder after acknowledgement
+due_action = quiet

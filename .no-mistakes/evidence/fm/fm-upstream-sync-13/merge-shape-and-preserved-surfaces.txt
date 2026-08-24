@@ -1,0 +1,37 @@
+=== merge shape: a real merge commit with both parents intact ===
+commit  86195249360b611451a8b6acf3be1ec97aca6458
+subject Merge upstream/main: fork renewal (13 commits through 7b88520)
+parents 1fd2fbe95f664fbd2f6ced8a165ffffc51966118 7b88520c055408a18f1476ecce08be60b2885fc9
+
+parent 1 (fork main before the sync):
+  1fd2fbe Merge pull request #9 from sanis/fm/fm-upstream-sync-35
+parent 2 (upstream/main tip being merged):
+  7b88520 feat: add persistent Pi supervision branch (#2858)
+
+incoming commits reachable only through parent 2 (13 expected):
+  7b88520 feat: add persistent Pi supervision branch (#2858)
+  ddf74ef feat(bin): deliver remote steers through durable inboxes (#2901)
+  8d8362c feat(bin): add fast local lint mode (#2891)
+  e46df1a feat(bin): deliver local steers through durable task inboxes (#2856)
+  822a990 fix: make macOS inbox test path portable (#2857)
+  52f62ab fix(bin): prevent routed secondmate work from stranding (#2848)
+  197afbb fix(bin): deterministically order remote tool paths (#2870)
+  2f250c7 test(watcher): stop fixture confirmation budgets racing real child startup (#2876)
+  f170ced fix(stow): add opt-in pass horizon for memory decay (#2850)
+  266fdb9 fix(bin): resolve the busy-state lock mtime with the platform's own stat form (#2837)
+  86dd2f6 fix(brief): stop the documented {TASK} fill from corrupting the Herdr gate (#2838)
+  505c819 fix(bin): retry transient Lavish poll interruptions (#2846)
+  801c083 fix(bin): require project clone roots during fleet sync (#2849)
+count: 13
+
+fork-only commits still reachable (39 expected, ahead of upstream/main):
+count: 39
+
+=== fork-carried surfaces the merge did not touch ===
+  .github                                       changed files: 0
+  tests/fm-no-mistakes-required.test.sh         changed files: 0
+  .agents/skills/clickup                        changed files: 0
+  bin/fm-evidence-rule-lib.sh                   changed files: 0
+  bin/fm-pr-check.sh                            changed files: 0
+  tests/fm-clickup-contract.test.sh             changed files: 0
+  tests/fm-evidence-artifacts.test.sh           changed files: 0
