@@ -1,0 +1,48 @@
+Targeted test runs on the merge commit (bin/fm-test-run.sh)
+==========================================================
+
+Every test file the merge changed, plus the fork-carried surfaces the intent
+requires proven intact. Broad regression stays with CI.
+
+THE FILES THIS MERGE CHANGED UNDER tests/
+  tests/fm-bootstrap-network-parallel.test.sh
+  tests/fm-branch-supervision.test.sh
+  tests/fm-gitignore-config.test.sh
+  tests/fm-pi-branch-extension.test.sh
+  tests/fm-pi-branch-live-e2e.test.sh
+  tests/fm-pi-watch-extension.test.sh
+  tests/fm-secondmate-sync.test.sh
+  tests/fm-watch-triage.test.sh
+
+RUN 1 - the wake-count fix
+  FM_TEST_END 2026-08-24T18:26:50Z tests/fm-watch-triage.test.sh exit=0 duration_ms=313945 gate_skip=false
+  FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=314033
+
+RUN 2 - changed pi / bootstrap-adjacent files
+  FM_TEST_END 2026-08-24T18:29:05Z tests/fm-pi-watch-extension.test.sh exit=0 duration_ms=64481 gate_skip=false
+  FM_TEST_END 2026-08-24T18:29:17Z tests/fm-pi-branch-extension.test.sh exit=0 duration_ms=11603 gate_skip=false
+  FM_TEST_END 2026-08-24T18:29:37Z tests/fm-branch-supervision.test.sh exit=0 duration_ms=20173 gate_skip=false
+  FM_TEST_END 2026-08-24T18:29:38Z tests/fm-gitignore-config.test.sh exit=0 duration_ms=547 gate_skip=false
+  FM_TEST_END 2026-08-24T18:30:48Z tests/fm-secondmate-sync.test.sh exit=0 duration_ms=70596 gate_skip=false
+  FM_TEST_END 2026-08-24T18:30:49Z tests/fm-pi-branch-live-e2e.test.sh exit=0 duration_ms=37 gate_skip=true
+  FM_TEST_SUMMARY total=6 failed=0 skipped_gate=1 duration_ms=167807
+
+RUN 3 - fork-carried surfaces
+  FM_TEST_END 2026-08-24T18:31:22Z tests/fm-clickup-contract.test.sh exit=0 duration_ms=352 gate_skip=false
+  FM_TEST_END 2026-08-24T18:31:25Z tests/fm-evidence-artifacts.test.sh exit=0 duration_ms=2939 gate_skip=false
+  FM_TEST_END 2026-08-24T18:31:26Z tests/fm-no-mistakes-required.test.sh exit=0 duration_ms=1204 gate_skip=false
+  FM_TEST_END 2026-08-24T18:36:54Z tests/fm-secondmate-harness.test.sh exit=0 duration_ms=327433 gate_skip=false
+  FM_TEST_END 2026-08-24T18:37:44Z tests/fm-tool-update-check.test.sh exit=0 duration_ms=50330 gate_skip=false
+  FM_TEST_END 2026-08-24T18:44:35Z tests/fm-remote-secondmate-lifecycle-e2e.test.sh exit=0 duration_ms=410571 gate_skip=false
+  FM_TEST_END 2026-08-24T18:45:22Z tests/fm-remote-secondmate-parent-binding.test.sh exit=0 duration_ms=46807 gate_skip=false
+  FM_TEST_END 2026-08-24T18:47:09Z tests/fm-remote-secondmate-trace-context.test.sh exit=0 duration_ms=106935 gate_skip=false
+  FM_TEST_SUMMARY total=8 failed=0 skipped_gate=0 duration_ms=947208
+
+RUN 4 - the new concurrency suite the merge brings in
+  tests/fm-bootstrap-network-parallel.test.sh exit=0 (both the concurrent
+  path and the mktemp-failure sequential fallback)
+
+ONE GATE SKIP, BY DESIGN
+  tests/fm-pi-branch-live-e2e.test.sh declares family=live-harness-optin
+  expected_gate_skip=optin-env and skips without FM_PI_BRANCH_LIVE_E2E=1,
+  which bills a real Pi SDK model. Left opt-in-skipped.

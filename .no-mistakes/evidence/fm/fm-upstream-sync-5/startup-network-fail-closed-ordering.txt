@@ -1,0 +1,60 @@
+Fail-closed ordering under concurrency (upstream fb2ce5b)
+=========================================================
+
+tests/fm-bootstrap-network-parallel.test.sh drives bin/fm-bootstrap.sh's
+network-only phase through FM_SSH_BIN with three remote mates, each rigged to
+a different failure, and 0.4s probe latency so the workers genuinely overlap:
+  alpha   (host-alpha)   - tracked-file sync refuses
+  bravo   (host-bravo)   - host unreachable
+  charlie (host-charlie) - remote checkout dirty
+
+PER-MATE DIAGNOSTICS, PARALLEL MODE
+    SECONDMATE_LIVENESS: secondmate bravo: skipped: remote host unavailable or endpoint state unknown; route preserved on host-bravo
+    SECONDMATE_SYNC: secondmate alpha: skipped: remote tracked-file sync failed on host-alpha: synthetic tracked-file sync refusal for host-alpha
+    SECONDMATE_SYNC: secondmate bravo: skipped: remote tracked-file sync failed on host-bravo: 
+    SECONDMATE_SYNC: secondmate bravo: skipped: remote inheritance failed on host-bravo: 
+    SECONDMATE_SYNC: secondmate charlie: skipped: remote tracked-file sync failed on host-charlie: remote secondmate checkout is dirty; sync skipped
+
+SPAWN ORDER CHECK
+    SECONDMATE_SYNC lines, in the order they were replayed: alpha bravo bravo charlie
+    Registry (spawn) order is alpha, bravo, charlie. The refusals are replayed
+    in that order, not in whichever-probe-returned-first order, and each
+    refusal still names its own host and its own reason.
+
+    That is not a vacuous ordering claim here: in the parallel timeline below,
+    alpha - spawned FIRST - is the LAST of the three remote doctors to finish,
+    while charlie and bravo both return ahead of it. The replay still leads with
+    alpha. So the report order follows spawn order, not completion order, and a
+    fast-failing later mate cannot jump the queue ahead of a slow earlier one.
+
+CONCURRENCY ACTUALLY HAPPENED (parallel mode timeline, head)
+    START host-bravo fm-remote-doctor.sh 
+    START host-charlie fm-remote-doctor.sh 
+    START host-alpha fm-remote-doctor.sh 
+    END host-charlie fm-remote-doctor.sh 
+    END host-bravo fm-remote-doctor.sh 
+    END host-alpha fm-remote-doctor.sh 
+    START host-charlie fm-remote-secondmate-control.sh state
+    START host-alpha fm-remote-secondmate-control.sh state
+    END host-alpha fm-remote-secondmate-control.sh state
+    END host-charlie fm-remote-secondmate-control.sh state
+    QUICK host-alpha fm-remote-secondmate-control.sh route
+    QUICK host-charlie fm-remote-secondmate-control.sh route
+    START fleet-fetch git fetch
+    START host-alpha fm-remote-secondmate-control.sh sync
+
+    Three remote state probes start before the first one ends, and the
+    fleet-fetch overlaps them. Convergence (sync) begins only after the last
+    liveness probe ends, because convergence consumes respawned ids.
+
+SEQUENTIAL FALLBACK (mktemp for the capture dir made to fail)
+    START host-alpha fm-remote-doctor.sh 
+    END host-alpha fm-remote-doctor.sh 
+    START host-alpha fm-remote-secondmate-control.sh state
+    END host-alpha fm-remote-secondmate-control.sh state
+    QUICK host-alpha fm-remote-secondmate-control.sh route
+    START host-bravo fm-remote-doctor.sh 
+    START fleet-fetch git fetch
+    END host-bravo fm-remote-doctor.sh 
+
+    One probe at a time, and the same per-mate refusals in the same order.

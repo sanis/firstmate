@@ -1,0 +1,30 @@
+Fork-carried gate surfaces, exercised live on the merge commit
+==============================================================
+
+1) bin/fm-pr-check.sh refuses a description that hands the reader a local
+   filesystem path instead of uploaded evidence.
+
+   The forge stands in as a fake gh answering `gh pr view <url> --json body`.
+   The description pastes the two real evidence paths from this very run.
+
+       error: the pull request description delivers evidence as local file paths no reader can open
+         /var/folders/b8/p7dyhngn7l591759f0_ngqr40000gn/T/no-mistakes-evidence/01M0TD99131TBDG4HS0YXA9YMX/startup-network-parallel-transcript.txt
+         /var/folders/b8/p7dyhngn7l591759f0_ngqr40000gn/T/no-mistakes-evidence/01M0TD99131TBDG4HS0YXA9YMX/wake-count-both-directions.txt
+       upload each artifact to the pull request and embed the link it returns; the recipes are in
+         .agents/skills/evidence-artifacts/SKILL.md
+       exit=3 (refused before anything was recorded or armed)
+
+   Same task, same PR, evidence delivered as uploaded links instead:
+
+       WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+       armed: state/fm-upstream-sync-5.check.sh
+       exit=0 (armed)
+
+2) bin/fm-pr-merge.sh really does default to --squash on GitHub, which is
+   what requirement 1 of the intent exists to prevent. Fake gh-axi prints
+   the argv it was handed instead of merging:
+
+   no method passed by the caller:
+       gh-axi pr merge 11 --repo sanis/firstmate --squash
+   caller asks for a real merge commit:
+       gh-axi pr merge 11 --repo sanis/firstmate --merge

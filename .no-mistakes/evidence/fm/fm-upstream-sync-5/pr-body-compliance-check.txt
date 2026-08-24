@@ -1,0 +1,58 @@
+PR body compliance check, run for real against three body shapes
+=================================================================
+
+The run: step of .github/workflows/no-mistakes-required.yml was extracted
+verbatim and executed locally with PR_BODY set. Only signature-bearing
+bodies are exercised, so no forge call is made.
+
+----- A: the real attestation alone - what this PR must ship -----
+    Found no-mistakes signature in PR #11 body.
+    Pipeline step attestation is valid: review, test, and document are completed.
+    exit=0
+
+----- B: a documentation placeholder ahead of the real attestation -----
+    Found no-mistakes signature in PR #11 body.
+    ::error::This repository requires no-mistakes >= 1.46.0; structured pipeline step attestation is missing or unparseable.
+    
+    The no-mistakes signature was found, but this check also requires one
+    HTML comment in the PR body:
+    
+        <!-- no-mistakes-pipeline-attestation:v1 {"head_sha":"...","steps":[...]} -->
+    
+    That comment is emitted by no-mistakes >= 1.46.0 (the release that started
+    emitting structured step attestation; see https://github.com/kunchenguid/no-mistakes/pull/670).
+    An older no-mistakes that writes only the signature line is not enough.
+    
+    Re-run the pipeline with 'git push no-mistakes' using no-mistakes >= 1.46.0.
+    See CONTRIBUTING.md for setup and the full workflow.
+    
+    PR author: sanis
+    exit=1
+
+----- C: bare signature, no attestation at all -----
+    Found no-mistakes signature in PR #11 body.
+    ::error::This repository requires no-mistakes >= 1.46.0; structured pipeline step attestation is missing or unparseable.
+    
+    The no-mistakes signature was found, but this check also requires one
+    HTML comment in the PR body:
+    
+        <!-- no-mistakes-pipeline-attestation:v1 {"head_sha":"...","steps":[...]} -->
+    
+    That comment is emitted by no-mistakes >= 1.46.0 (the release that started
+    emitting structured step attestation; see https://github.com/kunchenguid/no-mistakes/pull/670).
+    An older no-mistakes that writes only the signature line is not enough.
+    
+    Re-run the pipeline with 'git push no-mistakes' using no-mistakes >= 1.46.0.
+    See CONTRIBUTING.md for setup and the full workflow.
+    
+    PR author: sanis
+    exit=1
+
+Reading:
+  B is the trap this change must not walk into. The check strips to the
+  FIRST "<!-- no-mistakes-pipeline-attestation:v1 " it finds, so a placeholder
+  shown as documentation is parsed as the attestation. Its {"steps":[...]}
+  is not valid JSON, so a fully compliant PR is failed with a message that
+  reads like an out-of-date tool - even though the real attestation is right
+  there further down the body. Case A is the same body without the
+  placeholder and it passes.

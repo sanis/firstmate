@@ -1,0 +1,56 @@
+Incoming Pi merge-note surface - what the captain actually sees
+==============================================================
+
+Two incoming commits touch this surface, and the later one supersedes the
+earlier, so the merged behaviour is not what 52ff62e alone describes:
+
+  52ff62e  gave routine notes a boat and captain notes an anchor, and
+           dropped the "branch merged [verdict]" boilerplate.
+  8fa0505  then made captain-facing notes never render at all - the
+           follow-up turn is itself the captain-visible outcome - so the
+           anchor is gone again and only the routine boat survives.
+
+MERGED STATE, from .pi/extensions/fm-branch-supervision.ts:
+
+        if (!actingAsOwner(expectedGeneration)) return false;
+        if (verdict === "captain") {
+          const message = { customType: "fm-branch-merge", content: `${task}: ${summary}`, display: false };
+          pi.sendMessage(message, { triggerTurn: true, deliverAs: "followUp" });
+        } else {
+          const message = { customType: "fm-branch-merge", content: `${MERGE_NOTE_BOAT} ${task}: ${summary}`, display: !(task === "fleet" && silent) };
+          if (mainStreaming) {
+            pi.sendMessage(message, { deliverAs: "nextTurn" });
+
+AND ITS RENDERER:
+
+      pi.registerMessageRenderer?.("fm-branch-merge", (message, _options, theme) => {
+        const note = textOfContent(message.content);
+        const hasGlyph = note.startsWith(MERGE_NOTE_BOAT);
+        const rest = hasGlyph ? note.slice(MERGE_NOTE_BOAT.length) : note;
+        const outputPad = 1;
+        return new Text(
+          `${hasGlyph ? theme.fg("customMessageText", MERGE_NOTE_BOAT) : ""}${theme.fg("dim", rest)}`,
+          outputPad,
+          0,
+        );
+
+WHAT THE TEST PINS (tests/fm-pi-branch-extension.test.sh, green on the merge)
+  routine note : starts with "⛵ ", carries no "branch merged" /
+                 "[routine]" / "[captain]" boilerplate, display === true
+  captain note : display === false - never printed and never handed to a
+                 renderer at all - carries no anchor glyph, keeps its
+                 outcome text, and triggers exactly one follow-up turn
+  rendering    : the glyph is drawn through theme.fg("customMessageText"),
+                 i.e. coloured and NOT dim; the remainder is dim; padding
+                 is (1, 0), matching real Pi messages
+
+So the one renderable line the captain sees for a routine outcome is:
+
+    ⛵ task-7: checks green
+     ^ coloured glyph   ^ dim remainder
+
+No screenshot of this is included: it is a single-line Pi custom message,
+and the captain-facing half of the change is precisely that nothing is
+rendered. Driving the real Pi TUI needs the gated live-SDK harness
+(tests/fm-pi-branch-live-e2e.test.sh, FM_PI_BRANCH_LIVE_E2E=1), which was
+left opt-in-skipped rather than billed against a real model.

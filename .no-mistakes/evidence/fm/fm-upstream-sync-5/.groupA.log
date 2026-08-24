@@ -1,0 +1,115 @@
+FM_TEST_BEGIN 2026-08-24T18:28:01Z tests/fm-pi-watch-extension.test.sh family=watcher-wake-lock expected_gate_skip=none
+ok - Pi extension reports external healthy watcher output
+ok - Pi custom tool exposes repair-only metadata and returns automatic-continuation guidance
+ok - Pi redundant tool call returns ownership guidance and spawns no second child
+ok - Pi scheduled retry remains extension-owned after another tool call
+ok - Pi actionable close starts one successor before wake delivery settles
+ok - Pi dispatcher branch offer owns accepted wakes and falls back to main
+ok - Pi dispatcher flags a fleet-wide heartbeat offer as branch-eligible
+ok - heartbeat with a main-owned queue row stays on main
+ok - heartbeat restoration failure stays on main
+ok - watcher-failure repair stays with main even with a live, accepting branch listener
+ok - Pi refused handling handshake is classified and not swallowed
+ok - Pi hung successor falls back to one typed actionable wake
+ok - Pi unretired successor falls back without an overlapping retry
+ok - Pi late unretired closes resume classified supervision
+ok - Pi clean empty close triggers a bounded continuity retry
+ok - Pi established clean closes stop at the configured retry limit
+ok - Pi close handler verifies session-lock ownership before successor launch
+ok - Pi watcher arm distinguishes all session lock ownership states
+ok - Pi session transitions use a generation owner across /new /resume /fork, stale callbacks, and quit
+ok - Pi process-exit cleanup listener remains singular across session replacement
+ok - Pi process-exit cleanup stops the attached arm child
+ok - OpenCode plugins have an explicit ESM boundary even under a typeless parent package
+ok - OpenCode watcher plugin uses the effective FM_HOME state
+ok - OpenCode watcher plugin sources the effective config
+ok - OpenCode watcher plugin requires session lock ownership
+ok - OpenCode watcher coordinator respects primary scope
+ok - OpenCode watcher plugin starts one successor before wake prompt delivery settles
+ok - OpenCode pre-ready actionable close preserves its successor
+ok - OpenCode hung successor falls back to one typed actionable wake
+ok - OpenCode unretired successor falls back without an overlapping retry
+ok - OpenCode late unretired closes resume classified supervision
+ok - OpenCode clean empty close triggers a bounded continuity retry
+ok - OpenCode established clean closes stop at the configured retry limit
+ok - OpenCode close handler verifies session-lock ownership before successor launch
+ok - OpenCode watcher plugin coordinates with the turn-end guard
+ok - OpenCode healthy arm output does not suppress the turn-end guard
+FM_TEST_END 2026-08-24T18:29:05Z tests/fm-pi-watch-extension.test.sh exit=0 duration_ms=64481 gate_skip=false
+FM_TEST_BEGIN 2026-08-24T18:29:05Z tests/fm-pi-branch-extension.test.sh family=unclassified expected_gate_skip=none
+ok - branch owns accepted wakes with a stable prefix contract and verdict-driven merge delivery
+ok - branch prompt_cache_key is stable per home across sessions and distinct between homes
+ok - branch default-on eligibility (task-scoped, heartbeat, afk) binds and a broken branch falls back to main
+ok - pre-drain eligibility re-check defers a newly main-owned row
+ok - pre-drain eligibility re-check no-ops an already-drained wake
+ok - dialog mirror filters tool and operational traffic, lands before wakes, and keeps a durable cursor
+ok - branch session persists across process restarts through the recorded pointer
+ok - replacement activation cleans old branch leases and retries failed cleanup
+ok - branch activates on a cold start once the lock is acquired, never before
+ok - queued wakes and mirrors stop mutating branch state after lock ownership is lost
+ok - stale reports, shells, mirrors, cursors, leases, and prompts perform no side effects
+ok - a Pi session that does not own the lock accepts nothing and mutates no branch state
+ok - an extension rebind re-mirrors undelivered dialog instead of dropping it
+FM_TEST_END 2026-08-24T18:29:17Z tests/fm-pi-branch-extension.test.sh exit=0 duration_ms=11603 gate_skip=false
+FM_TEST_BEGIN 2026-08-24T18:29:17Z tests/fm-branch-supervision.test.sh family=unclassified expected_gate_skip=none
+ok - branch prompt is byte-stable across homes, cwd, timezone, and time, above the cache floor
+ok - outcome store is append-only and refuses sequence reuse after a torn tail
+ok - startup replay skips silent outcomes and preserves visible and legacy rows
+ok - lease exclusivity, same-actor refresh, release, staleness, and sweep hold
+ok - fm-control and fm-teardown refuse the other actor's live lease and pass through otherwise
+ok - PR merge, local landing, and new-task spawn refuse the branch actor and spare main
+ok - a non-Pi home ignores stale Pi leases even when the recycled pid owns its lock
+ok - lease liveness requires an exact valid session-lock pid
+ok - concurrent stale-lease claims serialize so exactly one actor succeeds
+ok - guard stale cleanup cannot race with or delete a newer lease claim
+ok - lease guard excludes a concurrent actor for the complete mutation
+ok - a claim naming the other actor fails loudly instead of silently impersonating it
+ok - release commands authorize the caller and bulk release drops only that actor's leases
+ok - the branch cannot force a teardown or bypass fm-control for a relaunch
+FM_TEST_END 2026-08-24T18:29:37Z tests/fm-branch-supervision.test.sh exit=0 duration_ms=20173 gate_skip=false
+FM_TEST_BEGIN 2026-08-24T18:29:37Z tests/fm-gitignore-config.test.sh family=unclassified expected_gate_skip=none
+ok - config/ is ignored as a directory, covering unlisted and nested paths
+ok - an unrelated path outside config/ remains visible to git
+ok - names starting with scratchpad are gitignored
+ok - no currently tracked path starts with scratchpad
+ok - scratchpad2/ does not make git status --porcelain dirty
+FM_TEST_END 2026-08-24T18:29:38Z tests/fm-gitignore-config.test.sh exit=0 duration_ms=547 gate_skip=false
+FM_TEST_BEGIN 2026-08-24T18:29:38Z tests/fm-secondmate-sync.test.sh family=secondmate expected_gate_skip=none
+ok - T1 updated: a behind home fast-forwards to the primary's local HEAD
+ok - T2 current: an already-current home is a no-op and reports no instruction change
+ok - T3 dirty: an uncommitted home is skipped, its edit preserved
+ok - scratchpad2/ does not mark a secondmate home dirty for the sync guard
+ok - T4 diverged: a home that is not an ancestor of the primary's HEAD is skipped
+ok - T5 in-flight: a home on a feature branch is skipped, its work preserved
+ok - T6 no fetch: the local-HEAD sync never invokes git fetch
+ok - T7 sweep nudges on a real instruction change only, but still fast-forwards
+ok - T8 bootstrap sweeps live homes and sends exactly one marked nudge for the instruction change
+ok - T8a bootstrap nudge send respects FM_STATE_OVERRIDE
+ok - T8f bootstrap nudge retry rejects malformed marker ids
+ok - T8c failed bootstrap nudge is surfaced and recorded for retry
+ok - T8d bootstrap nudge retry is idempotent after success
+ok - T8e bootstrap nudge retry refuses a changed home instead of guessing
+ok - T8b a stale herdr endpoint cannot lose a durably enqueued nudge, and fm-<id> resolves through post-respawn metadata
+ok - T9 bootstrap surfaces a skipped dirty live secondmate home
+ok - T10 spawn fast-forwards a secondmate worktree to the primary's local HEAD before launch
+ok - T11 spawn warns when pre-launch sync is skipped
+ok - T12 gitignored marker: a freshly seeded home reads clean to fleet-sync and the ff sweep
+ok - T13 gitignored marker: an existing marker-only-dirty home converges, then reads clean
+ok - T14 marker tolerance does not mask a genuinely dirty home
+# all fm-secondmate-sync tests passed
+FM_TEST_END 2026-08-24T18:30:48Z tests/fm-secondmate-sync.test.sh exit=0 duration_ms=70596 gate_skip=false
+FM_TEST_BEGIN 2026-08-24T18:30:48Z tests/fm-pi-branch-live-e2e.test.sh family=live-harness-optin expected_gate_skip=optin-env
+skip: set FM_PI_BRANCH_LIVE_E2E=1 to run the real-SDK Pi branch regression
+FM_TEST_END 2026-08-24T18:30:49Z tests/fm-pi-branch-live-e2e.test.sh exit=0 duration_ms=37 gate_skip=true
+FM_TEST_SUMMARY total=6 failed=0 skipped_gate=1 duration_ms=167807
+FM_TEST_SUMMARY_FAMILY family=live-harness-optin count=1 duration_ms=37 failed=0
+FM_TEST_SUMMARY_FAMILY family=secondmate count=1 duration_ms=70596 failed=0
+FM_TEST_SUMMARY_FAMILY family=unclassified count=3 duration_ms=32323 failed=0
+FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=1 duration_ms=64481 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-secondmate-sync.test.sh duration_ms=70596
+FM_TEST_SLOWEST rank=2 script=tests/fm-pi-watch-extension.test.sh duration_ms=64481
+FM_TEST_SLOWEST rank=3 script=tests/fm-branch-supervision.test.sh duration_ms=20173
+FM_TEST_SLOWEST rank=4 script=tests/fm-pi-branch-extension.test.sh duration_ms=11603
+FM_TEST_SLOWEST rank=5 script=tests/fm-gitignore-config.test.sh duration_ms=547
+FM_TEST_SLOWEST rank=6 script=tests/fm-pi-branch-live-e2e.test.sh duration_ms=37
+fm-test-run: wrote timing artifact: /var/folders/b8/p7dyhngn7l591759f0_ngqr40000gn/T/no-mistakes-evidence/01M0TD99131TBDG4HS0YXA9YMX/.groupA.json

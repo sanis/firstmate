@@ -1,0 +1,94 @@
+Fork-carried surfaces after the merge - what was checked and how
+================================================================
+
+A) LOGIN-SHELL PROCESS-NAME TOLERANCE, INCLUDING THE LATER REVERT
+   The fork fix (cdcedcb) was reverted (493b20d) to restore upstream ancestry
+   handling. After the merge those three files must be byte-identical to
+   upstream tip 8fa0505, i.e. the revert survived and nothing re-diverged:
+     identical to upstream: bin/fm-harness.sh
+     identical to upstream: bin/fm-session-lock-lib.sh
+     identical to upstream: tests/fm-secondmate-harness.test.sh
+   tests/fm-secondmate-harness.test.sh runs green on the merge commit (327s).
+
+B) THE FOUR DELIBERATELY DIVERGING TEST FILES ARE STILL DIVERGENT
+     +5 -0 : tests/fm-remote-secondmate-lifecycle-e2e.test.sh
+     +5 -0 : tests/fm-remote-secondmate-parent-binding.test.sh
+     +8 -0 : tests/fm-remote-secondmate-trace-context.test.sh
+     +7 -1 : tests/fm-tool-update-check.test.sh
+
+   The substance of those divergences, as they stand on the merge commit:
+
+     +# Quiescent for the whole run: the provisioner under test clones this root, and
+     +# a detached `git maintenance run --auto` spawned by the commits below is free
+     +# to prune the loose objects that clone is still copying.
+     +git -C "$REMOTE_ROOT" config gc.auto 0
+     +git -C "$REMOTE_ROOT" config maintenance.auto false
+     +# Quiescent for the whole run: the provisioner under test clones this root, and
+     +# a detached `git maintenance run --auto` spawned by the commits below is free
+     +# to prune the loose objects that clone is still copying.
+     +git -C "$REMOTE_ROOT" config gc.auto 0
+     +git -C "$REMOTE_ROOT" config maintenance.auto false
+     +# The provisioner under test clones this root, so git's own auto maintenance
+     +# must not be left running against it: `git commit` below otherwise spawns a
+     +# detached `git maintenance run --auto`, which is free to repack and prune
+     +# these loose objects while that clone is still hardlinking them, and a local
+     +# clone that loses a source object mid-copy dies with "failed to copy file to
+     +# <destination>: No such file or directory". The fixture root stays quiescent.
+     +git -C "$REMOTE_ROOT" config gc.auto 0
+     +git -C "$REMOTE_ROOT" config maintenance.auto false
+     -  run_check "$home" "$(fixture_path "$dir")" "$out" FM_TOOL_UPDATE_BUDGET_SECS=1
+     +  # The budget is spent by the version probe, which is bound to whatever the
+     +  # budget has left, so the sweep provably reaches the announcement phase with
+     +  # nothing left to ask with. A 1s budget cannot state that: both clocks count
+     +  # whole seconds, so a sweep starting late in a second saw its own budget gone
+     +  # before the first copy was even asked and reported that earlier phase.
+     +  run_check "$home" "$(fixture_path "$dir")" "$out" \
+     +    FM_TOOL_UPDATE_BUDGET_SECS=3 FM_TOOL_UPDATE_PROBE_SECS=3
+
+C) GITIGNORE - THE INCOMING .gitignore CHANGE DID NOT COST THE FORK ANYTHING
+   Upstream fb2ce5b widened scratchpad/ to scratchpad*. Asked of git's own
+   ignore engine on the merge commit (git check-ignore -v):
+
+     ignored     config/clickup.json          by .gitignore:13:config/	config/clickup.json
+     ignored     config/anything.json         by .gitignore:13:config/	config/anything.json
+     ignored     scratchpad                   by .gitignore:4:scratchpad*	scratchpad
+     ignored     scratchpad-notes.md          by .gitignore:4:scratchpad*	scratchpad-notes.md
+     not ignored docs/architecture.md (tracked doc - correct)
+
+   config/ stays ignored, so the ClickUp instance ids in config/clickup.json
+   never enter the repo - which is exactly what the ClickUp contract test
+   asserts through check-ignore, and it passes.
+
+D) TEST RESULTS FOR THE CARRIED SURFACES (bin/fm-test-run.sh, merge commit)
+     FM_TEST_END 2026-08-24T18:31:22Z tests/fm-clickup-contract.test.sh exit=0 duration_ms=352 gate_skip=false
+     FM_TEST_END 2026-08-24T18:31:25Z tests/fm-evidence-artifacts.test.sh exit=0 duration_ms=2939 gate_skip=false
+     FM_TEST_END 2026-08-24T18:31:26Z tests/fm-no-mistakes-required.test.sh exit=0 duration_ms=1204 gate_skip=false
+     FM_TEST_END 2026-08-24T18:36:54Z tests/fm-secondmate-harness.test.sh exit=0 duration_ms=327433 gate_skip=false
+     FM_TEST_END 2026-08-24T18:37:44Z tests/fm-tool-update-check.test.sh exit=0 duration_ms=50330 gate_skip=false
+
+   Case names for the two contract suites named in the intent:
+
+   ClickUp:
+     ok - clickup skill exists with captain-invocable internal frontmatter
+     ok - clickup skill externalizes instance parameters and keeps connector facts
+     ok - clickup instance parameters stay local and out of tracked files
+     ok - clickup skill keeps its safety and idempotency contracts
+     ok - AGENTS.md carries exactly the two clickup triggers
+     ok - clickup contract stays single-owner with doc and README pointers
+
+   Attestation contract (eight cases, both directions):
+     ok - a body carrying the signature and a complete attestation passes without an API call
+     ok - a bare signature no longer proves the pipeline ran
+     ok - a skipped required step is not a completed pipeline
+     ok - a gate-signed commit passes a PR whose body no-mistakes never wrote
+     ok - an absent PR body is handled instead of aborting the check
+     ok - a PR with neither proof still fails with actionable guidance
+     ok - an unreadable commits API fails as its own reason, not as a policy violation
+     ok - only a gate-written commit subject counts as the second proof
+
+   Evidence-artifacts surface:
+     ok - every ship delivery mode carries the evidence rule and a resolvable owner pointer
+     ok - scaffolds that open no pull request stay free of the rule
+     ok - forge mechanics live only in the owner skill and its verification record
+     ok - a ship brief routes workers only into instructions they can execute
+     ok - a promoted scout receives the ship brief's evidence rule and owner pointer

@@ -1,0 +1,178 @@
+FM_TEST_BEGIN 2026-08-24T18:31:21Z tests/fm-clickup-contract.test.sh family=pure-contract-unit expected_gate_skip=none
+ok - clickup skill exists with captain-invocable internal frontmatter
+ok - clickup skill externalizes instance parameters and keeps connector facts
+ok - clickup instance parameters stay local and out of tracked files
+ok - clickup skill keeps its safety and idempotency contracts
+ok - AGENTS.md carries exactly the two clickup triggers
+ok - clickup contract stays single-owner with doc and README pointers
+FM_TEST_END 2026-08-24T18:31:22Z tests/fm-clickup-contract.test.sh exit=0 duration_ms=352 gate_skip=false
+FM_TEST_BEGIN 2026-08-24T18:31:22Z tests/fm-evidence-artifacts.test.sh family=unclassified expected_gate_skip=none
+ok - every ship delivery mode carries the evidence rule and a resolvable owner pointer
+ok - scaffolds that open no pull request stay free of the rule
+ok - forge mechanics live only in the owner skill and its verification record
+ok - a ship brief routes workers only into instructions they can execute
+ok - a promoted scout receives the ship brief's evidence rule and owner pointer
+FM_TEST_END 2026-08-24T18:31:25Z tests/fm-evidence-artifacts.test.sh exit=0 duration_ms=2939 gate_skip=false
+FM_TEST_BEGIN 2026-08-24T18:31:25Z tests/fm-no-mistakes-required.test.sh family=unclassified expected_gate_skip=none
+ok - a body carrying the signature and a complete attestation passes without an API call
+ok - a bare signature no longer proves the pipeline ran
+ok - a skipped required step is not a completed pipeline
+ok - a gate-signed commit passes a PR whose body no-mistakes never wrote
+ok - an absent PR body is handled instead of aborting the check
+ok - a PR with neither proof still fails with actionable guidance
+ok - an unreadable commits API fails as its own reason, not as a policy violation
+ok - only a gate-written commit subject counts as the second proof
+FM_TEST_END 2026-08-24T18:31:26Z tests/fm-no-mistakes-required.test.sh exit=0 duration_ms=1204 gate_skip=false
+FM_TEST_BEGIN 2026-08-24T18:31:26Z tests/fm-secondmate-harness.test.sh family=secondmate expected_gate_skip=none
+ok - A1 fm-harness.sh secondmate resolves the fallback chain; crew mode unchanged
+ok - fm-harness detects only Cursor Agent CLI's exact invocation marker
+ok - C1 fm-harness.sh secondmate-model/secondmate-effort resolve the optional tokens; bare harness stays empty (backward-compat)
+ok - pi-signed identity: authoritative launch selection distinguishes shared wrapper ancestry
+ok - harness identity: dash-leading ps command names are basename operands, not options
+ok - B1 propagate_inheritable_config: copy, idempotence, convergence, absence-mirror, exclusion, no-op, skip diagnostics
+ok - B2 spawn: secondmate runs the secondmate harness; its home inherits declared config
+ok - B3 spawn: an absent secondmate-harness falls back to the crew harness (backward-compat)
+ok - B4 spawn: no config at all -> own harness and no propagation side effects
+ok - B5 spawn: an explicit per-spawn harness arg overrides config/secondmate-harness
+ok - B6 spawn: an unverified resolved secondmate harness is refused (guard intact)
+skip: cursor executable not resolvable in this environment, so the launch could not be built
+ok - B5b spawn: FM_BACKEND wins over inherited config/backend
+ok - B5c spawn: explicit --backend wins over FM_BACKEND and inherited config/backend
+ok - C2 spawn: a bare harness-only secondmate-harness file launches with no model/effort flag (backward-compat)
+ok - C3 spawn: config/secondmate-harness's model token threads --model into the launch and meta
+ok - C4 spawn: config/secondmate-harness's model+effort tokens thread into the launch and meta
+ok - C5 spawn: an explicit --model overrides config/secondmate-harness's model token; the file's effort token still applies
+ok - C6 spawn: an explicit --effort overrides config/secondmate-harness's effort token; the file's model token still applies
+ok - C7 spawn: an explicit --harness starts with clean model/effort defaults
+ok - C8 spawn: an explicit --harness still honors explicit model/effort flags
+ok - C9 spawn: secondmate launch pins supervision to its own harness
+ok - C9 spawn: the harness fallback chain still resolves with no tokens; crew/scout launches are unaffected by this feature
+ok - B7 bootstrap sweep pushes, re-converges, and mirrors absence; never inherits secondmate-harness
+ok - B8 bootstrap sweep propagates config even when the home's tracked files are already current
+ok - B9 bootstrap sweep defers new inherited config until the home ignores it
+ok - B10 bootstrap sweep materializes and inherits the startup-memory default while fast-forwarding
+ok - B12b backend inheritance: present values and primary absence converge exactly
+ok - B12c presentation inheritance: the primary default converges on, and only an explicit opt-out propagates off
+ok - B11 bootstrap sweep surfaces config propagation failures
+ok - B11 bootstrap rereads completed config writes after partial propagation
+ok - B12 config-push propagates via shared live discovery, reports items, rereads on change only, and does not fast-forward
+ok - B13 config-push reports dirty, non-allowing, and invalid homes without failing warnings-only runs
+ok - B14 config-push exits nonzero on real propagation errors
+ok - B14 config-push rereads completed config writes after partial propagation
+ok - B15 config reread is per-home, exact-byte, ordered, and pointer-only
+ok - B16 config reread isolation, ABSENT, generation safety, send failure, and retry
+ok - B20 config reread publication failures retain exact generations for retry
+ok - B21 config reread instruction-write failures retain exact retry generations
+ok - B21 config reread preserves exact bytes when temporary adoption also fails
+ok - B21 config reread serializes concurrent propagation and delivery
+ok - B22 full config reread retry queues drain before new publication
+ok - B23 mixed config reread delivery failures still bound sent history
+ok - B26 config reread delivery stops after the oldest failed generation
+ok - B17 config reread skips unchanged homes and reads destination post-write bytes
+ok - B18 bootstrap config reread path works; spawn flexibility remains defaults-only
+ok - B19 bootstrap respawns before inherited-config reread
+ok - B25 spawn quarantines stale rereads without blocking relaunch
+ok - B24 bootstrap detect-only mode remains filesystem read-only
+# all fm-secondmate-harness tests passed
+FM_TEST_END 2026-08-24T18:36:54Z tests/fm-secondmate-harness.test.sh exit=0 duration_ms=327433 gate_skip=false
+FM_TEST_BEGIN 2026-08-24T18:36:54Z tests/fm-tool-update-check.test.sh family=watcher-wake-lock expected_gate_skip=none
+ok - PATH skew is reported by asking every copy on PATH for its own version
+ok - no report when PATH already resolves the newest installed copy
+ok - two copies of the same version are not skew
+ok - one copy reached through two PATH entries is probed once as one install
+ok - a copy that reports no version is a check failure, not a pass
+ok - a watched command missing from PATH is reported
+ok - a tool's own update announcement is read from its output
+ok - an announcement carried by another command is read from that command
+ok - an announce_pattern that cannot be used is reported instead of read as silence
+ok - a broken pattern is reported for its own tool and the rest of the sweep still reports
+ok - an announcement source the budget could not reach is reported, not read as current
+ok - an announcement probe that does not answer is reported, not read as current
+ok - a tool that announces nothing stays silent
+ok - commits behind the origin branch are reported without touching the repository
+ok - an omitted branch is detected from the remote's default branch
+ok - the default branch is asked of the remote when the clone has no local record
+ok - a repository that is current or ahead of its origin branch is silent
+ok - an unusable git source is reported as a check failure
+ok - a remote that cannot be read is reported as unreadable, not as a missing branch
+ok - a branch a readable remote does not have is still reported as missing
+ok - git probes stop and name their tool once the sweep budget is gone
+ok - a git probe that does not answer is reported as a failure, never as an update
+ok - a stalled repository probe is reported as no answer, not as not a repository
+ok - no watched tool registry means no output at all
+ok - a malformed registry is reported instead of quietly skipped
+ok - the same pending update is reported once, and a change is reported again
+ok - an over-long report is cut with the shared truncation marker
+ok - a finding that lands past the cut is still reported as news
+ok - probes run once per interval, not on every poll
+ok - a budget that cannot fit the watcher bound is cut and reported, and the sweep keeps working
+ok - an out of range bound or unknown action refuses instead of guessing
+ok - arm registers a trusted check and disarm removes every trace
+ok - a symlink at the shim path is refused instead of followed
+ok - a failed registration never leaves a shim without a matching trust binding
+ok - a re-arm that loses the trust binding leaves no shim behind
+ok - a relative home is resolved before it is persisted into the shim
+ok - the armed check reaches the watcher as an ordinary check wake
+FM_TEST_END 2026-08-24T18:37:44Z tests/fm-tool-update-check.test.sh exit=0 duration_ms=50330 gate_skip=false
+FM_TEST_BEGIN 2026-08-24T18:37:44Z tests/fm-remote-secondmate-lifecycle-e2e.test.sh family=secondmate expected_gate_skip=none
+ok - overlapping remote home provisioning serializes through publication and rollback
+ok - remote seed rollback preserves serialized competing routes
+ok - unknown readiness preserves its route and brief for reconciliation
+ok - remote seeding checks, repairs, and re-checks readiness, then stops on a remaining gap
+ok - remote seeding proceeds once the repair closes every gap
+ok - remote seeding provisions a supplied origin without touching the primary project tree
+ok - remote provisioning re-validates a supplied origin at the receiving host
+ok - seeding carries bitbucket, self-hosted, and scp-like origins through to the remote clone
+ok - remote seed registers the route and provisions the whole home and project clone on that host
+ok - remote inheritance rejects incomplete and superseded payload generations
+ok - mixed local and remote routes validate without migration
+ok - remote spawn launches on the remote-local backend and records a host-qualified route
+ok - legacy and mismatched remote endpoints fail closed before backend access
+ok - non-herdr remote endpoints are refused without changing either route
+ok - remote spawn serializes inheritance through launch publication
+ok - marked send and routed reply complete through the existing parent correlation owner
+PR_CHECK_MIGRATION: watcher ownership is ambiguous; review state/.watch.lock before rearming polls
+ok - partial remote inheritance retains reread intent through bootstrap convergence
+ok - config push and bootstrap serialize remote inheritance convergence
+ok - remote inherited config retains and retries a failed live reread nudge
+ok - fleet snapshot projects mixed local and remote structured state
+ok - remote update imports and fast-forwards the persistent home on its configured host
+PR_CHECK_MIGRATION: watcher ownership is ambiguous; review state/.watch.lock before rearming polls
+ok - startup repairs remote readiness before probing without relaunching
+PR_CHECK_MIGRATION: watcher ownership is ambiguous; review state/.watch.lock before rearming polls
+ok - startup reports alive legacy backends without changing their routes
+ok - unreachable remote state remains unknown with no local respawn or failover
+ok - remote retirement refuses child work, then removes only its own endpoint while a shared-session sibling survives
+ALL TESTS PASSED
+FM_TEST_END 2026-08-24T18:44:35Z tests/fm-remote-secondmate-lifecycle-e2e.test.sh exit=0 duration_ms=410571 gate_skip=false
+FM_TEST_BEGIN 2026-08-24T18:44:35Z tests/fm-remote-secondmate-parent-binding.test.sh family=unclassified expected_gate_skip=none
+ok - remote provisioning publishes durable parent state before its completion marker
+ok - a remote secondmate's finished worker cleans up when the remote code root's own .env looked relay-active
+ok - a remote secondmate's finished worker cleans up when only an ambient exported token looked relay-active
+ok - a remote secondmate's finished worker cleans up with no relay signal anywhere
+ok - a remote secondmate's own committed relay token still refuses cleanup
+ALL TESTS PASSED
+FM_TEST_END 2026-08-24T18:45:22Z tests/fm-remote-secondmate-parent-binding.test.sh exit=0 duration_ms=46807 gate_skip=false
+FM_TEST_BEGIN 2026-08-24T18:45:22Z tests/fm-remote-secondmate-trace-context.test.sh family=secondmate expected_gate_skip=none
+ok - disabled: a remote-routed second mate records and receives no carrier and stays enabled-off end to end
+ok - enabled: a remote-routed second mate receives one carrier in its pane, identical to the parent's recorded identity, before launch
+ok - relaunch: a remote-routed second mate keeps one stable identity across restarts
+ok - boundary: each remote-routed second mate roots its own trace and never adopts the spawning environment's carrier
+ok - allowlist: the remote receiver accepts exactly the declared inherited-material set, including the enablement flag
+ok - delivery: a parent-supplied carrier is accepted only for a secondmate launch and only as a strict W3C value
+ALL TESTS PASSED
+FM_TEST_END 2026-08-24T18:47:09Z tests/fm-remote-secondmate-trace-context.test.sh exit=0 duration_ms=106935 gate_skip=false
+FM_TEST_SUMMARY total=8 failed=0 skipped_gate=0 duration_ms=947208
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=1 duration_ms=352 failed=0
+FM_TEST_SUMMARY_FAMILY family=secondmate count=3 duration_ms=844939 failed=0
+FM_TEST_SUMMARY_FAMILY family=unclassified count=3 duration_ms=50950 failed=0
+FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=1 duration_ms=50330 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-remote-secondmate-lifecycle-e2e.test.sh duration_ms=410571
+FM_TEST_SLOWEST rank=2 script=tests/fm-secondmate-harness.test.sh duration_ms=327433
+FM_TEST_SLOWEST rank=3 script=tests/fm-remote-secondmate-trace-context.test.sh duration_ms=106935
+FM_TEST_SLOWEST rank=4 script=tests/fm-tool-update-check.test.sh duration_ms=50330
+FM_TEST_SLOWEST rank=5 script=tests/fm-remote-secondmate-parent-binding.test.sh duration_ms=46807
+FM_TEST_SLOWEST rank=6 script=tests/fm-evidence-artifacts.test.sh duration_ms=2939
+FM_TEST_SLOWEST rank=7 script=tests/fm-no-mistakes-required.test.sh duration_ms=1204
+FM_TEST_SLOWEST rank=8 script=tests/fm-clickup-contract.test.sh duration_ms=352
+fm-test-run: wrote timing artifact: /var/folders/b8/p7dyhngn7l591759f0_ngqr40000gn/T/no-mistakes-evidence/01M0TD99131TBDG4HS0YXA9YMX/.groupB.json

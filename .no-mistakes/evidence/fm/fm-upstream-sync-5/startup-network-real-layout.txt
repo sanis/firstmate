@@ -1,0 +1,65 @@
+Parallelized startup network sweep - run against this home's real clone layout
+==============================================================================
+
+WHAT THIS HOME ACTUALLY LOOKS LIKE
+  origin-backed project clones under projects/ : 64
+  remote secondmates (data/secondmates.md)     : 0 (file empty)
+  state/*.meta with kind=secondmate            : 0
+
+So on this home the per-secondmate concurrency the change introduces has
+nothing to parallelize; the only network work the deferred phase has to do
+is the project clone refresh, which the change moves into a background job
+that overlaps the (here empty) secondmate sweeps.
+
+HOW IT WAS RUN
+  The live clones were never written to. projects/ was copy-on-write copied
+  (cp -Rc, APFS clonefile, 1.6G, 60s) twice from the real home, so both runs
+  start from byte-identical real clone state - real branches, real dirt, real
+  origin URLs - and every write lands in a temp home. The merge commit and
+  its pre-merge parent were each extracted with git archive and pointed at
+  their own copy:
+
+    FM_HOME=<copy> FM_ROOT_OVERRIDE=<tree> FM_BOOTSTRAP_NETWORK=only \
+      bin/fm-bootstrap.sh
+
+  Fetches went to the real gitlab.com remotes over SSH, read-only.
+
+ELAPSED
+  merge commit 6cee070 (parallel probes + overlapped clone refresh)
+      elapsed 200.958 s   clones reported before the cut-off: 53 of 64
+  pre-merge parent 6b0fd49 (sequential)
+      elapsed 201.804 s   clones reported before the cut-off: 54 of 64
+
+  Within noise of each other, which is the expected result for a home with
+  zero remote secondmates: there is no second stream for the clone refresh
+  to overlap with, and the change does not parallelize the per-clone fetch
+  inside bin/fm-fleet-sync.sh (that stays sequential).
+
+WHAT BOTH RUNS DID - AND THE PRE-EXISTING BUDGET CUT-OFF
+  Both the merge commit and its pre-merge parent hit the clone-refresh
+  budget and were cut off before finishing the fleet:
+
+    merge commit : FLEET_SYNC: fleet: skipped: bootstrap refresh timed out (timeout=197s elapsed=197s)
+    pre-merge    : FLEET_SYNC: fleet: skipped: bootstrap refresh timed out (timeout=197s elapsed=197s)
+
+  The budget is 5 + 3*origin_backed_count = 5 + 3*64 = 197s
+  (fleet_sync_bootstrap_timeout in bin/fm-bootstrap.sh). This is INHERITED,
+  not caused by the sync: it reproduces identically on the pre-merge parent.
+  At this fleet size a session start reaches its clone-refresh budget and
+  skips the tail of the fleet either way.
+
+LAST LINES OF THE MERGE-COMMIT RUN
+    FLEET_SYNC: product-settings-api: already current
+    FLEET_SYNC: product-stock-tracker-php-client: already current
+    FLEET_SYNC: releaser-pleaser: already current
+    FLEET_SYNC: score-api-php-client: already current
+    FLEET_SYNC: serity-api-php-client: already current
+    FLEET_SYNC: fleet: skipped: bootstrap refresh timed out (timeout=197s elapsed=197s)
+
+LAST LINES OF THE PRE-MERGE RUN
+    FLEET_SYNC: product-stock-tracker-php-client: already current
+    FLEET_SYNC: releaser-pleaser: already current
+    FLEET_SYNC: score-api-php-client: already current
+    FLEET_SYNC: serity-api-php-client: already current
+    FLEET_SYNC: shortener-api: already current
+    FLEET_SYNC: fleet: skipped: bootstrap refresh timed out (timeout=197s elapsed=197s)

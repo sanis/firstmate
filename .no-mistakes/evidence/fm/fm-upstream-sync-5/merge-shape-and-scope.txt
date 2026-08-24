@@ -1,0 +1,34 @@
+Merge shape and scope, checked against the intent
+================================================
+
+MERGE COMMIT, BOTH PARENTS INTACT
+  6cee070 Merge upstream/main: fork renewal (5 commits through 8fa0505)
+    parent 1 (fork main)   6b0fd49 8fa0505
+  parents: 6b0fd49 8fa0505
+  parent 1 = 6b0fd49  Merge pull request #10 from sanis/fm/fm-upstream-sync-13
+  parent 2 = 8fa0505  feat(pi): default branch supervision and route heartbeats (#2939)
+
+SAME SHAPE AS THE TWO PRECEDING SYNCS
+  1fd2fbe  parents=2  Merge pull request #9 from sanis/fm/fm-upstream-sync-35
+  8619524  parents=2  Merge upstream/main: fork renewal (13 commits through 7b88520)
+  6cee070  parents=2  Merge upstream/main: fork renewal (5 commits through 8fa0505)
+
+THE FIVE UPSTREAM COMMITS ARE ANCESTORS (nothing squashed away)
+  ancestor: fb2ce5b fix(bin): parallelize startup network sweeps (#2927)
+  ancestor: 8b21c99 test: handle absent watcher wake queues (#2845)
+  ancestor: 8fa0505 feat(pi): default branch supervision and route heartbeats (#
+  ancestor: 52ff62e style(pi): distinguish routine and captain supervision merge
+  ancestor: d55e00a docs(pi): add the approved multi-brain architecture poster (
+
+SCOPE CLOSED AT 8fa0505 - 038d0f7 IS NOT IN
+  038d0f7 is not even fetched into this gate repo: correct
+
+FORBIDDEN PATHS UNTOUCHED (base..merge)
+  no change under projects/ data/ state/ config/ .no-mistakes/
+
+TOOL VERSION FLOOR NOT RAISED
+  no-mistakes floor in the PR compliance check: no-mistakes >= 1.46.0
+  same on the pre-merge parent:                no-mistakes >= 1.46.0
+  firstmate runtime minimum (bin/fm-bootstrap.sh), merge commit: NO_MISTAKES_MIN=1.31.2
+  same on the pre-merge parent:                             NO_MISTAKES_MIN=1.31.2
+  CONTRIBUTING.md unchanged by this merge: yes

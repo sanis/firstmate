@@ -1,0 +1,59 @@
+Wake-count fix (upstream 8b21c99) - both directions still fail for the right reason
+=====================================================================
+
+The fix is test-only: the four wake counts in
+tests/fm-watch-triage.test.sh (exited-declared-pause case) now read a
+.wake-queue that may legitimately not exist. To show both directions, the
+exact assertion block from the test file (lines 1044-1050) is executed
+against controlled queue states, in the merged ("fixed") form and with the
+fix textually removed ("pre-fix") as a control.
+
+Block under test, as it stands on the merge commit:
+      wakes=$(awk -F '\t' -v w="$window" '$3 == "stale" && $4 == w { n++ } END { print n + 0 }' "$state/.wake-queue" 2>/dev/null || echo 0)
+      bare=$(awk -F '\t' -v w="$window" '$3 == "stale" && $4 == w && $5 == "stale: " w { n++ } END { print n + 0 }' "$state/.wake-queue" 2>/dev/null || echo 0)
+      [ "$wakes" -le 1 ] || fail "dead-agent declared pause flooded $wakes stale wakes across six unchanged polls"
+      [ "$bare" -eq 0 ] || fail "dead-agent declared pause surfaced as $bare bare stopped-crew wakes"
+      grep -F "awaiting external" "$state/.wake-queue" >/dev/null \
+        || fail "dead-agent declared pause did not use the bounded paused recheck"
+    
+
+----- MERGED (fixed) | absent -----
+      watcher queued nothing at all (no .wake-queue file)
+      grep: /var/folders/b8/p7dyhngn7l591759f0_ngqr40000gn/T//wakeprobe.mF2DxD/.wake-queue: No such file or directory
+      REPORTED FAILURE: dead-agent declared pause did not use the bounded paused recheck
+
+----- MERGED (fixed) | flood -----
+      genuine flood: six stale wakes for the window
+      REPORTED FAILURE: dead-agent declared pause flooded 6 stale wakes across six unchanged polls
+
+----- MERGED (fixed) | bounded -----
+      the contract being asserted: one bounded "awaiting external" recheck
+      counts: wakes=[1] bare=[0]
+      NO FAILURE REPORTED (block completed)
+
+----- PRE-FIX control | absent -----
+      watcher queued nothing at all (no .wake-queue file)
+      awk: can't open file /var/folders/b8/p7dyhngn7l591759f0_ngqr40000gn/T//wakeprobe.PGH33g/.wake-queue
+       source line number 1
+      awk: can't open file /var/folders/b8/p7dyhngn7l591759f0_ngqr40000gn/T//wakeprobe.PGH33g/.wake-queue
+       source line number 1
+      /tmp/fm-wakecount-probe.sh: line 26: [: : integer expected
+      REPORTED FAILURE: dead-agent declared pause flooded  stale wakes across six unchanged polls
+
+----- PRE-FIX control | flood -----
+      genuine flood: six stale wakes for the window
+      REPORTED FAILURE: dead-agent declared pause flooded 6 stale wakes across six unchanged polls
+
+----- PRE-FIX control | bounded -----
+      the contract being asserted: one bounded "awaiting external" recheck
+      counts: wakes=[1] bare=[0]
+      NO FAILURE REPORTED (block completed)
+
+Reading:
+  PRE-FIX + absent queue  -> "[: : integer expected" and a flood reported
+                             with no number ("flooded  stale wakes"), which is
+                             the bug: the real contract breach is hidden.
+  MERGED  + absent queue  -> counts default to 0 and the run fails with
+                             "did not use the bounded paused recheck".
+  MERGED  + genuine flood -> still fails with its real count ("flooded 6").
+  MERGED  + bounded queue -> no failure; the honest pass is unchanged.
