@@ -96,6 +96,11 @@ chmod +x "$REMOTE_ROOT/bin/tmux"
 install_remote_herdr_fixture "$REMOTE_ROOT" "$HERDR_STATE" "$HERDR_LOG" \
   "$TMP_ROOT/herdr-send-fail" "$TMP_ROOT/herdr.sock"
 git -C "$REMOTE_ROOT" init -q -b main
+# Quiescent for the whole run: the provisioner under test clones this root, and
+# a detached `git maintenance run --auto` spawned by the commits below is free
+# to prune the loose objects that clone is still copying.
+git -C "$REMOTE_ROOT" config gc.auto 0
+git -C "$REMOTE_ROOT" config maintenance.auto false
 git -C "$REMOTE_ROOT" config user.email test@example.com
 git -C "$REMOTE_ROOT" config user.name Test
 git -C "$REMOTE_ROOT" add .

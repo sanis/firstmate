@@ -336,7 +336,13 @@ SH
   chmod 0755 "$dir/no-mistakes-fixture"
   write_config "$home" '{"tools":[{"name":"no-mistakes","command":"no-mistakes-fixture","version_args":["--version"],"announce_args":["--help"],"announce_pattern":"A new version of no-mistakes is available: [^ ]+ -> [^ ]+"}]}'
   out="$home/out.txt"
-  run_check "$home" "$(fixture_path "$dir")" "$out" FM_TOOL_UPDATE_BUDGET_SECS=1
+  # The budget is spent by the version probe, which is bound to whatever the
+  # budget has left, so the sweep provably reaches the announcement phase with
+  # nothing left to ask with. A 1s budget cannot state that: both clocks count
+  # whole seconds, so a sweep starting late in a second saw its own budget gone
+  # before the first copy was even asked and reported that earlier phase.
+  run_check "$home" "$(fixture_path "$dir")" "$out" \
+    FM_TOOL_UPDATE_BUDGET_SECS=3 FM_TOOL_UPDATE_PROBE_SECS=3
   report=$(cat "$out")
   assert_contains "$report" "no-mistakes check failed: the time budget ran out before the update announcement was checked" "an announcement source that was never asked was not reported"
   pass "an announcement source the budget could not reach is reported, not read as current"
