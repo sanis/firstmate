@@ -93,6 +93,14 @@ chmod +x "$REMOTE_ROOT/bin/tmux"
 install_remote_herdr_fixture "$REMOTE_ROOT" "$HERDR_STATE" "$HERDR_LOG" \
   "$TMP_ROOT/herdr-send-fail" "$TMP_ROOT/herdr.sock"
 git -C "$REMOTE_ROOT" init -q -b main
+# The provisioner under test clones this root, so git's own auto maintenance
+# must not be left running against it: `git commit` below otherwise spawns a
+# detached `git maintenance run --auto`, which is free to repack and prune
+# these loose objects while that clone is still hardlinking them, and a local
+# clone that loses a source object mid-copy dies with "failed to copy file to
+# <destination>: No such file or directory". The fixture root stays quiescent.
+git -C "$REMOTE_ROOT" config gc.auto 0
+git -C "$REMOTE_ROOT" config maintenance.auto false
 git -C "$REMOTE_ROOT" config user.email test@example.com
 git -C "$REMOTE_ROOT" config user.name Test
 git -C "$REMOTE_ROOT" add .

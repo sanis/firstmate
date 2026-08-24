@@ -131,7 +131,7 @@ test_path_skew_is_reported_from_every_copy() {
   assert_contains "$report" "0.8.2 is installed at $fresh/$TOOL" "the report does not name the newer installed copy, so no other PATH copy was asked for its version"
   assert_not_contains "$report" "update available" "PATH skew must not be reported as a published update"
   assert_contains "$report" "$(printf 'tool updates:')" "the report is missing its one-line prefix"
-  [ "$(wc -l < "$out")" = 1 ] || fail "the report must be exactly one line for the wake record"
+  [ "$(wc -l < "$out" | tr -d '[:space:]')" = 1 ] || fail "the report must be exactly one line for the wake record"
   pass "PATH skew is reported by asking every copy on PATH for its own version"
 }
 
@@ -311,7 +311,7 @@ test_one_broken_pattern_does_not_blind_the_rest_of_the_sweep() {
   report=$(cat "$out")
   assert_contains "$report" "herdr update not in effect: PATH resolves 0.8.0 at $stale/$TOOL" "a broken pattern on another tool suppressed the PATH skew report"
   assert_contains "$report" "no-mistakes check failed: announce_pattern is not a usable extended regular expression" "the tool whose pattern cannot be used was not named"
-  [ "$(wc -l < "$out")" = 1 ] || fail "the report must stay exactly one line"
+  [ "$(wc -l < "$out" | tr -d '[:space:]')" = 1 ] || fail "the report must stay exactly one line"
   pass "a broken pattern is reported for its own tool and the rest of the sweep still reports"
 }
 
@@ -336,7 +336,13 @@ SH
   chmod 0755 "$dir/no-mistakes-fixture"
   write_config "$home" '{"tools":[{"name":"no-mistakes","command":"no-mistakes-fixture","version_args":["--version"],"announce_args":["--help"],"announce_pattern":"A new version of no-mistakes is available: [^ ]+ -> [^ ]+"}]}'
   out="$home/out.txt"
-  run_check "$home" "$(fixture_path "$dir")" "$out" FM_TOOL_UPDATE_BUDGET_SECS=1
+  # The budget is spent by the version probe, which is bound to whatever the
+  # budget has left, so the sweep provably reaches the announcement phase with
+  # nothing left to ask with. A 1s budget cannot state that: both clocks count
+  # whole seconds, so a sweep starting late in a second saw its own budget gone
+  # before the first copy was even asked and reported that earlier phase.
+  run_check "$home" "$(fixture_path "$dir")" "$out" \
+    FM_TOOL_UPDATE_BUDGET_SECS=3 FM_TOOL_UPDATE_PROBE_SECS=3
   report=$(cat "$out")
   assert_contains "$report" "no-mistakes check failed: the time budget ran out before the update announcement was checked" "an announcement source that was never asked was not reported"
   pass "an announcement source the budget could not reach is reported, not read as current"
@@ -690,7 +696,7 @@ test_an_overlong_report_says_it_was_cut() {
   run_check "$home" "$PATH" "$out"
   report=$(cat "$out")
   assert_contains "$report" "[truncated]" "an over-long report was cut without saying so"
-  [ "$(wc -l < "$out")" = 1 ] || fail "the cut report must still be exactly one line"
+  [ "$(wc -l < "$out" | tr -d '[:space:]')" = 1 ] || fail "the cut report must still be exactly one line"
   pass "an over-long report is cut with the shared truncation marker"
 }
 
