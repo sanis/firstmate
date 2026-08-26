@@ -62,6 +62,7 @@ That one shape is allowed; every other shape the guard denied before is still de
 `bin/fm-cd-pretool-check.sh` hands the policy the home root as `--root`, reusing the checkout root it has already resolved and validated for its own scoping rather than deriving it a second way.
 Supplying the root is transport plumbing only: `bin/fm-cd-command-policy.mjs` remains the sole owner of whether any given target earns the exemption.
 Without `--root` the policy knows of no home and exempts nothing, so a caller that omits it falls back to the pre-exemption behavior rather than to a weaker one.
+A `--root` value that is not absolute is ignored the same way, because it cannot anchor a comparison and must never be resolved against the policy process's own working directory.
 
 The exemption is deliberately narrow.
 It applies only to a node that is a bare `cd` carrying exactly one argument word, and only when that word is an unexpanded absolute literal path differing from the resolved root by nothing but duplicate or trailing slashes.
@@ -116,6 +117,7 @@ A `cd` to the home root itself is allowed outright and so never carries this rea
 Processing order is cheapest-first: a strict-superset prefilter, then the primary-checkout scope, then the Node policy owner, which receives the scoped checkout root as `--root`.
 The prefilter removes ordinary single quotes, double quotes, backslashes, carriage returns, and newlines before fast-allowing any command that carries no `cd`, `pushd`, or `popd` substring and no quoting-decoder marker (`$'` ANSI-C or `$"` locale), so quoted or escaped command-word fragments delegate to the policy while most commands never pay for the git scoping calls or the Node process.
 The quoting-decoder marker set is coupled to the classifier's decoder set in `bin/fm-arm-command-policy.mjs`: adding any new quote or expansion form the classifier decodes requires extending the prefilter marker set in the same change, or it stops being a strict superset.
+`bin/fm-cd-command-policy.mjs` carries the same marker set a second time, where it withdraws the home-root exemption, so such a change extends both sites and not the prefilter alone.
 
 Empty stdin, unparseable JSON, missing `jq` on the stdin path, missing Node, a missing policy owner, or an invalid policy response all fail open with exit 0 and no output.
 A broken hook must never deny every shell tool call.
