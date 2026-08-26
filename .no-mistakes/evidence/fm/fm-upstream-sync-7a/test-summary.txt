@@ -1,0 +1,14 @@
+Targeted test run on the merged tree (HEAD e5ee8bf)
+
+Upstream-touched suites (upstream's fixes must keep working):
+  tests/fm-classify-corr-token.test.sh exit=0  (12 assertions)
+  tests/fm-procevent.test.sh       exit=0  (53 assertions)
+  tests/fm-pi-branch-extension.test.sh exit=0  (24 assertions)
+  tests/fm-pi-watch-extension.test.sh exit=0  (37 assertions)
+
+Fork-side suites (our own behavior must keep working):
+  tests/fm-documentation-audiences.test.sh exit=0  (6 assertions)
+  tests/fm-pr-description-guard.test.sh exit=0  (23 assertions)
+
+Disclosed skip (environmental, pre-existing, unrelated to this merge):
+  tests/fm-pi-branch-extension.test.sh: skip: installed @earendil-works/pi-coding-agent package not found

@@ -1,0 +1,24 @@
+ok - !1333: seven screenshot paths refused, its relative shots/ index untouched
+ok - !1325: three YAML/JSON evidence paths refused, fenced or not
+ok - !1331: JSON transcript and PHP capture script both refused
+ok - !1328: a clean description and correct /uploads/ links pass
+ok - !703: quoted CI install commands under /tmp pass
+ok - a shared scratch root refuses only when stamped or delivered
+ok - attribute-shaped bytes deliver only inside an open tag
+ok - a user home or file:// URL is refused with no second signal
+ok - a root named in prose is not a delivery, a path under it still is
+ok - a /home or /tmp segment inside a URL is not a local path
+ok - a /private twin decides as its canonical root, and nothing else does
+ok - a refused twin path is named exactly as the description wrote it
+ok - a refusal names every path, points at the recipes, and changes nothing
+ok - both forges are checked, each with its own wording
+ok - the GitLab fetch addresses the task's own instance, not glab's default
+ok - the GitHub fetch addresses the task's own URL, not gh's default instance
+ok - a rejected --jq attempt contributes nothing to the measured description
+ok - the plain view's header is dropped, its description is not
+ok - an absent glab is reported once, as the missing CLI
+ok - a clean description arms exactly as before
+ok - an unreadable description degrades to a warning and the report proceeds
+ok - a forge that never answers times out to a warning and the report arms
+ok - the merge path records metadata without re-litigating the description
+exit=0

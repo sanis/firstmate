@@ -1,0 +1,40 @@
+=== What the merge changed relative to our pre-merge fork tip 4d32068 ===
+(must be exactly upstream's 16 touched paths and nothing else)
+ .agents/skills/process-event-sources/SKILL.md |   1 +
+ .pi/extensions/fm-branch-supervision.ts       |  21 +-
+ .pi/extensions/lib/fm-branch-dispatch.ts      |  70 ++--
+ bin/fm-classify-lib.sh                        |  86 +++-
+ bin/fm-crew-state.sh                          |   2 +-
+ bin/fm-procevent-lavish.sh                    |  74 +++-
+ bin/fm-procevent.sh                           |  58 ++-
+ bin/fm_voice_records.py                       |  14 +-
+ docs/configuration.md                         |   8 +
+ docs/pi-supervision-branch.md                 |  16 +-
+ docs/verification/process-event-sources.md    |  15 +
+ docs/watcher-continuity.md                    |   1 +
+ tests/fm-classify-corr-token.test.sh          | 543 ++++++++++++++++++++++++++
+ tests/fm-pi-branch-extension.test.sh          |  95 ++++-
+ tests/fm-pi-watch-extension.test.sh           | 125 +++++-
+ tests/fm-procevent.test.sh                    | 131 +++++++
+ 16 files changed, 1169 insertions(+), 91 deletions(-)
+
+=== Files changed by the merge that upstream did NOT touch (must be empty) ===
+(end)
+
+=== Fork divergence stat, before and after the merge (must be identical) ===
+pre-merge   f7a387f..4d32068 :  38 files changed, 2968 insertions(+), 30 deletions(-)
+post-merge  upstream...HEAD  :  38 files changed, 2968 insertions(+), 30 deletions(-)
+
+=== History shape (no squash, no rebase) ===
+*   e5ee8bf Merge upstream/main: fork renewal (2 commits through 9ce69ac)
+|\  
+| * 9ce69ac fix(bin): stop a correlation token from hiding and stranding decisions (#1967)
+| * 07bf0c8 fix: keep routine supervision noise out of captain chat (#3093)
+* |   4d32068 Merge pull request #12 from sanis/fm/fm-upstream-sync-6
+|\ \  
+| * | 21322f8 Merge upstream/main: fork renewal (6 commits through f7a387f)
+|/| | 
+| |/  
+| * f7a387f feat(pi): let /supervision-model pick branch reasoning effort (#3079)
+
+=== HEAD..upstream/main (9ce69ac) commit count: 0 ===

@@ -1,0 +1,64 @@
+##################################################################
+# Upstream 9ce69ac, end-user view. A secondmate echoes back the
+# corr=<16 hex> correlation token firstmate embedded in a marked
+# request, so real status lines carry it between the verb and the
+# rest of the line. The captain's open-decisions list must be
+# unaffected by that token.
+##################################################################
+
+==============================================================
+SCENARIO: HIDING - an unanswered decision whose line carries the token
+What the captain should see: the decision listed as open, because nobody has answered it yet
+
+  the task's status log, exactly as firstmate writes it:
+      needs-decision corr=a1b2c3d4e5f60718 [key=deploy-window]: ship tonight or hold?
+      working corr=a1b2c3d4e5f60718: preparing the release notes
+
+  BEFORE the merge (merge base f7a387f)
+      captain's open-decisions list: (empty)
+  AFTER  the merge (HEAD e5ee8bf)
+      captain's open-decisions list:
+          * deploy-window	needs-decision	ship tonight or hold?
+
+==============================================================
+SCENARIO: STRANDING - an untokened opener answered by a tokened closer
+What the captain should see: nothing open, because the captain already answered it
+
+  the task's status log, exactly as firstmate writes it:
+      needs-decision [key=deploy-window]: ship tonight or hold?
+      resolved corr=a1b2c3d4e5f60718 [key=deploy-window]: hold until Monday
+
+  BEFORE the merge (merge base f7a387f)
+      captain's open-decisions list:
+          * deploy-window	needs-decision	ship tonight or hold?
+  AFTER  the merge (HEAD e5ee8bf)
+      captain's open-decisions list: (empty)
+
+==============================================================
+SCENARIO: CONTROL - the same pair with no token at all (must not regress)
+What the captain should see: nothing open
+
+  the task's status log, exactly as firstmate writes it:
+      needs-decision [key=deploy-window]: ship tonight or hold?
+      resolved [key=deploy-window]: hold until Monday
+
+  BEFORE the merge (merge base f7a387f)
+      captain's open-decisions list: (empty)
+  AFTER  the merge (HEAD e5ee8bf)
+      captain's open-decisions list: (empty)
+
+==============================================================
+SCENARIO: STRICTNESS - a lookalike that is NOT a firstmate token stays literal
+What the captain should see: the decision still open, because 'corr=nothex' is not a correlation token
+
+  the task's status log, exactly as firstmate writes it:
+      needs-decision [key=deploy-window]: ship tonight or hold?
+      resolved corr=nothex [key=deploy-window]: hold until Monday
+
+  BEFORE the merge (merge base f7a387f)
+      captain's open-decisions list:
+          * deploy-window	needs-decision	ship tonight or hold?
+  AFTER  the merge (HEAD e5ee8bf)
+      captain's open-decisions list:
+          * deploy-window	needs-decision	ship tonight or hold?
+

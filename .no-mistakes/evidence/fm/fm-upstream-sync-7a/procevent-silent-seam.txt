@@ -1,0 +1,59 @@
+##################################################################
+# Upstream 07bf0c8, end-user view: routine supervision noise must
+# stay out of captain chat. The generic runner asks the adapter
+#     bin/fm-procevent-lavish.sh silent <result>
+# and exit 0 is the ONLY verdict that suppresses an announcement.
+##################################################################
+
+--------------------------------------------------------------
+What happened on the captain's review board: the captain closed the review board without saying anything
+  the captured Lavish result the watcher holds:
+      session:
+        file: /a.html
+        status: ended
+        ended_by: user
+  runner verdict  -> SILENT: recorded as handled, the captain is NOT woken.
+
+--------------------------------------------------------------
+What happened on the captain's review board: the captain hit Send & End with a real answer
+  the captured Lavish result the watcher holds:
+      session:
+        file: /a.html
+        status: feedback
+        session_ended: true
+        ended_by: user
+      feedback[1]{text}:
+        ship it
+  runner verdict  -> ANNOUNCE: a check wake is published to the captain.
+
+--------------------------------------------------------------
+What happened on the captain's review board: the board closed but still carries a late answer
+  the captured Lavish result the watcher holds:
+      session:
+        file: /a.html
+        status: ended
+        ended_by: user
+      prompts[1]{tag,text}:
+        "choice","late answer"
+  runner verdict  -> ANNOUNCE: a check wake is published to the captain.
+
+--------------------------------------------------------------
+What happened on the captain's review board: the board is still open and waiting
+  the captured Lavish result the watcher holds:
+      session:
+        file: /a.html
+        status: waiting
+  runner verdict  -> ANNOUNCE: a check wake is published to the captain.
+
+--------------------------------------------------------------
+What happened on the captain's review board: the result is unreadable (fail closed - never assume silence)
+  the captured Lavish result the watcher holds:
+      garbage that is not a session block
+  runner verdict  -> ANNOUNCE: a check wake is published to the captain.
+
+==================================================================
+Adapters that have no notion of a no-op are unaffected: an adapter
+with no 'silent' command must keep announcing everything.
+  adapter 'lib' -> ANNOUNCE (unchanged by the new seam)
+  adapter 'remote-reply' -> ANNOUNCE (unchanged by the new seam)
+  adapter 'when' -> ANNOUNCE (unchanged by the new seam)
