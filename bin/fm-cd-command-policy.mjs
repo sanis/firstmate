@@ -9,6 +9,13 @@
 // scoping to the real primary checkout lives in the bin/fm-cd-pretool-check.sh
 // transport, not here. See docs/cd-guard.md for the full contract.
 //
+// One narrow exemption: a bare `cd` whose single argument provably resolves to
+// the firstmate home root is allowed, because the home is exactly where the
+// primary shell belongs and moving INTO it cannot cause the drift this guard
+// exists to stop. The transport passes that root with --root; without it no
+// command is ever exempt, so the guard degrades to its pre-exemption behavior
+// rather than to a weaker one.
+//
 // The shell tokenizer and command-position analysis are imported from
 // bin/fm-arm-command-policy.mjs, the sole owner of firstmate's shell
 // classification, so this guard never duplicates shell lexing. This policy
@@ -16,6 +23,7 @@
 // it inspects lexical command positions only.
 
 import { Lexer, splitProgram, commandPosition } from "./fm-arm-command-policy.mjs";
+import path from "node:path";
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
@@ -33,6 +41,20 @@ const CD_BUILTINS = new Set(["cd", "pushd", "popd"]);
 // runs the builtin in the current shell, so `command cd x` still persists.
 const FORKING_WRAPPERS = new Set(["env", "sudo", "nohup", "timeout", "gtimeout", "exec"]);
 
+// Quoting forms this classifier decodes into a cooked word value. Their
+// presence anywhere in the command withdraws the home exemption, because a
+// relaxation must never rest on a value bash could decode differently. This
+// marker set is COUPLED to the decoder set in bin/fm-arm-command-policy.mjs and
+// to the transport prefilter in bin/fm-cd-pretool-check.sh: a new decoded quote
+// form REQUIRES extending all three in the same change.
+const QUOTING_DECODER_MARKERS = ["$'", '$"'];
+
+// Characters that make a word's real value depend on shell expansion the
+// classifier deliberately never performs: parameter and command substitution,
+// tilde expansion, and pathname expansion. A target carrying any of them cannot
+// be proven equal to the home root, so it is never exempt.
+const UNPROVABLE_TARGET = /[$`~*?[\]{}]/;
+
 function isPipe(separator) {
   return separator === "|" || separator === "|&";
 }
@@ -48,6 +70,34 @@ function nodePersists(separators, index) {
 
 function deny(code) {
   return { decision: "deny", code, reason: REASONS[code] };
+}
+
+// The whole home-root exemption, in one predicate so its conditions cannot
+// drift apart. True only for a bare `cd <home root>`: no leading assignment, no
+// wrapper, no `builtin`/`command` prefix, exactly one argument word, and that
+// word an unexpanded absolute literal that normalizes to the supplied home
+// root. Anything else - including a subdirectory of the home, a project clone
+// under it, `pushd`/`popd` in any form, and every argument shape whose value
+// the shell would compute rather than take literally - stays denied.
+function isExemptHomeCd(position, wordIndex, homeRoot, decoderMarker) {
+  if (!homeRoot || decoderMarker) return false;
+  if (position.index !== 0 || wordIndex !== 0) return false;
+  if (position.wrappers.length > 0) return false;
+  if (position.words.length !== 2) return false;
+  if (position.words[0].value !== "cd") return false;
+  const target = position.words[1];
+  if (!target.literal || target.subs.length > 0 || target.unquotedExpansion) return false;
+  if (UNPROVABLE_TARGET.test(target.value)) return false;
+  // Required before normalizing: path.resolve consults process.cwd() for a
+  // relative input, and this policy must never resolve a target against a cwd
+  // that is not the shell's own.
+  if (!path.isAbsolute(target.value)) return false;
+  // A `.` or `..` component lands somewhere else under `set -P` than under
+  // bash's default logical cd when a symlink sits on the path, so no such
+  // target is provable. Rejecting them leaves path.resolve collapsing only
+  // duplicate and trailing slashes, which no shell mode changes.
+  if (target.value.split("/").some((segment) => segment === "." || segment === "..")) return false;
+  return path.resolve(target.value) === homeRoot;
 }
 
 function hasPathQualifiedCommandPrefix(position) {
@@ -68,7 +118,9 @@ function hasCommandQueryPrefix(position) {
   return false;
 }
 
-function decision(command) {
+function decision(command, root = "") {
+  const homeRoot = root && path.isAbsolute(root) ? path.resolve(root) : "";
+  const decoderMarker = QUOTING_DECODER_MARKERS.some((marker) => command.includes(marker));
   const lexed = new Lexer(command).tokenize();
   // Fail open on syntax this classifier cannot tokenize. The cd-guard's threat
   // model is agent mistakes - an accidental bare `cd projects/foo` always
@@ -94,13 +146,14 @@ function decision(command) {
     if (!command) continue;
     if (!CD_BUILTINS.has(command.value)) continue;
     if (position.wrappers.some((wrapper) => FORKING_WRAPPERS.has(wrapper))) continue;
+    if (isExemptHomeCd(position, wordIndex, homeRoot, decoderMarker)) continue;
     return deny("persistent-cd");
   }
   return { decision: "allow" };
 }
 
 function parseArguments(argv) {
-  const result = { command: "", commandSet: false };
+  const result = { command: "", commandSet: false, root: "" };
   for (let i = 0; i < argv.length; i += 1) {
     const name = argv[i];
     if (name === "--command") {
@@ -113,6 +166,16 @@ function parseArguments(argv) {
     if (name.startsWith("--command=")) {
       result.command = name.slice("--command=".length);
       result.commandSet = true;
+      continue;
+    }
+    if (name === "--root") {
+      if (i + 1 >= argv.length) throw new Error("--root requires a value");
+      result.root = argv[i + 1];
+      i += 1;
+      continue;
+    }
+    if (name.startsWith("--root=")) {
+      result.root = name.slice("--root=".length);
       continue;
     }
     throw new Error(`unknown argument: ${name}`);
@@ -137,7 +200,7 @@ if (invokedDirectly()) {
     if (!args.commandSet || !args.command) {
       process.stdout.write("allow\n");
     } else {
-      const result = decision(args.command);
+      const result = decision(args.command, args.root);
       if (result.decision === "allow") {
         process.stdout.write("allow\n");
       } else {

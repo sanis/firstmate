@@ -8,8 +8,11 @@
 # bin/fm-cd-command-policy.mjs is the sole owner of the block/allow decision; it
 # reuses the shell classifier owned by bin/fm-arm-command-policy.mjs. This
 # wrapper only scopes the guard to the real primary checkout, acquires the
-# harness payload, invokes that policy, and renders the established harness
-# responses. It never executes, sources, evaluates, or expands the command.
+# harness payload, hands that policy the already-validated checkout root as the
+# firstmate home root, invokes it, and renders the established harness
+# responses. Supplying the root is transport plumbing, not decision-making: the
+# policy alone decides whether a target resolves to that root. It never
+# executes, sources, evaluates, or expands the command.
 # See docs/cd-guard.md for the complete contract and validation record.
 #
 # Usage:
@@ -163,7 +166,7 @@ POLICY="$FM_ROOT/bin/fm-cd-command-policy.mjs"
 command -v node >/dev/null 2>&1 || exit 0
 [ -f "$POLICY" ] || exit 0
 
-POLICY_OUTPUT=$(node "$POLICY" --command "$CMD" 2>/dev/null) || exit 0
+POLICY_OUTPUT=$(node "$POLICY" --command "$CMD" --root "$FM_ROOT" 2>/dev/null) || exit 0
 [ -n "$POLICY_OUTPUT" ] || exit 0
 
 TAB=$(printf '\t')
