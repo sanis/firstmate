@@ -1,0 +1,43 @@
+Home-exemption boundary, every case driven through the real PreToolUse hook.
+<home> = /private/tmp/fm-cd-ev/after
+
+DECISION  COMMAND
+--------  -------
+ALLOW     cd <home>
+ALLOW     cd '<home>'
+ALLOW     cd "<home>"
+ALLOW     cd <home>/
+ALLOW     cd <home> && tasks-axi list
+ALLOW     (cd <home> && tasks-axi list)
+DENY      cd
+DENY      cd -
+DENY      cd --
+DENY      cd <home> <home>
+DENY      cd <home> extra
+DENY      cd $FM_HOME
+DENY      cd $(echo <home>)
+DENY      cd `echo <home>`
+DENY      cd ~
+DENY      cd ~/firstmate
+DENY      cd <home>*
+DENY      cd <home>?
+DENY      cd <home>[12]
+DENY      cd <home>{,x}
+DENY      cd $'<home>'
+DENY      cd $"<home>"
+DENY      pushd <home>
+DENY      pushd
+DENY      popd <home>
+DENY      popd
+DENY      cd() { builtin cd "$@"; }
+DENY      cd <home>/projects/ansible
+DENY      cd <home>/bin
+DENY      cd /private/tmp/fm-cd-ev
+DENY      cd <home>/projects/..
+DENY      cd <home>/.
+DENY      cd projects/ansible
+DENY      builtin cd <home>
+DENY      command cd <home>
+DENY      X=1 cd <home>
+DENY      cd <home> && cd <home>/projects/ansible
+DENY      cd /private/tmp/fm-cd-ev/home-symlink

@@ -1,0 +1,11 @@
+Constraint 4: the policy must never evaluate, expand, source, or execute any byte.
+Submitting a command whose substitution would create a marker file if run.
+
+$ cd $(touch /tmp/fm-cd-side-effect-marker)
+  DENY
+$ cd `touch /tmp/fm-cd-side-effect-marker`
+  DENY
+$ cd $(echo /private/tmp/fm-cd-ev/after)
+  DENY
+
+marker file after all three: absent - nothing was executed
