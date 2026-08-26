@@ -14,6 +14,7 @@ The primary firstmate shell persists its working directory across tool calls.
 A stray persistent top-level `cd projects/<clone>` therefore silently relocates the shell, so the next firstmate-owned command - a backlog write, an `fm-*` lifecycle call, `tasks-axi` - runs inside a project clone instead of the home.
 That has actually happened: a persistent top-level `cd` caused a firstmate-owned backlog write to execute inside a project clone rather than the home.
 The seatbelt denies exactly that command shape - a cwd change that persists to the primary shell - before it runs.
+The drift it exists to stop is directional: the hazard is the shell leaving the home, so a `cd` whose target is the home root itself is exempt, as "The home-root exemption" below defines exactly.
 
 This guard is not a general sandbox.
 It classifies shell command positions only; it never evaluates, expands, sources, or runs any byte of the submitted command.
@@ -37,7 +38,7 @@ Secondmate child crew and scout worktrees are likewise inert under the linked-wo
 
 The discriminator is persistence to the parent shell's cwd, not the mere presence of the token `cd`.
 
-The guard **blocks** a `cd`, `pushd`, or `popd` builtin that runs in an executed top-level position in the parent shell, because such a command persistently changes the primary shell's own working directory.
+The guard **blocks** a `cd`, `pushd`, or `popd` builtin that runs in an executed top-level position in the parent shell, because such a command persistently changes the primary shell's own working directory, with the single home-root exemption defined below.
 This covers a bare `cd projects/foo`, `cd ..`, `cd`, `cd -`, an absolute `cd /some/path` (still a persistent relocation of the parent shell), `pushd <dir>`, `popd`, a leading-assignment form such as `X=1 cd foo`, quoted or escaped command-word fragments that cook to a bare builtin, and any list form where the builtin runs in the parent shell (`cd x && cmd`, `cmd; cd x`, `cmd || cd x`, `command cd x`, `command -p cd x`, `command -- cd x`, `builtin cd x`, `command builtin cd x`, `cd x >/dev/null`, and newline-separated lists).
 
 The guard **allows** everything else, including these safe scoped forms that must never be blocked:
@@ -48,9 +49,38 @@ The guard **allows** everything else, including these safe scoped forms that mus
 - A path-qualified external command named `cd`, `command`, or `builtin`, such as `./cd`, `/usr/bin/cd`, `./command`, `/usr/bin/command`, or `./builtin`, because it runs as a child process and cannot change the parent shell's cwd.
 - A `command` query such as `command -v cd`, `command -V cd`, or a clustered form such as `command -pv cd`, because it reports command resolution without executing the named builtin.
 - The token `cd` appearing as data: quoted text (`echo "cd projects/foo"`), a comment, a substring of another word (`cdk`, `abcd`, `record`), a `printf` payload, or any later argument word.
+- A bare `cd` whose single argument resolves to the firstmate home root itself, under the exact conditions in "The home-root exemption" below.
 
-An absolute-path `cd` is blocked on purpose: the ALLOW carve-out for absolute paths is for commands that address a target by absolute path, not for `cd`, which relocates the shell itself regardless of whether its argument is relative or absolute.
-Blocking a top-level `cd` is safe in the strong sense: the guard's steady state is "always at the home", so a return-to-home `cd` is redundant rather than necessary, and the block never causes a wrong-directory write.
+An absolute-path `cd` to any target other than the home root is blocked on purpose: the ALLOW carve-out for absolute paths is for commands that address a target by absolute path, not for `cd`, which relocates the shell itself regardless of whether its argument is relative or absolute.
+Blocking a top-level `cd` is safe in the strong sense: the guard's steady state is "always at the home", so a block never causes a wrong-directory write.
+
+### The home-root exemption
+
+A `cd` whose target is the home root moves the primary shell to exactly where it is supposed to sit, so it cannot produce the drift this guard exists to stop, and blocking it was a false positive.
+That one shape is allowed; every other shape the guard denied before is still denied.
+
+`bin/fm-cd-pretool-check.sh` hands the policy the home root as `--root`, reusing the checkout root it has already resolved and validated for its own scoping rather than deriving it a second way.
+Supplying the root is transport plumbing only: `bin/fm-cd-command-policy.mjs` remains the sole owner of whether any given target earns the exemption.
+Without `--root` the policy knows of no home and exempts nothing, so a caller that omits it falls back to the pre-exemption behavior rather than to a weaker one.
+A `--root` value that is not absolute is ignored the same way, because it cannot anchor a comparison and must never be resolved against the policy process's own working directory.
+
+The exemption is deliberately narrow.
+It applies only to a node that is a bare `cd` carrying exactly one argument word, and only when that word is an unexpanded absolute literal path differing from the resolved root by nothing but duplicate or trailing slashes.
+It is evaluated per node, so `cd <home> && cd projects/foo` is still denied on its second node.
+All of the following stay denied exactly as before:
+
+- Bare `cd`, `cd -`, `cd --`, and any `cd` carrying more than one argument.
+- Any argument whose real value would come from shell expansion, meaning one containing `$`, a backtick, `~`, or a glob character (`*`, `?`, `[`, `]`, `{`, `}`).
+- Any command containing the `$'...'` or `$"..."` quoting forms, because an exemption must never rest on a value bash could decode differently from this classifier.
+- Any argument carrying a `.` or `..` component, which lands elsewhere under `set -P` than under bash's default logical `cd` when a symlink sits on the path.
+- Any target that is not the root itself, including a subdirectory of the home, a project clone under it, and any other route to the same directory such as a symlink.
+- `pushd` and `popd` in every form; the exemption does not touch them.
+- A prefixed or wrapped form such as `builtin cd <home>`, `command cd <home>`, or `X=1 cd <home>`.
+- A shell function definition such as `cd() { builtin cd "$@"; }`.
+
+The comparison stays lexical.
+The policy normalizes the argument and the root as path strings and compares them; it resolves nothing on the filesystem and still evaluates, expands, sources, and runs no byte of the submitted command.
+That is why a symlink or any other second route to the home is denied: the exemption proves the spelling of the target, not its destination on disk.
 
 ### Accepted non-goals
 
@@ -70,7 +100,8 @@ Every deny carries one stable code in square brackets before its prose reason.
 | `persistent-cd` | A top-level `cd`/`pushd`/`popd` would persistently change the primary shell's own working directory. |
 
 The reason directs the caller to reach the target without moving the shell by using `git -C <dir>`, placing an absolute path on the intended command itself, or scoping the `cd` to a subshell.
-It does not permit `cd /home/project`, because an absolute-path `cd` remains a persistent directory change and is denied.
+It does not permit `cd /home/project`, because an absolute-path `cd` into a project remains a persistent directory change and is denied.
+A `cd` to the home root itself is allowed outright and so never carries this reason.
 
 ## Transport and fail-open behavior
 
@@ -83,9 +114,10 @@ It does not permit `cd /home/project`, because an absolute-path `cd` remains a p
 - Pi and pi-signed send the exact command string through `--command <exact string>`.
 - Cursor sends stdin JSON at `.tool_input.command` and adds `--cursor`, which renders the deny as Cursor's own returned decision object.
 
-Processing order is cheapest-first: a strict-superset prefilter, then the primary-checkout scope, then the Node policy owner.
+Processing order is cheapest-first: a strict-superset prefilter, then the primary-checkout scope, then the Node policy owner, which receives the scoped checkout root as `--root`.
 The prefilter removes ordinary single quotes, double quotes, backslashes, carriage returns, and newlines before fast-allowing any command that carries no `cd`, `pushd`, or `popd` substring and no quoting-decoder marker (`$'` ANSI-C or `$"` locale), so quoted or escaped command-word fragments delegate to the policy while most commands never pay for the git scoping calls or the Node process.
 The quoting-decoder marker set is coupled to the classifier's decoder set in `bin/fm-arm-command-policy.mjs`: adding any new quote or expansion form the classifier decodes requires extending the prefilter marker set in the same change, or it stops being a strict superset.
+`bin/fm-cd-command-policy.mjs` carries the same marker set a second time, where it withdraws the home-root exemption, so such a change extends both sites and not the prefilter alone.
 
 Empty stdin, unparseable JSON, missing `jq` on the stdin path, missing Node, a missing policy owner, or an invalid policy response all fail open with exit 0 and no output.
 A broken hook must never deny every shell tool call.
@@ -126,8 +158,11 @@ Every shell variable reference in the Grok hook command carries an inline defaul
 ## Automated validation
 
 `tests/fm-cd-pretool-check.test.sh` owns the acceptance matrix.
-Every block and allow case runs through Codex-shaped stdin, Claude-shaped stdin, Grok-shaped stdin, OpenCode-shaped CLI, and Pi-shaped CLI entry forms.
-The suite also proves the end-to-end cwd-leak regression (a firstmate-owned backlog write leaking into a project clone, then denied at the exact command), the checkout scoping (fires in a git-cloned secondmate fixture, inert in a crewmate/scout linked worktree, inert outside a firstmate checkout, inert outside a git repo), the fail-open transport behavior, the prefilter fast path, the policy CLI output contract, and the per-harness wiring.
+Every matrix case runs through Codex-shaped stdin, Claude-shaped stdin, Grok-shaped stdin, OpenCode-shaped CLI, and Pi-shaped CLI entry forms.
+The home-root exemption is covered on two orthogonal axes.
+The matrix carries it through all five entry forms, which is what proves the transport hands the policy its root on each of them.
+A dedicated boundary suite then walks every argument shape that must not earn the exemption through a single entry form, because argument shape is a decision-owner concern that cannot vary by transport, and separately pins that a symlink reaching the home is denied.
+The suite also proves the end-to-end cwd-leak regression (a firstmate-owned backlog write leaking into a project clone, then denied at the exact command), the checkout scoping (fires in a git-cloned secondmate fixture, inert in a crewmate/scout linked worktree, inert outside a firstmate checkout, inert outside a git repo), the fail-open transport behavior, the prefilter fast path, the policy CLI output contract including how `--root` gates the exemption, and the per-harness wiring.
 
 Run:
 

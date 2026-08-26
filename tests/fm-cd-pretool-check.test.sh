@@ -8,9 +8,18 @@
 # real primary checkout, then drives all five harness entry forms. This suite
 # proves the decision matrix, the harness-output shaping, the primary-checkout
 # scoping (including the deliberate secondmate-home difference from the turn-end
-# guard), the fail-open transport behavior, the prefilter fast path, the
-# end-to-end cwd-leak regression, and the per-harness wiring. No harness is
-# spawned; live per-harness evidence lives in docs/cd-guard.md.
+# guard), the home-root exemption and its exact boundary, the fail-open
+# transport behavior, the prefilter fast path, the end-to-end cwd-leak
+# regression, and the per-harness wiring. No harness is spawned; live
+# per-harness evidence lives in docs/cd-guard.md.
+#
+# The cross-harness matrix and the home-exemption boundary cover two orthogonal
+# axes, so they are deliberately separate. The matrix proves every entry form
+# shapes the same decision identically, including that the transport hands the
+# policy its home root on all five. The boundary suite then walks the many
+# argument shapes that must NOT earn the exemption through one entry form,
+# because the shape of the argument is a decision-owner concern that cannot vary
+# by transport.
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -63,6 +72,11 @@ make_child_worktree_fixture() {
 
 PRIMARY=$(make_primary_fixture "$TMP_ROOT/primary")
 CHECK="$PRIMARY/bin/fm-cd-pretool-check.sh"
+# The transport resolves its root with `pwd -P`, so the home exemption can only
+# ever match the fixture's physical spelling. On macOS $TMPDIR reaches the same
+# directory through a /var -> /private/var symlink, which is exactly the
+# non-matching spelling test_home_exemption_needs_the_exact_root pins as denied.
+PRIMARY_PHYS=$(cd "$PRIMARY" && pwd -P)
 
 # --- full cross-harness acceptance matrix ----------------------------------
 
@@ -143,6 +157,15 @@ matrix_case A34 allow 'command -V cd'
 matrix_case A35 allow 'command -pv cd'
 matrix_case A36 allow 'command -vp cd'
 
+# HOME EXEMPTION across every entry form: a persistent cd INTO the home root is
+# allowed because it cannot move the shell out of the home, while a cd deeper
+# into the home stays denied. These prove the transport hands the policy its
+# home root on all five entry forms; test_home_exemption_boundary owns the
+# argument shapes that must not earn the exemption.
+matrix_case H01 allow "cd $PRIMARY_PHYS"
+matrix_case H02 allow "cd $PRIMARY_PHYS && tasks-axi list"
+matrix_case H03 deny "cd $PRIMARY_PHYS/projects/clone"
+
 MATRIX_TMP=$(mktemp -d "${TMPDIR:-/tmp}/fm-cd-policy-matrix.XXXXXX")
 FM_TEST_CLEANUP_DIRS+=("$MATRIX_TMP")
 
@@ -202,6 +225,91 @@ test_full_acceptance_matrix() {
     done
   done
   pass "cd-guard acceptance matrix: ${#MATRIX_IDS[@]} cases x 5 harness entry forms, block/allow all correct"
+}
+
+# --- home-root exemption boundary ------------------------------------------
+
+# One entry form is enough here: the matrix already proves all five agree.
+expect_cd_decision() {
+  local expected=$1 label=$2 cmd=$3 out rc
+  out=$("$CHECK" --claude --command "$cmd" 2>&1); rc=$?
+  if [ "$expected" = allow ]; then
+    expect_code 0 "$rc" "$label must be allowed"
+    [ -z "$out" ] || fail "$label allow must produce no output: $out"
+    return
+  fi
+  expect_code 2 "$rc" "$label must stay denied"
+  assert_contains "$out" '[persistent-cd]' "$label deny must carry the reason code"
+}
+
+test_home_exemption_boundary() {
+  # Allowed: exactly one literal argument that resolves to the home root.
+  expect_cd_decision allow 'bare cd to the home root' "cd $PRIMARY_PHYS"
+  expect_cd_decision allow 'cd home, single-quoted' "cd '$PRIMARY_PHYS'"
+  expect_cd_decision allow 'cd home, double-quoted' "cd \"$PRIMARY_PHYS\""
+  expect_cd_decision allow 'cd home with a trailing slash' "cd $PRIMARY_PHYS/"
+  expect_cd_decision allow 'cd home then another command' "cd $PRIMARY_PHYS && tasks-axi list"
+  expect_cd_decision allow 'cd home in a subshell' "(cd $PRIMARY_PHYS && tasks-axi list)"
+
+  # Denied: not one literal argument.
+  expect_cd_decision deny 'bare cd' 'cd'
+  expect_cd_decision deny 'cd -' 'cd -'
+  expect_cd_decision deny 'cd --' 'cd --'
+  expect_cd_decision deny 'cd with two arguments' "cd $PRIMARY_PHYS $PRIMARY_PHYS"
+  expect_cd_decision deny 'cd home plus a trailing word' "cd $PRIMARY_PHYS extra"
+
+  # Denied: the argument's real value would come from shell expansion.
+  expect_cd_decision deny 'cd through a variable' 'cd $FM_HOME'
+  expect_cd_decision deny 'cd through a command substitution' "cd \$(echo $PRIMARY_PHYS)"
+  expect_cd_decision deny 'cd through a backtick substitution' "cd \`echo $PRIMARY_PHYS\`"
+  expect_cd_decision deny 'cd through tilde expansion' 'cd ~'
+  expect_cd_decision deny 'cd through a tilde-rooted path' 'cd ~/firstmate'
+  expect_cd_decision deny 'cd home with a trailing glob star' "cd $PRIMARY_PHYS*"
+  expect_cd_decision deny 'cd home with a glob question mark' "cd $PRIMARY_PHYS?"
+  expect_cd_decision deny 'cd home with a bracket glob' "cd ${PRIMARY_PHYS}[12]"
+  expect_cd_decision deny 'cd home with a brace expansion' "cd $PRIMARY_PHYS{,x}"
+
+  # Denied: quoting forms this classifier decodes. The exemption never rests on
+  # a value bash could decode differently.
+  expect_cd_decision deny 'cd home in ANSI-C quoting' "cd \$'$PRIMARY_PHYS'"
+  expect_cd_decision deny 'cd home in locale quoting' "cd \$\"$PRIMARY_PHYS\""
+
+  # Denied: pushd/popd are untouched by the exemption in every form.
+  expect_cd_decision deny 'pushd to the home root' "pushd $PRIMARY_PHYS"
+  expect_cd_decision deny 'bare pushd' 'pushd'
+  expect_cd_decision deny 'popd with the home root' "popd $PRIMARY_PHYS"
+
+  # Denied: a shell function definition named cd.
+  expect_cd_decision deny 'a cd function definition' 'cd() { builtin cd "$@"; }'
+
+  # Denied: any target that is not the home root itself.
+  expect_cd_decision deny 'cd into a project clone under the home' "cd $PRIMARY_PHYS/projects/clone"
+  expect_cd_decision deny 'cd into a subdirectory of the home' "cd $PRIMARY_PHYS/bin"
+  expect_cd_decision deny 'cd above the home' "cd ${PRIMARY_PHYS%/*}"
+  expect_cd_decision deny 'cd home via a .. component' "cd $PRIMARY_PHYS/projects/.."
+  expect_cd_decision deny 'cd home via a . component' "cd $PRIMARY_PHYS/."
+  expect_cd_decision deny 'a relative cd that cannot be resolved' 'cd projects/clone'
+
+  # Denied: the exemption covers a bare cd only, not a prefixed or wrapped one.
+  expect_cd_decision deny 'builtin cd to the home root' "builtin cd $PRIMARY_PHYS"
+  expect_cd_decision deny 'command cd to the home root' "command cd $PRIMARY_PHYS"
+  expect_cd_decision deny 'an assignment-prefixed cd to the home root' "X=1 cd $PRIMARY_PHYS"
+
+  # Denied: the exemption is per node, so a later deniable cd still blocks.
+  expect_cd_decision deny 'cd home followed by cd into a clone' \
+    "cd $PRIMARY_PHYS && cd $PRIMARY_PHYS/projects/clone"
+
+  pass "cd-guard: cd into the home root is allowed and every other cd shape stays denied"
+}
+
+test_home_exemption_needs_the_exact_root() {
+  local link
+  link="$TMP_ROOT/primary-symlink"
+  ln -s "$PRIMARY_PHYS" "$link"
+  # The exemption compares normalized paths, never filesystem identity: a
+  # symlink that reaches the home is a different path and stays denied.
+  expect_cd_decision deny 'cd home through a symlink' "cd $link"
+  pass "cd-guard: the home exemption matches the resolved root path, not another route to it"
 }
 
 # --- primary-checkout scoping ----------------------------------------------
@@ -371,6 +479,28 @@ test_policy_cli_direct() {
   pass "cd-guard: fm-cd-command-policy.mjs CLI honors the deny/allow output contract"
 }
 
+test_policy_cli_root_argument() {
+  local policy root_phys
+  policy="$ROOT/bin/fm-cd-command-policy.mjs"
+  root_phys=$(cd "$ROOT" && pwd -P)
+  # Without --root the policy knows of no home, so nothing is exempt. That keeps
+  # a caller that forgets the argument on the pre-exemption behavior rather than
+  # on a weaker one.
+  [ "$(node "$policy" --command "cd $root_phys" | cut -f1)" = deny ] \
+    || fail "policy CLI must deny a cd to the home root when no --root is supplied"
+  [ "$(node "$policy" --command "cd $root_phys" --root "$root_phys")" = allow ] \
+    || fail "policy CLI must allow a cd to the supplied root"
+  [ "$(node "$policy" --command "cd $root_phys" --root="$root_phys")" = allow ] \
+    || fail "policy CLI must accept the --root=<value> form"
+  [ "$(node "$policy" --command "cd $root_phys/bin" --root "$root_phys" | cut -f1)" = deny ] \
+    || fail "policy CLI must deny a cd below the supplied root"
+  # A relative root cannot anchor a comparison, so it grants no exemption rather
+  # than being resolved against this process's cwd.
+  [ "$(node "$policy" --command "cd $root_phys" --root bin | cut -f1)" = deny ] \
+    || fail "policy CLI must ignore a relative --root instead of resolving it against its own cwd"
+  pass "cd-guard: fm-cd-command-policy.mjs --root gates the home exemption"
+}
+
 # --- per-harness wiring -----------------------------------------------------
 
 # Delegated to bin/fm-lint.sh, the single owner of the lint definition including
@@ -386,6 +516,8 @@ test_scripts_are_shellcheck_clean() {
 }
 
 test_full_acceptance_matrix
+test_home_exemption_boundary
+test_home_exemption_needs_the_exact_root
 test_fires_in_secondmate_home
 test_inert_in_child_worktree
 test_inert_when_not_firstmate_repo
@@ -397,4 +529,5 @@ test_fail_open_missing_node
 test_fail_open_missing_jq_on_stdin
 test_prefilter_skips_node_without_cd_substring
 test_policy_cli_direct
+test_policy_cli_root_argument
 test_scripts_are_shellcheck_clean
