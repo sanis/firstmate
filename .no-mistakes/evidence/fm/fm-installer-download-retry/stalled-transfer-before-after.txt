@@ -1,0 +1,13 @@
+A loopback server answers HTTP 200 with Content-Length: 1048576, writes 7 bytes,
+then goes silent while holding the socket open - a dead CDN mid-body.
+
+===== BEFORE the progress guard (a2984f5): curl has no transfer timeout =====
+-- STILL RUNNING after 40s: the transfer was never abandoned; killed by the observer
+/tmp/fm-incident-demo.K5QRFh/stall.sh: line 53: 71884 Killed: 9                  ( . "$lib"; FM_DOWNLOAD_ATTEMPTS=2 FM_DOWNLOAD_SPEED_TIME=2 fm_download "http://127.0.0.1:$PORT/asset.tar.gz" "$DEMO/stall-out.bin" ) > "$DEMO/stall.log" 2>&1
+
+===== AFTER  the progress guard (b309ec1): --speed-limit/--speed-time =====
+curl: (28) Operation too slow. Less than 1024 bytes/sec transferred the last 2 seconds
+stall.sh: download attempt 1 failed; retrying in 1s (curl 28, http 200)
+curl: (28) Operation too slow. Less than 1024 bytes/sec transferred the last 2 seconds
+-- exit status: 28
+-- wall clock: 6s (abandoned on its own, no external kill)

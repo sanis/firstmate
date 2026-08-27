@@ -1,0 +1,40 @@
+Real installers, real GitHub release assets, real curl. No stubs.
+Host: Darwin arm64
+
+===== bin/fm-install-shellcheck.sh (real download + real sha256 verification) =====
+$ bin/fm-install-shellcheck.sh "$DEST"
+ShellCheck - shell script analysis tool
+version: 0.11.0
+license: GNU General Public License, version 3
+website: https://www.shellcheck.net
+-- exit status: 0, wall clock: 2s
+-rwxr-xr-x@ 1 justinasbolys  wheel  61551911 Aug 27 09:32 shellcheck
+ShellCheck - shell script analysis tool
+version: 0.11.0
+license: GNU General Public License, version 3
+
+===== bin/fm-install-actionlint.sh (real download + real sha256 verification) =====
+$ bin/fm-install-actionlint.sh "$DEST"
+1.7.12
+installed by downloading from release page
+built with go1.26.1 compiler for darwin/arm64
+-- exit status: 0, wall clock: 1s
+-rwxr-xr-x@ 1 justinasbolys  wheel  5829842 Aug 27 09:32 actionlint
+1.7.12
+installed by downloading from release page
+
+===== bin/fm-install-treehouse.sh (real download + real sha256 verification) =====
+$ bin/fm-install-treehouse.sh "$DEST"
+fm-install-treehouse.sh: downloading treehouse-v2.0.1-darwin-arm64.tar.gz from https://github.com/kunchenguid/treehouse/releases/download/v2.0.1/treehouse-v2.0.1-darwin-arm64.tar.gz
+fm-install-treehouse.sh: installed treehouse v2.0.1 to /tmp/fm-incident-demo.K5QRFh/real-fm-install-treehouse/treehouse
+v2.0.1
+-- exit status: 0, wall clock: 2s
+-rwxr-xr-x@ 1 justinasbolys  wheel  12802930 Aug 27 09:33 treehouse
+
+===== bin/fm-install-herdr.sh (real download + real sha256 verification) =====
+$ bin/fm-install-herdr.sh "$DEST"
+fm-install-herdr.sh: downloading herdr-macos-aarch64 from https://github.com/ogulcancelik/herdr/releases/download/v0.7.4/herdr-macos-aarch64
+fm-install-herdr.sh: installed herdr 0.7.4 (protocol 16) to /tmp/fm-incident-demo.K5QRFh/real-fm-install-herdr/herdr
+herdr 0.7.4
+-- exit status: 0, wall clock: 2s
+-rwxr-xr-x@ 1 justinasbolys  wheel  15866512 Aug 27 09:33 herdr

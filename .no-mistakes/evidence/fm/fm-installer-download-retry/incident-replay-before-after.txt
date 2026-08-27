@@ -1,0 +1,20 @@
+
+===== BEFORE (base 5d3e2f1): one reset, whole job red =====
+$ bin/fm-install-treehouse.sh "$RUNNER_TEMP/bin"   # one connection reset on attempt 1
+fm-install-treehouse.sh: downloading treehouse-v2.0.1-linux-amd64.tar.gz from https://github.com/kunchenguid/treehouse/releases/download/v2.0.1/treehouse-v2.0.1-linux-amd64.tar.gz
+curl: (35) Recv failure: Connection reset by peer
+fm-install-treehouse.sh: download failed for https://github.com/kunchenguid/treehouse/releases/download/v2.0.1/treehouse-v2.0.1-linux-amd64.tar.gz (bounded at 15000000 bytes)
+-- exit status: 1
+-- curl invocations: 1
+-- installed binary: NONE - the CI job dies here, before a single test runs
+
+===== AFTER  (this change): the same reset is absorbed =====
+$ bin/fm-install-treehouse.sh "$RUNNER_TEMP/bin"   # one connection reset on attempt 1
+fm-install-treehouse.sh: downloading treehouse-v2.0.1-linux-amd64.tar.gz from https://github.com/kunchenguid/treehouse/releases/download/v2.0.1/treehouse-v2.0.1-linux-amd64.tar.gz
+curl: (35) stubbed failure
+fm-install-treehouse.sh: download attempt 1 failed; retrying in 1s (curl 35, http 000)
+fm-install-treehouse.sh: installed treehouse v2.0.1 to /tmp/fm-incident-demo.K5QRFh/bin-new/treehouse
+v2.0.1
+-- exit status: 0
+-- curl invocations: 2
+-- installed binary: /tmp/fm-incident-demo.K5QRFh/bin-new/treehouse (v2.0.1)

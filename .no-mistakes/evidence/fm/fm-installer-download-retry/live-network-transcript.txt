@@ -1,0 +1,29 @@
+Real network, real curl: curl 8.7.1 (x86_64-apple-darwin25.0) libcurl/8.7.1 (SecureTransport) LibreSSL/3.3.6 zlib/1.2.12 nghttp2/1.68.1
+
+===== A wrong pinned version (real 404 from GitHub over HTTP/2) fails fast, no retries =====
+$ fm_download https://github.com/kunchenguid/treehouse/releases/download/v99.99.99/treehouse-v99.99.99-linux-amd64.tar.gz <out> --max-filesize 15000000
+curl: (56) The requested URL returned error: 404
+-- exit status: 56
+-- wall clock: 0s
+   Note: curl exits 56 here, the same code a genuine reset uses. The HTTP status
+   404 is what stops the retry, which is why status is the primary axis.
+
+===== A sustained outage (host that does not resolve) gives up inside the bound =====
+$ fm_download https://firstmate-no-such-host.invalid/asset.tar.gz <out> --max-filesize 15000000
+curl: (6) Could not resolve host: firstmate-no-such-host.invalid
+_: download attempt 1 failed; retrying in 1s (curl 6, http 000)
+curl: (6) Could not resolve host: firstmate-no-such-host.invalid
+_: download attempt 2 failed; retrying in 2s (curl 6, http 000)
+curl: (6) Could not resolve host: firstmate-no-such-host.invalid
+_: download attempt 3 failed; retrying in 4s (curl 6, http 000)
+curl: (6) Could not resolve host: firstmate-no-such-host.invalid
+-- exit status: 6
+-- wall clock: 8s
+
+===== The real pinned Treehouse asset still downloads under the new helper =====
+$ fm_download https://github.com/kunchenguid/treehouse/releases/download/v2.0.1/treehouse-v2.0.1-linux-amd64.tar.gz <out> --max-filesize 15000000
+-- exit status: 0
+-- wall clock: 1s
+-- bytes delivered: 7150582
+-- sha256 of the delivered file: 1d5a32751ab921670103fd201ddb2b91b47338cb13976f45642b827cf8976af2
+-- digest pinned in bin/fm-install-treehouse.sh: 1d5a32751ab921670103fd201ddb2b91b47338cb13976f45642b827cf8976af2
