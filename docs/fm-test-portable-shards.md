@@ -79,7 +79,7 @@ Refresh the hints whenever the serial lane gains scripts, rather than waiting fo
 | `portable-serial-4of4` | 30 | 638591 ms (~638.6 s) |
 | imbalance | | 16 ms |
 
-This table is known stale, last confirmed stale on 2026-08-24: the lanes select 128 scripts against the 117 the counts above record, because eleven scripts still have no measured weight hint.
+This table is known stale, last confirmed stale on 2026-08-27: the lanes select 133 scripts against the 117 the counts above record, because fifteen scripts still have no measured weight hint.
 Do not plan shard balance or capacity from these numbers.
 Refresh them with the procedure below rather than editing the counts alone, because counts corrected beside unrefreshed weight hints read as a completed refresh that never happened.
 
