@@ -48,7 +48,7 @@
 #                              Refuses on a backend whose native agent state
 #                              observes the pane's own background jobs, because
 #                              the daemon could never deliver into its own host
-#                              pane there; use `start` instead.
+#                              pane there; use `start` instead. A REFRESH runs the same delivery-path verification `start` does, for the same reason.
 #   fm-afk-launch.sh stop      Correct-ordered exit: SIGTERM the daemon so its
 #                              cleanup flushes WHILE state/.afk is still present,
 #                              wait for it, close the recorded terminal by exact
@@ -166,7 +166,7 @@ fm_afk_launch_lock_release() {
 }
 
 fm_afk_launch_usage() {
-  sed -n '2,64p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '2,65p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 # The command run inside the created terminal. Real launch runs the shared
