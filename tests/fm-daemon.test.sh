@@ -2149,6 +2149,28 @@ test_wedge_marker_publication_is_atomic() {
   fi
 }
 
+# The record must land whether or not the escalation buffer can be read. A
+# missing or unreadable buffer degrades to a record WITHOUT the buffered items;
+# it may never degrade to no record at all, which is the loss marker-first
+# ordering exists to prevent.
+test_wedge_marker_lands_even_when_the_buffer_cannot_be_read() {
+  local dir state marker body
+  dir=$(make_supercase wedge-marker-no-buffer)
+  state="$dir/state"
+  mkdir -p "$state"
+  rm -f "$state/.subsuper-escalations"
+  marker="$state/.subsuper-inject-wedged"
+  wedge_alarm_publish_marker "$marker" "$state" 900 "2026-08-27T00:00:00+0000" \
+    "default:w1:p2" herdr "a verdict" dispatching \
+    || fail "publication must not fail because the escalation buffer is missing"
+  body=$(cat "$marker" 2>/dev/null || true)
+  assert_contains "$body" "900s undelivered" \
+    "the wedge record must be published even with no readable buffer"
+  assert_contains "$body" "dispatch is starting NOW" \
+    "the record must still carry its stage accounting"
+  pass "wedge marker: an unreadable escalation buffer costs the record its items, never the record"
+}
+
 # Dispatch is synchronous and bounded only PER CHANNEL, so the publication that
 # precedes it is the last one to complete when `fm-afk-launch.sh stop` SIGTERMs
 # the daemon inside a hanging channel. Whatever that freezes on disk has to be
@@ -2592,6 +2614,7 @@ test_inject_wedge_alarm_marker_names_blocker_and_alert_accounting
 test_wedge_marker_is_durable_before_any_channel_is_dispatched
 test_wedge_marker_is_durable_before_the_pane_is_read
 test_wedge_marker_publication_is_atomic
+test_wedge_marker_lands_even_when_the_buffer_cannot_be_read
 test_wedge_marker_records_that_dispatch_began_when_a_kill_freezes_it
 test_wedge_marker_never_inherits_a_previous_windows_alert_accounting
 test_wedge_marker_reports_the_block_inject_msg_actually_hit

@@ -626,10 +626,9 @@ unit_native_record_carries_the_real_host_pane() {
 # back, rather than reporting success and going quiet for the night.
 #
 # The daemon terminal really comes up here (a stubbed tmux that accepts
-# new-session), so the refusal can only come from the delivery-path verification
-# itself - the captain target is not a live pane. That also drives the rollback:
-# the created terminal must be closed by its exact recorded id and the pre-entry
-# state restored.
+# new-session), and the verification refuses, so this pins the rollback WIRING
+# itself rather than any single check: the created terminal must be closed by its
+# exact recorded id and the pre-entry state restored.
 unit_verify_delivery_path_refuses_and_rolls_back() {
   local st out killed
   st=$(mktemp -d "${TMPDIR:-/tmp}/fm-afk-verify.XXXXXX")
@@ -637,7 +636,7 @@ unit_verify_delivery_path_refuses_and_rolls_back() {
   printf 'pending\n' > "$st/state/.subsuper-escalations"
   killed="$st/killed"
   if out=$(FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
-           FM_SUPERVISOR_TARGET='%99' FM_SUPERVISOR_BACKEND=tmux \
+           FM_SUPERVISOR_TARGET='%7' FM_SUPERVISOR_BACKEND=tmux \
            FM_AFK_LAUNCH_ENTRY="$SLEEPER" KILLED="$killed" bash -c '
     . "$1"
     tmux() {
@@ -646,28 +645,19 @@ unit_verify_delivery_path_refuses_and_rolls_back() {
         kill-session) printf "%s" "$3" > "$KILLED"; return 0 ;;
         has-session) printf "can'\''t find session: %s" "$3" >&2; return 1 ;;
       esac
-      # display-message (the captain-pane existence probe) and anything else:
-      # %99 is not a live pane.
-      return 1
+      return 0
     }
     fm_afk_launch_wait_ready() { return 0; }
+    fm_afk_launch_verify_delivery_path() {
+      fm_afk_launch_log "away mode not entered: stubbed delivery-path refusal"
+      return 1
+    }
     fm_afk_launch_start
   ' _ "$LAUNCH" 2>&1); then
-    fail "start must refuse an entry whose delivery target is not a live pane"
+    fail "start must refuse an entry whose delivery path verification refuses"
   else
     pass "start refuses an entry whose delivery path is already blocked"
   fi
-  case "$out" in
-    *"away mode not entered"*"not a live tmux pane"*)
-      pass "refused start names the unreachable delivery target" ;;
-    *) fail "refused start did not name the unreachable delivery target: $out" ;;
-  esac
-  # The fresh path really does roll the entry back, so "not entered" is true here
-  # and must not drift into the refresh path's wording.
-  case "$out" in
-    *"STILL ON"*) fail "a rolled-back fresh entry claimed away mode is still on: $out" ;;
-    *) pass "refused fresh start does not claim a live away mode" ;;
-  esac
   case "$(cat "$killed" 2>/dev/null || true)" in
     fm-afk-daemon-*) pass "refused start tore the created daemon terminal down by its exact id" ;;
     *) fail "refused start did not close the daemon terminal it had created" ;;
@@ -675,12 +665,135 @@ unit_verify_delivery_path_refuses_and_rolls_back() {
   if [ ! -e "$st/state/.afk" ] && [ ! -e "$st/state/.afk-daemon-terminal" ]; then
     pass "refused start rolled the away-mode flag and terminal record back"
   else
-    fail "refused start left away mode half-entered"
+    fail "refused start left away mode half-entered ($out)"
   fi
   if [ "$(cat "$st/state/.subsuper-escalations" 2>/dev/null || true)" = pending ]; then
     pass "refused start restored the pre-entry delivery artifacts"
   else
     fail "refused start discarded the pre-entry delivery artifacts"
+  fi
+  rm -rf "$st"
+}
+
+# The two entry modes leave the captain in genuinely different states, so a
+# refusal must name the one they are actually in: a fresh entry is rolled back
+# ("not entered"), a refresh leaves a live, undeliverable away mode running.
+# Driven through the unsupported-backend refusal, which both modes reach.
+unit_refusal_names_the_state_of_the_entry_that_refused() {
+  local st fresh_out refresh_out
+  st=$(mktemp -d "${TMPDIR:-/tmp}/fm-afk-refusal-mode.XXXXXX")
+  mkdir -p "$st/state"
+  fresh_out=$(FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" bash -c '
+    . "$1"
+    fm_afk_launch_verify_delivery_path "%7" zellij fresh
+  ' _ "$LAUNCH" 2>&1)
+  refresh_out=$(FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" bash -c '
+    . "$1"
+    fm_afk_launch_verify_delivery_path "%7" zellij refresh
+  ' _ "$LAUNCH" 2>&1)
+  case "$fresh_out" in
+    *"away mode not entered"*) pass "fresh refusal reports the entry as not entered" ;;
+    *) fail "fresh refusal did not report a rolled-back entry: $fresh_out" ;;
+  esac
+  case "$fresh_out" in
+    *"STILL ON"*) fail "a rolled-back fresh entry claimed away mode is still on: $fresh_out" ;;
+    *) pass "fresh refusal does not claim a live away mode" ;;
+  esac
+  case "$refresh_out" in
+    *"away mode is STILL ON"*) pass "refresh refusal reports away mode as still active" ;;
+    *) fail "refresh refusal did not report a live away mode: $refresh_out" ;;
+  esac
+  case "$refresh_out" in
+    *"away mode not entered"*) fail "refresh refusal reported a live away mode as not entered: $refresh_out" ;;
+    *) pass "refresh refusal does not claim away mode was never entered" ;;
+  esac
+  rm -rf "$st"
+}
+
+# The captain-pane probe belongs to the REFRESH path, where the daemon started
+# earlier and the pane may have moved since. On the fresh path the daemon's own
+# startup validated the identical thing moments ago, and fm_backend_target_exists
+# deliberately cannot tell a transient backend failure from genuine absence - so
+# a hiccup seconds later must not tear down an entry that just came up healthy.
+unit_fresh_entry_is_not_torn_down_by_a_second_pane_probe() {
+  local st killed
+  st=$(mktemp -d "${TMPDIR:-/tmp}/fm-afk-fresh-noreprobe.XXXXXX")
+  mkdir -p "$st/state"
+  killed="$st/killed"
+  if FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
+     FM_SUPERVISOR_TARGET='%7' FM_SUPERVISOR_BACKEND=tmux \
+     FM_AFK_LAUNCH_ENTRY="$SLEEPER" KILLED="$killed" bash -c '
+    . "$1"
+    tmux() {
+      case "$1" in
+        new-session) return 0 ;;
+        kill-session) printf "%s" "$3" > "$KILLED"; return 0 ;;
+        has-session) return 0 ;;
+      esac
+      # display-message is the captain-pane probe: emulate a backend hiccup
+      # AFTER the daemon has already come up and validated the same pane.
+      return 1
+    }
+    fm_afk_launch_wait_ready() { return 0; }
+    fm_afk_launch_start
+  ' _ "$LAUNCH" >/dev/null 2>&1; then
+    pass "fresh entry: a captain-pane probe hiccup after startup does not refuse the entry"
+  else
+    fail "fresh entry: a transient captain-pane probe failure tore down a healthy entry"
+  fi
+  if [ -e "$st/state/.afk" ] && [ -e "$st/state/.afk-daemon-terminal" ]; then
+    pass "fresh entry: away mode and the terminal record survive the probe hiccup"
+  else
+    fail "fresh entry: away-mode state was rolled back by a probe hiccup"
+  fi
+  if [ ! -e "$killed" ]; then
+    pass "fresh entry: the daemon terminal that just came up was not torn down"
+  else
+    fail "fresh entry: tore down the daemon terminal it had just created"
+  fi
+  FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" "$LAUNCH" stop >/dev/null 2>&1
+  rm -rf "$st"
+}
+
+# ...and the refresh path still refuses a delivery target that is genuinely gone,
+# so the narrowing above removes a duplicate rather than the check itself.
+unit_refresh_refuses_a_dead_delivery_target() {
+  local st out
+  st=$(mktemp -d "${TMPDIR:-/tmp}/fm-afk-refresh-dead-target.XXXXXX")
+  mkdir -p "$st/state"
+  printf 'tmux\tdaemon-session\t\n' > "$st/state/.afk-daemon-terminal"
+  : > "$st/state/.afk"
+  out=$(FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
+        FM_SUPERVISOR_TARGET='%99' FM_SUPERVISOR_BACKEND=tmux bash -c '
+    . "$1"
+    daemon_lock_held_by_live_daemon() { return 0; }
+    fm_backend_target_exists() { return 1; }
+    fm_afk_launch_flag_write() { : > "$FM_HOME/refreshed"; }
+    fm_afk_launch_start
+  ' _ "$LAUNCH" 2>&1)
+  if [ ! -e "$st/refreshed" ]; then
+    pass "refresh: a delivery target that is no longer a live pane is refused"
+  else
+    fail "refresh: refreshed away mode onto a delivery target that is gone ($out)"
+  fi
+  case "$out" in
+    *"%99"*"not a live tmux pane"*) pass "refresh refusal names the dead delivery target" ;;
+    *) fail "refresh refusal did not name the dead delivery target: $out" ;;
+  esac
+  # Control: the same refresh with a live pane proceeds.
+  rm -f "$st/refreshed"
+  FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
+    FM_SUPERVISOR_TARGET='%99' FM_SUPERVISOR_BACKEND=tmux bash -c '
+    . "$1"
+    daemon_lock_held_by_live_daemon() { return 0; }
+    fm_backend_target_exists() { return 0; }
+    fm_afk_launch_flag_write() { : > "$FM_HOME/refreshed"; }
+    fm_afk_launch_start
+  ' _ "$LAUNCH" >/dev/null 2>&1
+  if [ -e "$st/refreshed" ]; then
+    pass "refresh: a live delivery target still refreshes the away-mode flag"
+  else
+    fail "refresh: refused a live delivery target"
   fi
   rm -rf "$st"
 }
@@ -1327,6 +1440,9 @@ unit_native_refused_on_native_busy_backend
 unit_native_allowed_when_daemon_is_not_the_target
 unit_native_record_carries_the_real_host_pane
 unit_verify_delivery_path_refuses_and_rolls_back
+unit_fresh_entry_is_not_torn_down_by_a_second_pane_probe
+unit_refusal_names_the_state_of_the_entry_that_refused
+unit_refresh_refuses_a_dead_delivery_target
 unit_refused_entry_preserves_unconfirmed_terminal_record
 unit_refresh_refuses_a_pre_existing_self_hosted_daemon
 unit_afk_start_refuses_self_hosting_before_writing_the_flag

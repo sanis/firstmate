@@ -392,7 +392,8 @@ fm_afk_launch_restore_backup() {  # <backup> <had-afk>
   rm -f "$FM_AFK_LAUNCH_STATE/.afk" \
     "$FM_AFK_LAUNCH_STATE/.subsuper-escalations" \
     "$FM_AFK_LAUNCH_STATE/.subsuper-escalations.since" \
-    "$FM_AFK_LAUNCH_STATE/.subsuper-inject-wedged" || result=1
+    "$FM_AFK_LAUNCH_STATE/.subsuper-inject-wedged" \
+    "$FM_AFK_LAUNCH_STATE"/.subsuper-inject-wedged.pending.* || result=1
   if [ "$had_afk" -eq 1 ]; then
     cp "$backup/.afk" "$FM_AFK_LAUNCH_STATE/.afk" || result=1
   fi
@@ -520,7 +521,17 @@ fm_afk_launch_verify_delivery_path() {  # <captain-target> <captain-backend> <fr
     fm_afk_launch_log "$lead: the away daemon cannot supervise a '$captain_backend' pane (supported: $FM_SUPERVISOR_SUPPORTED_BACKENDS)"
     return 1
   fi
-  if ! fm_backend_target_exists "$captain_backend" "$captain_target"; then
+  # Probed on the REFRESH path only, where it observes something genuinely new:
+  # that daemon started earlier and the captain's pane may have moved since. On
+  # the fresh path the daemon's own startup validated the identical condition
+  # moments ago (bin/fm-supervise-daemon.sh's startup target check, whose failure
+  # already reaches here through fm_afk_launch_wait_ready), so a second probe
+  # adds no coverage - only another chance to refuse. fm_backend_target_exists
+  # deliberately cannot tell a transient backend failure from genuine absence,
+  # and that conflation is right for its other callers, so the narrowing belongs
+  # here rather than in the shared owner.
+  if [ "$entry_mode" = refresh ] \
+     && ! fm_backend_target_exists "$captain_backend" "$captain_target"; then
     fm_afk_launch_log "$lead: escalations would be delivered to '$captain_target', which is not a live $captain_backend pane"
     return 1
   fi

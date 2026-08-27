@@ -594,15 +594,6 @@ fm_daemon_primary_harness() {
   printf '%s' "$FM_DAEMON_PRIMARY_HARNESS"
 }
 
-# pane_busy_source: WHICH source called this pane busy - `native` (the backend's
-# own agent state), `rendered` (the detected primary harness's own signature), or
-# empty when neither did. Callers log the token so a deferral says what actually
-# blocked it.
-#
-# The two sources are independent and can disagree, which matters: on 2026-08-26
-# the away daemon deferred 2169 times on a `native` verdict that the `rendered`
-# signature never agreed with, and 2169 identical log lines saying only "busy"
-# gave the captain no way to tell that apart from an ordinarily busy pane.
 # pane_rendered_busy: the SINGLE reader of the primary harness's own rendered
 # busy signature - `busy`, `idle`, or `unreadable` when the pane could not be
 # captured at all. pane_busy_source and pane_busy_probe both go through here so
@@ -622,6 +613,15 @@ pane_rendered_busy() {  # <target> [backend] -> busy|idle|unreadable
   fi
 }
 
+# pane_busy_source: WHICH source called this pane busy - `native` (the backend's
+# own agent state), `rendered` (the detected primary harness's own signature), or
+# empty when neither did. Callers log the token so a deferral says what actually
+# blocked it.
+#
+# The two sources are independent and can disagree, which matters: on 2026-08-26
+# the away daemon deferred 2169 times on a `native` verdict that the `rendered`
+# signature never agreed with, and 2169 identical log lines saying only "busy"
+# gave the captain no way to tell that apart from an ordinarily busy pane.
 pane_busy_source() {  # <target> [backend] -> native|rendered|<empty>
   local target=$1 backend=${2:-tmux} native
   native=$(fm_backend_busy_state "$backend" "$target" 2>/dev/null)
@@ -1057,7 +1057,11 @@ wedge_alarm_publish_marker() {  # <marker> <state> <age> <stamp> <target> <backe
     printf 'Supervisor pane: %s (%s); %s.\n' "$target" "$backend" "$diagnosis"
     printf 'Alert accounting: %s\n' "$accounting"
     printf 'The supervisor pane could not accept an escalation. Buffered items:\n'
-    cat "$state/.subsuper-escalations" 2>/dev/null
+    # The record MUST land whether or not the buffer can be read. An unreadable
+    # or missing buffer degrades to a record without the buffered items; it may
+    # never degrade to no record at all, which is the loss marker-first ordering
+    # exists to prevent.
+    cat "$state/.subsuper-escalations" 2>/dev/null || true
   } 2>/dev/null > "$pending" || { rm -f "$pending" 2>/dev/null; return 1; }
   mv "$pending" "$marker" 2>/dev/null || { rm -f "$pending" 2>/dev/null; return 1; }
 }
