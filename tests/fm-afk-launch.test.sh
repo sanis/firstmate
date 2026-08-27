@@ -571,6 +571,57 @@ unit_native_allowed_when_daemon_is_not_the_target() {
   rm -rf "$st"
 }
 
+# Round-trip through the public entries: what start-native records must be the
+# daemon's REAL pane, so the refresh comparison is between two observed panes
+# rather than inferred from "no terminal was recorded". Both directions run off
+# the same recorded entry - only the captain target changes.
+unit_native_record_carries_the_real_host_pane() {
+  local st out
+  st=$(mktemp -d "${TMPDIR:-/tmp}/fm-afk-native-host.XXXXXX")
+  mkdir -p "$st/state"
+  if ! FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
+       HERDR_ENV=1 HERDR_PANE_ID=w9Z:p4 HERDR_SESSION=default TMUX_PANE='' \
+       FM_SUPERVISOR_TARGET='default:w1R:p1' FM_SUPERVISOR_BACKEND=herdr \
+       "$LAUNCH" start-native >/dev/null 2>&1; then
+    fail "native host: start-native refused a daemon that lives outside its delivery target"
+    rm -rf "$st"; return 0
+  fi
+  FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
+    FM_SUPERVISOR_TARGET='default:w1R:p1' FM_SUPERVISOR_BACKEND=herdr bash -c '
+    . "$1"
+    daemon_lock_held_by_live_daemon() { return 0; }
+    fm_backend_target_exists() { return 0; }
+    fm_afk_launch_flag_write() { : > "$FM_HOME/refreshed"; }
+    fm_afk_launch_start
+  ' _ "$LAUNCH" >/dev/null 2>&1
+  if [ -e "$st/refreshed" ]; then
+    pass "native host: the recorded pane is not the delivery target, so refresh proceeds"
+  else
+    fail "native host: refresh refused a daemon recorded outside its delivery target"
+  fi
+  # Same record, delivery target moved onto the daemon's own recorded pane.
+  rm -f "$st/refreshed"
+  out=$(FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
+        FM_SUPERVISOR_TARGET='default:w9Z:p4' FM_SUPERVISOR_BACKEND=herdr bash -c '
+    . "$1"
+    daemon_lock_held_by_live_daemon() { return 0; }
+    fm_backend_target_exists() { return 0; }
+    fm_afk_launch_flag_write() { : > "$FM_HOME/refreshed"; }
+    fm_afk_launch_start
+  ' _ "$LAUNCH" 2>&1)
+  if [ ! -e "$st/refreshed" ]; then
+    pass "native host: delivering into the daemon's own recorded pane is refused"
+  else
+    fail "native host: co-tenancy with the recorded pane was not caught ($out)"
+  fi
+  case "$out" in
+    *"default:w9Z:p4"*) pass "native host: the refusal names the pane the daemon is actually in" ;;
+    *) fail "native host: refusal did not name the recorded host pane: $out" ;;
+  esac
+  FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" "$LAUNCH" stop >/dev/null 2>&1
+  rm -rf "$st"
+}
+
 # R4: an entry whose delivery path is already blocked is refused and fully rolled
 # back, rather than reporting success and going quiet for the night.
 #
@@ -657,7 +708,9 @@ unit_refresh_refuses_a_pre_existing_self_hosted_daemon() {
   local st out
   st=$(mktemp -d "${TMPDIR:-/tmp}/fm-afk-refresh-selfhost.XXXXXX")
   mkdir -p "$st/state"
-  printf 'none\t-\tnative\n' > "$st/state/.afk-daemon-terminal"
+  # The record names the pane the daemon is hosted in, and it IS the captain
+  # target: observed co-tenancy, not an inference from "no terminal recorded".
+  printf 'none\t-\tnative:default:w1R:p1\n' > "$st/state/.afk-daemon-terminal"
   : > "$st/state/.afk"
   out=$(FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
         FM_SUPERVISOR_TARGET='default:w1R:p1' FM_SUPERVISOR_BACKEND=herdr bash -c '
@@ -683,8 +736,47 @@ unit_refresh_refuses_a_pre_existing_self_hosted_daemon() {
     *"'bin/fm-afk-launch.sh stop'"*) pass "refresh refusal names the remedy that actually clears the block" ;;
     *) fail "refresh refusal did not tell the captain to stop the pre-existing daemon: $out" ;;
   esac
+  # An in-pane record that names a DIFFERENT pane delivers fine and must refresh.
+  printf 'none\t-\tnative:default:w9Z:p4\n' > "$st/state/.afk-daemon-terminal"
+  rm -f "$st/refreshed"
+  FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
+    FM_SUPERVISOR_TARGET='default:w1R:p1' FM_SUPERVISOR_BACKEND=herdr bash -c '
+    . "$1"
+    daemon_lock_held_by_live_daemon() { return 0; }
+    fm_backend_target_exists() { return 0; }
+    fm_afk_launch_flag_write() { : > "$FM_HOME/refreshed"; }
+    fm_afk_launch_start
+  ' _ "$LAUNCH" >/dev/null 2>&1
+  if [ -e "$st/refreshed" ]; then
+    pass "refresh: an in-pane daemon living outside the delivery target still refreshes"
+  else
+    fail "refresh: refused an in-pane daemon that is not a tenant of its target"
+  fi
+  # A LEGACY record (written before the host pane was recorded) says nothing
+  # about where the daemon runs. Unknown must never become a refusal: a home
+  # upgraded mid-away-session has exactly this record, and the daemon's own
+  # startup check is the one that can actually observe co-tenancy.
+  printf 'none\t-\tnative\n' > "$st/state/.afk-daemon-terminal"
+  rm -f "$st/refreshed"
+  out=$(FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
+        FM_SUPERVISOR_TARGET='default:w1R:p1' FM_SUPERVISOR_BACKEND=herdr bash -c '
+    . "$1"
+    daemon_lock_held_by_live_daemon() { return 0; }
+    fm_backend_target_exists() { return 0; }
+    fm_afk_launch_flag_write() { : > "$FM_HOME/refreshed"; }
+    fm_afk_launch_start
+  ' _ "$LAUNCH" 2>&1)
+  if [ -e "$st/refreshed" ]; then
+    pass "refresh: a legacy record with no host pane is not refused on an unobserved guess"
+  else
+    fail "refresh: a legacy in-pane record was refused without observing co-tenancy ($out)"
+  fi
+  case "$out" in
+    *"cannot be observed here"*) pass "refresh says plainly that the host pane is unknown" ;;
+    *) fail "refresh did not report that co-tenancy could not be observed: $out" ;;
+  esac
   # Control: the same refresh with a real, separate daemon terminal proceeds, so
-  # the assertion above cannot pass by refresh having stopped working.
+  # the assertions above cannot pass by refresh having stopped working.
   printf 'tmux\tdaemon-session\t\n' > "$st/state/.afk-daemon-terminal"
   rm -f "$st/refreshed"
   FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
@@ -1200,6 +1292,7 @@ unit_tmux_absence_distinguishes_probe_failure
 unit_native_lifecycle
 unit_native_refused_on_native_busy_backend
 unit_native_allowed_when_daemon_is_not_the_target
+unit_native_record_carries_the_real_host_pane
 unit_verify_delivery_path_refuses_and_rolls_back
 unit_refused_entry_preserves_unconfirmed_terminal_record
 unit_refresh_refuses_a_pre_existing_self_hosted_daemon

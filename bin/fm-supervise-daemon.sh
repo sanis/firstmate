@@ -603,16 +603,34 @@ fm_daemon_primary_harness() {
 # the away daemon deferred 2169 times on a `native` verdict that the `rendered`
 # signature never agreed with, and 2169 identical log lines saying only "busy"
 # gave the captain no way to tell that apart from an ordinarily busy pane.
+# pane_rendered_busy: the SINGLE reader of the primary harness's own rendered
+# busy signature - `busy`, `idle`, or `unreadable` when the pane could not be
+# captured at all. pane_busy_source and pane_busy_probe both go through here so
+# they agree BY CONSTRUCTION: the wedge marker's `corroborated` verdict is only
+# worth anything if it names the same test the per-tick busy guard applied, and
+# two copies of this pipeline would let a tweak to the tail depth or the
+# blank-line filter make the marker describe a check that never ran.
+pane_rendered_busy() {  # <target> [backend] -> busy|idle|unreadable
+  local target=$1 backend=${2:-tmux} harness tail40
+  harness=$(fm_daemon_primary_harness)
+  tail40=$(fm_backend_capture "$backend" "$target" 40 2>/dev/null) || { printf 'unreadable'; return 0; }
+  if printf '%s' "$tail40" | grep -v '^[[:space:]]*$' | tail -12 \
+     | fm_busy_lines_match "$harness"; then
+    printf 'busy'
+  else
+    printf 'idle'
+  fi
+}
+
 pane_busy_source() {  # <target> [backend] -> native|rendered|<empty>
-  local target=$1 backend=${2:-tmux} native tail40 harness
+  local target=$1 backend=${2:-tmux} native
   native=$(fm_backend_busy_state "$backend" "$target" 2>/dev/null)
   case "$native" in
     busy) printf 'native'; return 0 ;;
   esac
-  harness=$(fm_daemon_primary_harness)
-  tail40=$(fm_backend_capture "$backend" "$target" 40 2>/dev/null) || return 0
-  if printf '%s' "$tail40" | grep -v '^[[:space:]]*$' | tail -12 \
-     | fm_busy_lines_match "$harness"; then
+  # An unreadable pane is not a busy source here, exactly as before: this guard
+  # protects the captain's composer and only a positive signature holds it back.
+  if [ "$(pane_rendered_busy "$target" "$backend")" = busy ]; then
     printf 'rendered'
   fi
   return 0
@@ -642,19 +660,9 @@ pane_is_busy() {  # <target> [backend]
 # unconditionally, so the per-tick busy guard keeps using the cheap,
 # short-circuiting pane_busy_source instead.
 pane_busy_probe() {  # <target> [backend] -> "<source> <corroboration>"
-  local target=$1 backend=${2:-tmux} native harness tail40 rendered
+  local target=$1 backend=${2:-tmux} native rendered
   native=$(fm_backend_busy_state "$backend" "$target" 2>/dev/null)
-  harness=$(fm_daemon_primary_harness)
-  if tail40=$(fm_backend_capture "$backend" "$target" 40 2>/dev/null); then
-    if printf '%s' "$tail40" | grep -v '^[[:space:]]*$' | tail -12 \
-       | fm_busy_lines_match "$harness"; then
-      rendered=busy
-    else
-      rendered=idle
-    fi
-  else
-    rendered=unreadable
-  fi
+  rendered=$(pane_rendered_busy "$target" "$backend")
   if [ "$native" = busy ]; then
     case "$rendered" in
       busy) printf 'native corroborated' ;;

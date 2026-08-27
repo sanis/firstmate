@@ -1849,6 +1849,15 @@ test_pane_busy_source_names_native_and_rendered() {
     [ -z "$(FM_DAEMON_PRIMARY_HARNESS=claude pane_busy_source 'default:w1:p2' herdr)" ] \
       || fail "an idle pane carrying only a background-shell footer must report no busy source"
   ) || fail "not-busy busy-source subshell failed"
+  # The per-tick guard holds delivery back only on a POSITIVE signature, so a
+  # pane it could not read at all is not a busy source. pane_busy_probe reads the
+  # same helper and reports that case as its own outcome instead.
+  (
+    fm_backend_busy_state() { printf 'idle'; }
+    fm_backend_capture() { return 1; }
+    [ -z "$(FM_DAEMON_PRIMARY_HARNESS=claude pane_busy_source 'default:w1:p2' herdr)" ] \
+      || fail "a pane that could not be captured must not be reported as a busy source"
+  ) || fail "unreadable busy-source subshell failed"
   pass "pane_busy_source: reports which source called the pane busy, or nothing"
 }
 
