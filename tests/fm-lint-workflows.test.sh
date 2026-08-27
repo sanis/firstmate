@@ -9,6 +9,8 @@ set -u
 
 # shellcheck source=tests/lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+# shellcheck source=tests/download-helpers.sh
+. "$(dirname "${BASH_SOURCE[0]}")/download-helpers.sh"
 
 LINT_WF="$ROOT/bin/fm-lint-workflows.sh"
 LINT="$ROOT/bin/fm-lint.sh"
@@ -22,84 +24,6 @@ ACTIONLINT_SHA_LINUX_AMD64=8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc
 ACTIONLINT_SHA_LINUX_ARM64=325e971b6ba9bfa504672e29be93c24981eeb1c07576d730e9f7c8805afff0c6
 ACTIONLINT_SHA_DARWIN_AMD64=5b44c3bc2255115c9b69e30efc0fecdf498fdb63c5d58e17084fd5f16324c644
 ACTIONLINT_SHA_DARWIN_ARM64=aba9ced2dee8d27fecca3dc7feb1a7f9a52caefa1eb46f3271ea66b6e0e6953f
-
-fm_install_stub_uname() {
-  local fakebin=$1
-  cat > "$fakebin/uname" <<'SH'
-#!/usr/bin/env bash
-case "${1:-}" in
-  -s) printf '%s\n' "${FM_TEST_UNAME_S:-Linux}" ;;
-  -m) printf '%s\n' "${FM_TEST_UNAME_M:-x86_64}" ;;
-  *) printf '%s\n' "${FM_TEST_UNAME_S:-Linux}" ;;
-esac
-SH
-  chmod +x "$fakebin/uname"
-}
-
-fm_install_stub_curl() {
-  local fakebin=$1
-  cat > "$fakebin/curl" <<'SH'
-#!/usr/bin/env bash
-count=0
-[ ! -f "${CURL_COUNT:-}" ] || count=$(cat "$CURL_COUNT")
-count=$((count + 1))
-[ -z "${CURL_COUNT:-}" ] || printf '%s\n' "$count" > "$CURL_COUNT"
-url=
-out=
-while [ "$#" -gt 0 ]; do
-  case "$1" in
-    -o)
-      out=$2
-      shift 2
-      ;;
-    -*)
-      shift
-      ;;
-    *)
-      url=$1
-      shift
-      ;;
-  esac
-done
-[ -z "${CURL_URL_LOG:-}" ] || printf '%s\n' "$url" >> "$CURL_URL_LOG"
-fail_until=${CURL_FAIL_UNTIL:-0}
-[ "$count" -gt "$fail_until" ] || exit 22
-: > "$out"
-exit 0
-SH
-  chmod +x "$fakebin/curl"
-}
-
-fm_install_stub_hasher() {
-  local fakebin=$1 name=$2
-  cat > "$fakebin/$name" <<'SH'
-#!/usr/bin/env bash
-self=${0##*/}
-if [ -n "${HASHER_LOG:-}" ]; then
-  printf '%s\n' "$self $*" >> "$HASHER_LOG"
-fi
-file=$1
-if [ "$self" = shasum ]; then
-  algo=
-  file=
-  while [ "$#" -gt 0 ]; do
-    case "$1" in
-      -a)
-        algo=$2
-        shift 2
-        ;;
-      *)
-        file=$1
-        shift
-        ;;
-    esac
-  done
-  [ "$algo" = 256 ] || exit 1
-fi
-printf '%s  %s\n' "${SHA256_STUB_HASH:?}" "$file"
-SH
-  chmod +x "$fakebin/$name"
-}
 
 fm_install_stub_tar_actionlint() {
   local fakebin=$1
@@ -119,15 +43,6 @@ done
 exit 2
 SH
   chmod +x "$fakebin/tar"
-}
-
-fm_install_stub_sleep() {
-  local fakebin=$1
-  cat > "$fakebin/sleep" <<'SH'
-#!/usr/bin/env bash
-exit 0
-SH
-  chmod +x "$fakebin/sleep"
 }
 
 write_valid_workflow() {

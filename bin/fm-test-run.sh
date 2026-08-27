@@ -139,6 +139,7 @@ family_for_basename() {
     fm-classify-decision-key.test.sh|fm-clickup-contract.test.sh|\
     fm-composer-ghost.test.sh|fm-composer-lib.test.sh|\
     fm-crew-state.test.sh|fm-captain-hold-lifecycle.test.sh|\
+    fm-download-lib.test.sh|\
     fm-ensure-agents-md.test.sh|fm-grok-harness.test.sh|\
     fm-kimi-harness.test.sh|fm-muse-harness.test.sh|fm-herdr-lab.test.sh|fm-lint.test.sh|\
     fm-lint-workflows.test.sh|\
@@ -1034,10 +1035,13 @@ families_for_changed_path() {
     bin/fm-bearings-snapshot.sh|bin/fm-fleet-snapshot.sh|bin/fm-fleet-view.sh)
       printf '%s\n' snapshot-bearings
       ;;
+    bin/fm-download-lib.sh|\
     bin/fm-install-herdr.sh|bin/fm-install-treehouse.sh|bin/fm-herdr-ci-cleanup.sh)
       printf '%s\n' pure-contract-unit
-      # Pin or cleanup changes also select the real-Herdr family so the required
-      # lane's contract coverage re-runs.
+      # Pin, cleanup, or shared-download changes also select the real-Herdr
+      # family so the required lane's contract coverage re-runs. That lane
+      # installs its pinned Herdr and Treehouse builds through the shared
+      # download, so a retry-policy change is a change to its setup step.
       printf '%s\n' real-herdr-gated
       ;;
     bin/fm-lint.sh|bin/fm-lint-workflows.sh|bin/fm-install-shellcheck.sh|\
