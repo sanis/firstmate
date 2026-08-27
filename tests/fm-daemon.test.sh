@@ -2352,6 +2352,58 @@ test_wedge_accounting_names_a_configured_but_unusable_channel() {
   pass "wedge accounting: a configured-but-unusable channel is stated, never hidden behind 'refused: none'"
 }
 
+# The launcher's readiness wait treats a live daemon lock as "the daemon is up"
+# and returns on the FIRST sighting, so the lock must not exist until the
+# startup validations have PASSED. Held-then-refused was the looks-armed-is-not
+# shape one level below the incident: a poll landing inside that window reported
+# the launch successful for a daemon that was about to exit.
+#
+# Observed at the validation itself rather than after the fact - "no lock
+# afterwards" is equally true of acquire-then-release and proves nothing.
+test_daemon_takes_the_lock_only_after_its_startup_validations_pass() {
+  local dir state lock snapshot out
+  dir=$(make_supercase daemon-lock-after-validation)
+  state="$dir/state"
+  mkdir -p "$state"
+  lock="$state/.supervise-daemon.lock"
+  snapshot="$dir/lock-at-target-probe"
+  (
+    export FM_STATE_OVERRIDE="$state"
+    export FM_TEST_LOCK="$lock" FM_TEST_LOCK_SNAPSHOT="$snapshot"
+    fm_backend_target_exists() {
+      if [ -e "$FM_TEST_LOCK" ] || [ -L "$FM_TEST_LOCK" ]; then
+        printf 'held' > "$FM_TEST_LOCK_SNAPSHOT"
+      else
+        printf 'free' > "$FM_TEST_LOCK_SNAPSHOT"
+      fi
+      return 1
+    }
+    FM_SUPERVISOR_BACKEND=tmux FM_SUPERVISOR_TARGET='%99' fm_super_main
+  ) >/dev/null 2>&1
+  case "$(cat "$snapshot" 2>/dev/null || true)" in
+    free) pass "daemon startup: the lock is not held while the target is still being validated" ;;
+    held) fail "daemon startup: the lock was already observable as held before validation finished" ;;
+    *) fail "daemon startup: the target validation never ran" ;;
+  esac
+  if [ ! -e "$lock" ] && [ ! -L "$lock" ] && [ ! -e "$state/.supervise-daemon.pid" ]; then
+    pass "daemon startup: a refused daemon leaves no lock or pidfile to unwind"
+  else
+    fail "daemon startup: a refused daemon left lifecycle artifacts behind"
+  fi
+  # Control: the singleton gate still refuses a second daemon, so moving the
+  # acquisition did not trade the race for a lost guarantee.
+  mkdir -p "$lock"
+  printf '%s' "$$" > "$lock/pid"
+  out=$(
+    export FM_STATE_OVERRIDE="$state"
+    fm_backend_target_exists() { return 0; }
+    FM_SUPERVISOR_BACKEND=tmux FM_SUPERVISOR_TARGET='%99' fm_super_main 2>&1
+  )
+  assert_contains "$out" "already running" \
+    "a second daemon must still be refused by the singleton lock"
+  pass "daemon startup: validations run before the lock, and the singleton gate still holds"
+}
+
 test_supervisor_pane_is_self_hosted_scopes_to_native_busy_backends() {
   (
     unset TMUX_PANE
@@ -2619,6 +2671,7 @@ test_wedge_marker_records_that_dispatch_began_when_a_kill_freezes_it
 test_wedge_marker_never_inherits_a_previous_windows_alert_accounting
 test_wedge_marker_reports_the_block_inject_msg_actually_hit
 test_wedge_accounting_names_a_configured_but_unusable_channel
+test_daemon_takes_the_lock_only_after_its_startup_validations_pass
 test_supervisor_pane_is_self_hosted_scopes_to_native_busy_backends
 test_pane_input_pending_herdr_dispatch
 test_inject_msg_herdr_busy_guard_defers

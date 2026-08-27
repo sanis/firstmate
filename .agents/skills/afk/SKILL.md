@@ -48,8 +48,8 @@ batched digest rather than per-wake injections.
      shrinks the captain's pane (docs/herdr-backend.md "Away-mode supervisor
      support").
    Both paths share `bin/fm-afk-start.sh` as the daemon entry.
-   `start` verifies once, before reporting success, that the delivery path is not already permanently blocked, and refuses the whole entry rather than entering away mode that cannot reach the captain.
-   It runs that same verification when it finds a daemon already alive, so a pre-existing daemon hosted in the captain's own pane is refused instead of silently refreshed.
+   `start` and `start-native` verify the delivery path only when they find a daemon ALREADY alive, which is the one situation a launcher-side check can observe something new: that daemon started earlier, and the pane it delivers into is recorded, so a daemon hosted in the captain's own pane or still injecting into a pane Firstmate has left is refused instead of silently refreshed.
+   A FRESH launch runs no such check and needs none: the daemon validates its own backend and supervisor target at startup and takes the daemon lock only once they pass, so a startup refusal can never be sighted as readiness and fails the launch.
    `bin/fm-afk-start.sh` refuses the same self-hosting combination itself, before it writes any lifecycle state, so a refused entry never leaves away mode half-entered.
    The native path tells it that the launcher already prepared lifecycle state; the terminal-backed path lets the entry perform its existing state setup inside the new terminal.
    It exits immediately if the identity-backed daemon lock already names a live process, otherwise it execs `bin/fm-supervise-daemon.sh` in the foreground.

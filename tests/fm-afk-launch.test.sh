@@ -656,6 +656,67 @@ unit_refresh_verifies_the_daemons_recorded_delivery_pane() {
   rm -rf "$st"
 }
 
+# start-native is what the /afk skill prescribes for a harness with its own
+# in-pane background tool, so the recorded-target check has to hold there too.
+# An in-pane daemon can outlive the harness that hosted it, which is exactly how
+# a live daemon ends up still injecting into a pane firstmate has left.
+unit_start_native_refresh_verifies_the_recorded_delivery_pane() {
+  local st out
+  st=$(mktemp -d "${TMPDIR:-/tmp}/fm-afk-native-refresh.XXXXXX")
+  mkdir -p "$st/state"
+  if ! FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
+       TMUX_PANE='%7' HERDR_ENV='' HERDR_PANE_ID='' \
+       FM_SUPERVISOR_TARGET='%7' FM_SUPERVISOR_BACKEND=tmux \
+       "$LAUNCH" start-native >/dev/null 2>&1; then
+    fail "start-native refresh: entry refused a supported in-pane launch"
+    rm -rf "$st"; return 0
+  fi
+  # Firstmate is still in the pane that daemon was launched to deliver into.
+  FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
+    FM_SUPERVISOR_TARGET='%7' FM_SUPERVISOR_BACKEND=tmux bash -c '
+    . "$1"
+    daemon_lock_held_by_live_daemon() { return 0; }
+    fm_backend_target_exists() { return 0; }
+    fm_afk_launch_flag_write() { : > "$FM_HOME/refreshed"; }
+    fm_afk_launch_start_native
+  ' _ "$LAUNCH" >/dev/null 2>&1
+  if [ -e "$st/refreshed" ]; then
+    pass "start-native refresh: a daemon still delivering into this pane refreshes"
+  else
+    fail "start-native refresh: refused a daemon delivering into the current pane"
+  fi
+  # Firstmate has since restarted in another pane; the daemon has not moved.
+  rm -f "$st/refreshed"
+  out=$(FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
+        FM_SUPERVISOR_TARGET='%9' FM_SUPERVISOR_BACKEND=tmux bash -c '
+    . "$1"
+    daemon_lock_held_by_live_daemon() { return 0; }
+    fm_backend_target_exists() { return 0; }
+    fm_afk_launch_flag_write() { : > "$FM_HOME/refreshed"; }
+    fm_afk_launch_start_native
+  ' _ "$LAUNCH" 2>&1)
+  if [ ! -e "$st/refreshed" ]; then
+    pass "start-native refresh: an orphaned daemon delivering into a pane firstmate left is refused"
+  else
+    fail "start-native refresh: refreshed onto a daemon delivering into a pane firstmate left ($out)"
+  fi
+  case "$out" in
+    *"%7"*"%9"*) pass "start-native refusal names both the daemon's pane and the current one" ;;
+    *) fail "start-native refusal did not name both panes: $out" ;;
+  esac
+  case "$out" in
+    *"away mode is STILL ON"*) pass "start-native refusal says away mode is still on" ;;
+    *) fail "start-native refusal did not report a live away mode: $out" ;;
+  esac
+  if [ -e "$st/state/.afk" ]; then
+    pass "start-native refusal left away mode exactly as it found it"
+  else
+    fail "start-native refusal cleared the away-mode flag it does not own"
+  fi
+  FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" "$LAUNCH" stop >/dev/null 2>&1
+  rm -rf "$st"
+}
+
 # The captain-pane probe belongs to the REFRESH path, where the daemon started
 # earlier and the pane may have moved since. On the fresh path the daemon's own
 # startup validated the identical thing moments ago, and fm_backend_target_exists
@@ -1363,6 +1424,7 @@ unit_native_lifecycle
 unit_native_refused_on_native_busy_backend
 unit_native_allowed_when_daemon_is_not_the_target
 unit_refresh_verifies_the_daemons_recorded_delivery_pane
+unit_start_native_refresh_verifies_the_recorded_delivery_pane
 unit_fresh_entry_is_not_torn_down_by_a_second_pane_probe
 unit_refresh_refuses_a_dead_delivery_target
 unit_refresh_refuses_a_pre_existing_self_hosted_daemon

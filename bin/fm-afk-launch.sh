@@ -37,10 +37,11 @@
 #                              recorded delivery pane is still the pane firstmate
 #                              occupies and is still live
 #                              (fm_afk_launch_verify_delivery_path), and refuses
-#                              the refresh when it is not. A fresh launch needs no
+#                              the refresh when it is not. A FRESH launch runs no
 #                              such check: the daemon validates its own backend
-#                              and target at startup and exits when either fails,
-#                              which fails the launch through wait_ready.
+#                              and target at startup and takes the daemon lock
+#                              only once they pass, so a refusal is never seen as
+#                              readiness and fails the launch through wait_ready.
 #   fm-afk-launch.sh start-native
 #                              Prepare lifecycle state for a harness-native
 #                              background job and record that no terminal exists.
@@ -530,10 +531,11 @@ fm_afk_launch_create_tmux() {  # <captain-target> <captain-backend>
 # the world may have moved under it since.
 #
 # There is deliberately no fresh-path counterpart. A fresh entry's daemon
-# validates its own backend and its own target at startup and exits when either
-# fails, which reaches the launcher through fm_afk_launch_wait_ready; a second
-# copy here added no coverage, only another chance to refuse on a transient
-# backend hiccup that fm_backend_target_exists cannot tell from absence.
+# validates its own backend and its own target at startup and takes the daemon
+# lock only once they pass, so a refusal can never be sighted as readiness and
+# reaches the launcher through fm_afk_launch_wait_ready; a second copy here added
+# no coverage, only another chance to refuse on a transient backend hiccup that
+# fm_backend_target_exists cannot tell from absence.
 #
 # Every condition is timing-independent on purpose. Busy-ness deliberately is NOT
 # one of them: firstmate is mid-turn running this very launcher, so the captain
@@ -725,6 +727,11 @@ fm_afk_launch_start_native() {
   fi
   if daemon_lock_held_by_live_daemon; then
     fm_afk_launch_record_validate_if_present || return 1
+    # Same refresh verification `start` runs, for the same reason: an in-pane
+    # daemon can outlive the harness that hosted it, so this entry can find one
+    # still delivering into a pane firstmate has left. Verified BEFORE the flag
+    # refresh, so a refusal leaves lifecycle state exactly as it found it.
+    fm_afk_launch_verify_delivery_path "$captain_target" "$captain_backend" || return 1
     fm_afk_launch_flag_write || return 1
     fm_afk_launch_log "daemon already running; refreshed away-mode flag"
     return 0

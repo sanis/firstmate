@@ -1643,18 +1643,6 @@ fm_super_main() {
 
   [ -x "$WATCH" ] || { echo "error: watcher not found or not executable: $WATCH" >&2; exit 1; }
 
-  # --- single instance (portable lock, no flock dependency) ------------------
-  if ! fm_lock_try_acquire "$LOCK"; then
-    if [ -n "${FM_LOCK_HELD_PID:-}" ]; then
-      echo "error: another fm-supervise-daemon is already running (pid $FM_LOCK_HELD_PID, lock $LOCK held)" >&2
-    else
-      echo "error: another fm-supervise-daemon is already running (lock $LOCK held)" >&2
-    fi
-    exit 1
-  fi
-  echo "$$" > "$PIDFILE"
-  fm_pid_identity "${BASHPID:-$$}" > "$LOCK/pid-identity" 2>/dev/null || true
-
   # --- auto-discover the supervisor BACKEND (tmux vs herdr) first -----------
   # Priority: FM_SUPERVISOR_BACKEND override > $TMUX_PANE (tmux) > $HERDR_ENV=1
   # (herdr) > tmux fallback. Resolved before the target below, since target
@@ -1686,8 +1674,6 @@ fm_super_main() {
   if ! fm_backend_list_contains "$FM_SUPERVISOR_SUPPORTED_BACKENDS" "$BACKEND"; then
     echo "error: away-mode daemon does not support supervisor backend '$BACKEND' yet (supported: $FM_SUPERVISOR_SUPPORTED_BACKENDS); set FM_SUPERVISOR_BACKEND=tmux|herdr and FM_SUPERVISOR_TARGET to run firstmate's own pane under a supported backend" >&2
     log "startup failed: unsupported supervisor backend '$BACKEND' (source=$backend_source)"
-    fm_lock_release "$LOCK" 2>/dev/null || true
-    rm -f "$PIDFILE" 2>/dev/null || true
     exit 1
   fi
 
@@ -1724,8 +1710,6 @@ fm_super_main() {
   if ! fm_backend_target_exists "$BACKEND" "$TARGET"; then
     echo "error: supervisor target '$TARGET' does not resolve to a $BACKEND pane; set FM_SUPERVISOR_TARGET" >&2
     log "startup failed: target '$TARGET' not found (backend=$BACKEND)"
-    fm_lock_release "$LOCK" 2>/dev/null || true
-    rm -f "$PIDFILE" 2>/dev/null || true
     exit 1
   fi
 
@@ -1737,10 +1721,37 @@ fm_super_main() {
   if supervisor_pane_is_self_hosted "$BACKEND" "$TARGET"; then
     echo "error: away-mode daemon is running inside '$TARGET', the same $BACKEND pane it must deliver into; its own background job keeps that pane reading as busy, so no escalation could ever be delivered. Launch it through bin/fm-afk-launch.sh start, which gives the daemon its own terminal and passes the captain pane in as FM_SUPERVISOR_TARGET" >&2
     log "startup failed: daemon is self-hosted in supervisor pane '$TARGET' on native-busy backend '$BACKEND'"
-    fm_lock_release "$LOCK" 2>/dev/null || true
-    rm -f "$PIDFILE" 2>/dev/null || true
     exit 1
   fi
+
+  # --- single instance (portable lock, no flock dependency) ------------------
+  # TAKEN LAST, after every startup validation above has PASSED. The launcher's
+  # readiness wait (fm_afk_launch_wait_ready) treats a live lock as "the daemon
+  # is up", and it returns on the FIRST sighting without re-confirming. With the
+  # lock taken first, a poll landing between acquisition and a refusal - a window
+  # that spans a real backend round-trip against a 50ms cadence - reported the
+  # launch successful for a daemon that was about to exit: away mode on, watcher
+  # in daemon-owned one-shot mode, nothing draining state/.wake-queue. That is
+  # the looks-armed-is-not shape this whole change exists to remove, one level
+  # below where it was first found.
+  #
+  # Lock-after-validation rather than a second readiness signal: fm_lock_try_acquire
+  # bottoms out in fm_lock_try_create, whose gate is a single atomic symlink
+  # create, so it stays one atomic gate wherever it is taken. Validating first
+  # only lets several daemons run the same read-only probes concurrently before
+  # racing on that gate, where exactly one still wins - no double-daemon window
+  # opens. It also means a refusal has no lock or pidfile to unwind, and a crash
+  # between validation and acquisition leaves nothing behind.
+  if ! fm_lock_try_acquire "$LOCK"; then
+    if [ -n "${FM_LOCK_HELD_PID:-}" ]; then
+      echo "error: another fm-supervise-daemon is already running (pid $FM_LOCK_HELD_PID, lock $LOCK held)" >&2
+    else
+      echo "error: another fm-supervise-daemon is already running (lock $LOCK held)" >&2
+    fi
+    exit 1
+  fi
+  echo "$$" > "$PIDFILE"
+  fm_pid_identity "${BASHPID:-$$}" > "$LOCK/pid-identity" 2>/dev/null || true
 
   local afk_status="off"
   afk_active "$STATE" && afk_status="on"
