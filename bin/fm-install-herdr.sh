@@ -23,6 +23,11 @@ FM_HERDR_CI_MIN_PROTOCOL=16
 FM_HERDR_CI_MAX_BYTES=25000000
 FM_HERDR_CI_REPO=ogulcancelik/herdr
 
+# bin/fm-download-lib.sh owns the retry policy shared by every installer here.
+# shellcheck source=bin/fm-download-lib.sh
+# shellcheck disable=SC1091
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-download-lib.sh"
+
 die() {
   printf 'fm-install-herdr.sh: %s\n' "$*" >&2
   exit 1
@@ -59,8 +64,9 @@ TMP=$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/fm-herdr.XXXXXX")
 trap 'rm -rf "$TMP"' EXIT
 
 printf 'fm-install-herdr.sh: downloading %s from %s\n' "$ASSET" "$URL" >&2
-# --fail: HTTP errors; --location: follow redirects; --max-filesize: bound.
-curl -fsSL --max-filesize "$FM_HERDR_CI_MAX_BYTES" "$URL" -o "$TMP/$ASSET" \
+# --max-filesize is the caller's own bound; fm_download adds --fail, --location
+# and the shared retry ladder.
+fm_download "$URL" "$TMP/$ASSET" --max-filesize "$FM_HERDR_CI_MAX_BYTES" \
   || die "download failed for $URL (bounded at $FM_HERDR_CI_MAX_BYTES bytes)"
 
 if command -v sha256sum >/dev/null 2>&1; then

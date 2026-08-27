@@ -16,6 +16,11 @@ set -eu
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION="$("$ROOT/bin/fm-lint-workflows.sh" --required-version)"
 
+# bin/fm-download-lib.sh owns the retry policy shared by every installer here.
+# shellcheck source=bin/fm-download-lib.sh
+# shellcheck disable=SC1091
+. "$ROOT/bin/fm-download-lib.sh"
+
 die() {
   printf 'fm-install-actionlint.sh: %s\n' "$*" >&2
   exit 1
@@ -54,17 +59,7 @@ URL="https://github.com/rhysd/actionlint/releases/download/v${VERSION}/${ARCHIVE
 TMP=$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/fm-actionlint.XXXXXX")
 trap 'rm -rf "$TMP"' EXIT
 
-DOWNLOAD_ATTEMPTS=6
-download_attempt=1
-while ! curl -fsSL "$URL" -o "$TMP/$ARCHIVE"; do
-  [ "$download_attempt" -lt "$DOWNLOAD_ATTEMPTS" ] || {
-    printf 'fm-install-actionlint.sh: download failed after %s attempts\n' "$DOWNLOAD_ATTEMPTS" >&2
-    exit 1
-  }
-  printf 'fm-install-actionlint.sh: download attempt %s failed; retrying\n' "$download_attempt" >&2
-  sleep $((1 << (download_attempt - 1)))
-  download_attempt=$((download_attempt + 1))
-done
+fm_download "$URL" "$TMP/$ARCHIVE" || die "download failed for $URL"
 
 if command -v sha256sum >/dev/null 2>&1; then
   ACTUAL_SHA256=$(sha256sum "$TMP/$ARCHIVE" | awk '{print $1}')
