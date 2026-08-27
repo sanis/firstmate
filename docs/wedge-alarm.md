@@ -4,6 +4,8 @@ The away-mode sub-supervisor (`bin/fm-supervise-daemon.sh`) buffers escalations 
 When injection cannot confirm a submit past `FM_MAX_DEFER_SECS`, `inject_wedge_alarm` raises a loud, rate-limited alarm so the stall never stays invisible.
 The active alert is pane-independent because a tmux status-line flash has no cross-backend equivalent and cannot reach an unattended captain reliably.
 The durable marker and tmux flash remain as additional signals.
+The marker is the primary, backend-independent record, so it is written BEFORE any channel is dispatched and rewritten afterwards with what the dispatch established: a channel that hangs for its whole bounded window, or a daemon terminated inside that window, can never cost the wedge its record.
+Its `Alert accounting:` line always describes the window it belongs to - a window whose alert was suppressed by the re-alarm rate limit says so rather than reprinting an earlier window's dispatch.
 
 ## Channels
 

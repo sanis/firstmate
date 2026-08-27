@@ -1892,10 +1892,38 @@ test_inject_deferral_names_the_blocking_source_and_claims_no_cause() {
     fi
   ) || fail "deferral-message subshell failed"
   out=$(cat "$log" 2>/dev/null || true)
-  assert_contains "$out" "reported busy by herdr native state" "the deferral must name which source blocked it"
+  assert_contains "$out" "reported busy by herdr native agent state" "a native verdict must be attributed to the backend"
   assert_contains "$out" "default:w1:p2" "the deferral must name the pane it could not reach"
   assert_not_contains "$out" "agent mid-turn" "the deferral must not assert a cause it did not observe"
   pass "inject deferral names the blocking source and no longer claims the agent is mid-turn"
+}
+
+# The whole point of pane_busy_source is that the two sources are DIFFERENT
+# things. A rendered-signature block is the primary harness's own reading of the
+# pane, not anything the backend reported, so the deferral must not credit it to
+# the backend - the confusion the incident's 2169 identical lines came from.
+test_inject_deferral_attributes_a_rendered_block_to_the_harness() {
+  local dir state log out
+  dir=$(make_supercase inject-defer-rendered)
+  state="$dir/state"
+  afk_enter "$state"
+  log="$dir/daemon.log"
+  (
+    LOG="$log"
+    fm_backend_target_exists() { return 0; }
+    pane_busy_source() { printf 'rendered'; }
+    fm_backend_composer_state() { fail "composer_state should not be consulted once the busy-guard deferred"; }
+    if FM_DAEMON_PRIMARY_HARNESS=claude FM_SUPERVISOR_BACKEND=herdr \
+       FM_SUPERVISOR_TARGET="default:w1:p2" inject_msg "hello" "$state"; then
+      fail "inject_msg should defer while the rendered signature reports busy"
+    fi
+  ) || fail "rendered-deferral subshell failed"
+  out=$(cat "$log" 2>/dev/null || true)
+  assert_contains "$out" "reported busy by the claude rendered busy signature" \
+    "a rendered verdict must be attributed to the primary harness, not the backend"
+  assert_not_contains "$out" "herdr rendered" \
+    "the harness's own rendered signature must never be attributed to the backend"
+  pass "inject deferral attributes a rendered block to the harness, not the backend"
 }
 
 test_log_error_reaches_stderr_as_well_as_the_log() {
@@ -1936,6 +1964,7 @@ test_inject_wedge_alarm_marker_names_blocker_and_alert_accounting() {
   marker="$state/.subsuper-inject-wedged"
   (
     LOG="$dir/daemon.log"
+    WEDGE_ALARM_LAST_EPOCH=0
     fm_backend_busy_state() { printf 'busy'; }
     fm_backend_capture() { printf '%s\n' "$FM_TEST_CLAUDE_FOOTER_BG_SHELL"; }
     FM_WEDGE_ALARM_LOG="$dir/alerts.log" FM_WEDGE_ALARM_CHANNEL=osascript \
@@ -1950,6 +1979,72 @@ test_inject_wedge_alarm_marker_names_blocker_and_alert_accounting() {
   assert_contains "$body" "Alert accounting:" "the marker must carry what the alert actually established"
   assert_contains "$body" "needs-decision: pick one" "the marker must still carry the buffered escalations"
   pass "wedge marker: names the blocking pane, the uncorroborated native verdict, and the alert accounting"
+}
+
+# The durable marker is the PRIMARY, backend-independent record of a wedge, and
+# alert dispatch is synchronous and only per-channel-bounded. If the daemon is
+# SIGTERM'd while a channel hangs (`fm-afk-launch.sh stop` waits 10s), the record
+# must already be on disk. Emulated by a dispatch that never returns.
+test_wedge_marker_is_durable_before_any_channel_is_dispatched() {
+  local dir state marker body
+  dir=$(make_supercase wedge-marker-ordering)
+  state="$dir/state"
+  afk_enter "$state"
+  printf 'dev-x.status: needs-decision: pick one\n' > "$state/.subsuper-escalations"
+  marker="$state/.subsuper-inject-wedged"
+  (
+    LOG="$dir/daemon.log"
+    WEDGE_ALARM_LAST_EPOCH=0
+    fm_backend_busy_state() { printf 'busy'; }
+    fm_backend_capture() { printf 'esc to interrupt\n'; }
+    wedge_alarm_notify() { exit 143; }
+    FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2" \
+      FM_DAEMON_PRIMARY_HARNESS=claude inject_wedge_alarm "$state" 900
+  ) || true
+  body=$(cat "$marker" 2>/dev/null || true)
+  assert_contains "$body" "900s undelivered" \
+    "the durable marker must exist before any alert channel is dispatched"
+  assert_contains "$body" "default:w1:p2" "the pre-dispatch marker must already name the blocked pane"
+  assert_contains "$body" "needs-decision: pick one" \
+    "the pre-dispatch marker must already carry the buffered escalations"
+  pass "wedge marker: written durably before dispatch, so a daemon killed mid-alert still leaves the record"
+}
+
+# WEDGE_ALARM_LAST_ACCOUNTING is a process global. A window whose alert was
+# suppressed by the re-alarm rate limit must say so, never reprint an earlier
+# window's dispatch as if it belonged to this timestamped record.
+test_wedge_marker_never_inherits_a_previous_windows_alert_accounting() {
+  local dir state marker
+  dir=$(make_supercase wedge-accounting-window)
+  state="$dir/state"
+  afk_enter "$state"
+  printf 'dev-x.status: needs-decision: pick one\n' > "$state/.subsuper-escalations"
+  marker="$state/.subsuper-inject-wedged"
+  (
+    LOG="$dir/daemon.log"
+    WEDGE_ALARM_LAST_EPOCH=0
+    export FM_WEDGE_ALARM_LOG="$dir/alerts.log"
+    export FM_WEDGE_ALARM_CHANNEL=osascript
+    export FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2"
+    export FM_DAEMON_PRIMARY_HARNESS=claude FM_MAX_DEFER_SECS=300
+    fm_backend_busy_state() { printf 'busy'; }
+    fm_backend_capture() { printf 'esc to interrupt\n'; }
+    inject_wedge_alarm "$state" 900
+    grep -q 'alerts dispatched: osascript' "$marker" \
+      || fail "the first window must record its own dispatch"
+    # The captain returns and the catch-up clears the marker; a NEW wedge opens
+    # inside the same re-alarm window, so no alert is attempted this time.
+    rm -f "$marker"
+    inject_wedge_alarm "$state" 1200
+    if grep -q 'alerts dispatched: osascript' "$marker"; then
+      fail "a suppressed window inherited the previous window's dispatch accounting"
+    fi
+    grep -q 'no alert attempted in this window' "$marker" \
+      || fail "a suppressed window must state that no alert was attempted"
+    grep -q '1200s undelivered' "$marker" \
+      || fail "the second window must be its own record"
+  ) || fail "wedge accounting-window subshell failed"
+  pass "wedge marker: a suppressed window reports its own silence instead of an earlier window's dispatch"
 }
 
 test_supervisor_pane_is_self_hosted_scopes_to_native_busy_backends() {
@@ -2206,9 +2301,12 @@ test_claude_background_shell_footer_is_not_a_busy_signature
 test_pane_busy_source_names_native_and_rendered
 test_pane_busy_sources_disagree_detects_uncorroborated_native
 test_inject_deferral_names_the_blocking_source_and_claims_no_cause
+test_inject_deferral_attributes_a_rendered_block_to_the_harness
 test_log_error_reaches_stderr_as_well_as_the_log
 test_wedge_alarm_accounting_separates_dispatch_from_delivery
 test_inject_wedge_alarm_marker_names_blocker_and_alert_accounting
+test_wedge_marker_is_durable_before_any_channel_is_dispatched
+test_wedge_marker_never_inherits_a_previous_windows_alert_accounting
 test_supervisor_pane_is_self_hosted_scopes_to_native_busy_backends
 test_pane_input_pending_herdr_dispatch
 test_inject_msg_herdr_busy_guard_defers

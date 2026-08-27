@@ -161,7 +161,7 @@ fm_afk_launch_lock_release() {
 }
 
 fm_afk_launch_usage() {
-  sed -n '2,34p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '2,55p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 # The command run inside the created terminal. Real launch runs the shared
@@ -495,7 +495,9 @@ fm_afk_launch_verify_delivery_path() {  # <captain-target> <captain-backend>
   # The daemon must be running SOMEWHERE OTHER than the pane it delivers into.
   # fm_afk_launch_record_read populates FM_AFK_REC_BACKEND/FM_AFK_REC_TARGET;
   # a 'none/-/native' record means an in-pane host, which on a native-busy
-  # backend can never deliver.
+  # backend can never deliver. Reached from the already-running refresh path,
+  # where a pre-existing in-pane daemon would otherwise be silently refreshed;
+  # a fresh create always records a real terminal before it gets here.
   if fm_afk_launch_record_read && [ "$FM_AFK_REC_BACKEND" = none ] \
      && fm_supervisor_backend_has_native_busy "$captain_backend"; then
     fm_afk_launch_log "away mode not entered: the daemon would run inside '$captain_target', the same pane it must deliver into, and on $captain_backend its own background job keeps that pane reading as busy - so no escalation could ever be delivered. Enter through 'bin/fm-afk-launch.sh start' instead of the in-pane path."
@@ -507,11 +509,16 @@ fm_afk_launch_verify_delivery_path() {  # <captain-target> <captain-backend>
 }
 
 # Undo a launch whose delivery path failed verification: stop the daemon if it
-# came up, close the terminal we created by its exact recorded id, and drop the
-# record. The caller then restores the pre-entry state backup, so a refused entry
-# leaves nothing behind.
+# came up and close the terminal we created by its exact recorded id. The caller
+# then restores the pre-entry state backup, so a refused entry leaves nothing
+# behind.
+#
+# The record is dropped by fm_afk_launch_close_recorded, and ONLY once that
+# confirms the terminal is gone - the same invariant fm_afk_launch_stop keeps.
+# Deleting it on an unconfirmed close would erase the one durable copy of the
+# exact daemon terminal id and strand a live pane nobody can address.
 fm_afk_launch_teardown_after_failed_verify() {
-  local pid
+  local pid read_result
   if daemon_lock_held_by_live_daemon; then
     pid=$(daemon_lock_pid 2>/dev/null) || pid=""
     if [ -n "$pid" ]; then
@@ -522,11 +529,17 @@ fm_afk_launch_teardown_after_failed_verify() {
       done
     fi
   fi
-  if fm_afk_launch_record_read && [ "$FM_AFK_REC_BACKEND" != none ]; then
-    fm_afk_launch_close_recorded || \
-      fm_afk_launch_log "could not close the daemon terminal ${FM_AFK_REC_BACKEND}:${FM_AFK_REC_TARGET} after a refused entry; close it by that exact id"
+  fm_afk_launch_record_read
+  read_result=$?
+  # 1: no record to undo. 2: malformed - fail closed exactly as reconcile/stop
+  # do, rather than acting on or discarding a partial id.
+  [ "$read_result" -eq 0 ] || return 0
+  if [ "$FM_AFK_REC_BACKEND" = none ]; then
+    rm -f "$FM_AFK_LAUNCH_RECORD" 2>/dev/null || true
+    return 0
   fi
-  rm -f "$FM_AFK_LAUNCH_RECORD" 2>/dev/null || true
+  fm_afk_launch_close_recorded || \
+    fm_afk_launch_log "could not confirm teardown of the daemon terminal ${FM_AFK_REC_BACKEND}:${FM_AFK_REC_TARGET} after a refused entry; its exact id stays recorded in $FM_AFK_LAUNCH_RECORD - close it by that id or run 'bin/fm-afk-launch.sh reconcile'"
 }
 
 fm_afk_launch_start() {
@@ -545,6 +558,12 @@ fm_afk_launch_start() {
 
   if daemon_lock_held_by_live_daemon; then
     fm_afk_launch_record_validate_if_present || return 1
+    # An already-running daemon is never re-created, so this refresh is the ONLY
+    # place a PRE-EXISTING undeliverable daemon can be caught - including one
+    # hosted in the captain's own pane from before this routing rule existed.
+    # Verified BEFORE the flag refresh, so a refusal leaves lifecycle state
+    # exactly as it found it and nothing has to be rolled back.
+    fm_afk_launch_verify_delivery_path "$captain_target" "$captain_backend" || return 1
     if ! fm_afk_launch_flag_write; then
       fm_afk_launch_log "failed to refresh away-mode flag"
       return 1

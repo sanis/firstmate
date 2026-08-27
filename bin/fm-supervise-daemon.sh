@@ -964,6 +964,22 @@ wedge_alarm_notify() {  # <summary> <marker>
   return 0
 }
 
+# Write the durable wedge record. Split out because it is written TWICE per
+# alarm window on purpose: once before any alert channel is dispatched, so the
+# wedge is durably recorded even if the daemon dies mid-dispatch, and once after
+# wedge_alarm_notify returns, to fold in what the dispatch actually established.
+# The stamped timestamp is passed in so both writes describe the same instant.
+wedge_alarm_write_marker() {  # <marker> <state> <age> <stamp> <target> <backend> <diagnosis> <accounting>
+  local marker=$1 state=$2 age=$3 stamp=$4 target=$5 backend=$6 diagnosis=$7 accounting=$8
+  {
+    printf 'fm away-mode inject WEDGED: %ss undelivered as of %s\n' "$age" "$stamp"
+    printf 'Supervisor pane: %s (%s); %s.\n' "$target" "$backend" "$diagnosis"
+    printf 'Alert accounting: %s\n' "$accounting"
+    printf 'The supervisor pane could not accept an escalation. Buffered items:\n'
+    cat "$state/.subsuper-escalations" 2>/dev/null
+  } 2>/dev/null > "$marker" || true
+}
+
 # Raise a loud, rate-limited alarm when escalations cannot be delivered after
 # max-defer (the supervisor pane is genuinely busy/wedged, or the submit's Enter
 # is swallowed). The daemon must NEVER silently wedge: this logs
@@ -973,7 +989,7 @@ wedge_alarm_notify() {  # <summary> <marker>
 # is lost - the buffer and the
 # wake-queue both survive - but the stall stops being invisible.
 inject_wedge_alarm() {  # <state> <age-seconds>
-  local state=$1 age=$2 marker target backend max_defer now notify=1 blocked_by diagnosis
+  local state=$1 age=$2 marker target backend max_defer now notify=1 blocked_by diagnosis stamp accounting
   marker="$state/.subsuper-inject-wedged"
   max_defer="${FM_MAX_DEFER_SECS:-$MAX_DEFER_SECS_DEFAULT}"
   # Re-alarm at most once per max-defer window so a long wedge does not spam.
@@ -1004,16 +1020,26 @@ inject_wedge_alarm() {  # <state> <age-seconds>
     WEDGE_ALARM_LAST_EPOCH=$now
     log_error "ERROR: away-mode escalation undelivered ${age}s into $target; $diagnosis. Buffer + wake-queue preserved; alarm marker written."
   fi
+  # The durable marker is written FIRST, before any channel is dispatched.
+  # wedge_alarm_notify is synchronous and bounded PER CHANNEL, so a hung channel
+  # holds this function for FM_WEDGE_ALARM_TIMEOUT_SECS at a time; a SIGTERM
+  # arriving in that window (`fm-afk-launch.sh stop` waits only 10s) must not be
+  # able to lose the primary, backend-independent record of the wedge.
+  stamp=$(date '+%Y-%m-%dT%H:%M:%S%z')
   if [ "$notify" -eq 1 ]; then
-    wedge_alarm_notify "away-mode escalations WEDGED ${age}s undelivered - see $marker" "$marker"
+    accounting="alert dispatch starting; this record was written before dispatch so the wedge survives a channel that hangs"
+  else
+    accounting="no alert attempted in this window (an alert for this wedge already fired within the last ${max_defer}s)"
   fi
-  {
-    printf 'fm away-mode inject WEDGED: %ss undelivered as of %s\n' "$age" "$(date '+%Y-%m-%dT%H:%M:%S%z')"
-    printf 'Supervisor pane: %s (%s); %s.\n' "$target" "$backend" "$diagnosis"
-    printf 'Alert accounting: %s\n' "${WEDGE_ALARM_LAST_ACCOUNTING:-no active alert attempted in this window}"
-    printf 'The supervisor pane could not accept an escalation. Buffered items:\n'
-    cat "$state/.subsuper-escalations" 2>/dev/null
-  } 2>/dev/null > "$marker" || true
+  wedge_alarm_write_marker "$marker" "$state" "$age" "$stamp" "$target" "$backend" "$diagnosis" "$accounting"
+  if [ "$notify" -eq 1 ]; then
+    # Reset per window: WEDGE_ALARM_LAST_ACCOUNTING is a process global, and a
+    # marker must never report a previous window's dispatch as its own.
+    WEDGE_ALARM_LAST_ACCOUNTING=""
+    wedge_alarm_notify "away-mode escalations WEDGED ${age}s undelivered - see $marker" "$marker"
+    accounting="${WEDGE_ALARM_LAST_ACCOUNTING:-alert dispatch was attempted but no channel reported a result}"
+    wedge_alarm_write_marker "$marker" "$state" "$age" "$stamp" "$target" "$backend" "$diagnosis" "$accounting"
+  fi
   # Best-effort status-line flash. tmux's display-message is a client-side OSD
   # with no herdr equivalent; the log line + durable marker above are already
   # the primary, backend-independent signal, so a non-tmux backend just skips
@@ -1236,8 +1262,15 @@ inject_msg() {  # <message> [state]
   busy_source=$(pane_busy_source "$target" "$backend")
   if [ -n "$busy_source" ]; then
     # Say WHICH source blocked it and never assert why. "agent mid-turn" was an
-    # inference, and on 2026-08-26 it was false for every one of 2169 lines.
-    log "inject deferred: supervisor pane $target reported busy by $backend $busy_source state"
+    # inference, and on 2026-08-26 it was false for every one of 2169 lines. The
+    # two sources are attributed separately - a native verdict belongs to the
+    # BACKEND, a rendered one to the primary HARNESS's own signature - because
+    # conflating them is what made the incident unreadable in the first place.
+    if [ "$busy_source" = native ]; then
+      log "inject deferred: supervisor pane $target reported busy by $backend native agent state"
+    else
+      log "inject deferred: supervisor pane $target reported busy by the $(fm_daemon_primary_harness) rendered busy signature"
+    fi
     return 1
   fi
   #   b) Composer-guard: inject ONLY into a confirmed-empty GENUINE agent

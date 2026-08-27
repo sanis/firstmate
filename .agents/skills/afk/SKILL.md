@@ -49,6 +49,8 @@ batched digest rather than per-wake injections.
      support").
    Both paths share `bin/fm-afk-start.sh` as the daemon entry.
    `start` verifies once, before reporting success, that the delivery path is not already permanently blocked, and refuses the whole entry rather than entering away mode that cannot reach the captain.
+   It runs that same verification when it finds a daemon already alive, so a pre-existing daemon hosted in the captain's own pane is refused instead of silently refreshed.
+   `bin/fm-afk-start.sh` refuses the same self-hosting combination itself, before it writes any lifecycle state, so a refused entry never leaves away mode half-entered.
    The native path tells it that the launcher already prepared lifecycle state; the terminal-backed path lets the entry perform its existing state setup inside the new terminal.
    It exits immediately if the identity-backed daemon lock already names a live process, otherwise it execs `bin/fm-supervise-daemon.sh` in the foreground.
    The daemon is **presence-gated**: it injects escalations only while

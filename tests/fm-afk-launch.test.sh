@@ -562,26 +562,176 @@ unit_native_allowed_when_daemon_is_not_the_target() {
 
 # R4: an entry whose delivery path is already blocked is refused and fully rolled
 # back, rather than reporting success and going quiet for the night.
+#
+# The daemon terminal really comes up here (a stubbed tmux that accepts
+# new-session), so the refusal can only come from the delivery-path verification
+# itself - the captain target is not a live pane. That also drives the rollback:
+# the created terminal must be closed by its exact recorded id and the pre-entry
+# state restored.
 unit_verify_delivery_path_refuses_and_rolls_back() {
-  local st out
+  local st out killed
   st=$(mktemp -d "${TMPDIR:-/tmp}/fm-afk-verify.XXXXXX")
   mkdir -p "$st/state"
+  printf 'pending\n' > "$st/state/.subsuper-escalations"
+  killed="$st/killed"
   if out=$(FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
-           FM_SUPERVISOR_TARGET='%99' FM_SUPERVISOR_BACKEND=zellij \
-           "$LAUNCH" start 2>&1); then
-    fail "start must refuse a backend the away daemon cannot supervise"
+           FM_SUPERVISOR_TARGET='%99' FM_SUPERVISOR_BACKEND=tmux \
+           FM_AFK_LAUNCH_ENTRY="$SLEEPER" KILLED="$killed" bash -c '
+    . "$1"
+    tmux() {
+      case "$1" in
+        new-session) return 0 ;;
+        kill-session) printf "%s" "$3" > "$KILLED"; return 0 ;;
+        has-session) printf "can'\''t find session: %s" "$3" >&2; return 1 ;;
+      esac
+      # display-message (the captain-pane existence probe) and anything else:
+      # %99 is not a live pane.
+      return 1
+    }
+    fm_afk_launch_wait_ready() { return 0; }
+    fm_afk_launch_start
+  ' _ "$LAUNCH" 2>&1); then
+    fail "start must refuse an entry whose delivery target is not a live pane"
   else
     pass "start refuses an entry whose delivery path is already blocked"
   fi
   case "$out" in
-    *"away mode not entered"*|*"no non-visible daemon-launch primitive"*)
-      pass "refused start says away mode was not entered" ;;
-    *) fail "refused start did not say what happened: $out" ;;
+    *"away mode not entered"*"not a live tmux pane"*)
+      pass "refused start names the unreachable delivery target" ;;
+    *) fail "refused start did not name the unreachable delivery target: $out" ;;
   esac
-  if [ ! -e "$st/state/.afk" ]; then
-    pass "refused start rolled the away-mode flag back"
+  case "$(cat "$killed" 2>/dev/null || true)" in
+    fm-afk-daemon-*) pass "refused start tore the created daemon terminal down by its exact id" ;;
+    *) fail "refused start did not close the daemon terminal it had created" ;;
+  esac
+  if [ ! -e "$st/state/.afk" ] && [ ! -e "$st/state/.afk-daemon-terminal" ]; then
+    pass "refused start rolled the away-mode flag and terminal record back"
   else
     fail "refused start left away mode half-entered"
+  fi
+  if [ "$(cat "$st/state/.subsuper-escalations" 2>/dev/null || true)" = pending ]; then
+    pass "refused start restored the pre-entry delivery artifacts"
+  else
+    fail "refused start discarded the pre-entry delivery artifacts"
+  fi
+  rm -rf "$st"
+}
+
+# An UNCONFIRMED close during that rollback must keep the exact terminal id, the
+# same contract fm_afk_launch_stop keeps (unit_close_failure_preserves_record).
+# Dropping it strands a live daemon terminal nobody can address any more.
+unit_refused_entry_preserves_unconfirmed_terminal_record() {
+  local st
+  st=$(mktemp -d "${TMPDIR:-/tmp}/fm-afk-verify-unconfirmed.XXXXXX")
+  mkdir -p "$st/state"
+  printf 'tmux\texact-session\t\n' > "$st/state/.afk-daemon-terminal"
+  FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" bash -c '
+    . "$1"
+    fm_afk_launch_close_terminal() { return 1; }
+    fm_afk_launch_terminal_absent() { return 1; }
+    fm_afk_launch_teardown_after_failed_verify
+  ' _ "$LAUNCH" >/dev/null 2>&1
+  if [ "$(cut -f2 "$st/state/.afk-daemon-terminal" 2>/dev/null || true)" = exact-session ]; then
+    pass "refused entry: an unconfirmed terminal close preserves its exact reconciliation id"
+  else
+    fail "refused entry: an unconfirmed terminal close discarded the exact id"
+  fi
+  rm -rf "$st"
+}
+
+# A daemon ALREADY hosted in the captain's own pane is never re-created, so the
+# refresh path is the only place it can be caught. Before this it was silently
+# refreshed and the night stayed silent.
+unit_refresh_refuses_a_pre_existing_self_hosted_daemon() {
+  local st out
+  st=$(mktemp -d "${TMPDIR:-/tmp}/fm-afk-refresh-selfhost.XXXXXX")
+  mkdir -p "$st/state"
+  printf 'none\t-\tnative\n' > "$st/state/.afk-daemon-terminal"
+  : > "$st/state/.afk"
+  out=$(FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
+        FM_SUPERVISOR_TARGET='default:w1R:p1' FM_SUPERVISOR_BACKEND=herdr bash -c '
+    . "$1"
+    daemon_lock_held_by_live_daemon() { return 0; }
+    fm_backend_target_exists() { return 0; }
+    fm_afk_launch_flag_write() { : > "$FM_HOME/refreshed"; }
+    fm_afk_launch_start
+  ' _ "$LAUNCH" 2>&1)
+  if [ -n "$out" ] && [ ! -e "$st/refreshed" ]; then
+    pass "refresh: a pre-existing in-pane daemon is refused instead of silently refreshed"
+  else
+    fail "refresh: a pre-existing in-pane daemon was refreshed as if deliverable ($out)"
+  fi
+  case "$out" in
+    *"same pane it must deliver into"*) pass "refresh refusal names what is blocked" ;;
+    *) fail "refresh refusal did not explain the blockage: $out" ;;
+  esac
+  # Control: the same refresh with a real, separate daemon terminal proceeds, so
+  # the assertion above cannot pass by refresh having stopped working.
+  printf 'tmux\tdaemon-session\t\n' > "$st/state/.afk-daemon-terminal"
+  rm -f "$st/refreshed"
+  FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
+    FM_SUPERVISOR_TARGET='default:w1R:p1' FM_SUPERVISOR_BACKEND=herdr bash -c '
+    . "$1"
+    daemon_lock_held_by_live_daemon() { return 0; }
+    fm_backend_target_exists() { return 0; }
+    fm_afk_launch_flag_write() { : > "$FM_HOME/refreshed"; }
+    fm_afk_launch_start
+  ' _ "$LAUNCH" >/dev/null 2>&1
+  if [ -e "$st/refreshed" ]; then
+    pass "refresh: a daemon in its own terminal still refreshes the away-mode flag"
+  else
+    fail "refresh: a deliverable daemon was refused"
+  fi
+  rm -rf "$st"
+}
+
+# The daemon entry itself must refuse a self-hosting launch BEFORE it writes
+# state/.afk. Refusing after would leave away mode half-entered: the flag set,
+# the watcher queueing durable wakes, and no supervisor able to drain them -
+# worse than the incident it replaces.
+unit_afk_start_refuses_self_hosting_before_writing_the_flag() {
+  local st out
+  st=$(mktemp -d "${TMPDIR:-/tmp}/fm-afk-start-selfhost.XXXXXX")
+  mkdir -p "$st/state"
+  # A live daemon lock, so the control case below exits at the already-running
+  # branch instead of exec'ing a real daemon.
+  mkdir -p "$st/state/.supervise-daemon.lock"
+  printf '%s' "$$" > "$st/state/.supervise-daemon.lock/pid"
+  ( . "$ROOT/bin/fm-wake-lib.sh"; fm_pid_identity "$$" > "$st/state/.supervise-daemon.lock/pid-identity" ) || true
+
+  if out=$(FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
+           HERDR_ENV=1 HERDR_PANE_ID=w1R:p1 HERDR_SESSION=default TMUX_PANE='' \
+           FM_SUPERVISOR_TARGET='default:w1R:p1' FM_SUPERVISOR_BACKEND=herdr \
+           "$START" 2>&1); then
+    fail "fm-afk-start.sh must refuse to host the daemon in the pane it delivers into"
+  else
+    pass "fm-afk-start.sh refuses to host the daemon in its own delivery target"
+  fi
+  case "$out" in
+    *"pane it must deliver into"*) pass "the entry refusal says what is blocked" ;;
+    *) fail "the entry refusal did not explain the blockage: $out" ;;
+  esac
+  case "$out" in
+    *"fm-afk-launch.sh start"*) pass "the entry refusal names the path to use instead" ;;
+    *) fail "the entry refusal did not name the supported path: $out" ;;
+  esac
+  if [ ! -e "$st/state/.afk" ]; then
+    pass "the refused entry left no away-mode flag behind"
+  else
+    fail "the refused entry left away mode half-entered"
+  fi
+
+  # Control: the same pane hosting a daemon that delivers ELSEWHERE is allowed,
+  # and does write the flag - so the refusal above is specific, not a blanket
+  # failure of this entry.
+  out=$(FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
+        HERDR_ENV=1 HERDR_PANE_ID=w9Z:p4 HERDR_SESSION=default TMUX_PANE='' \
+        FM_SUPERVISOR_TARGET='default:w1R:p1' FM_SUPERVISOR_BACKEND=herdr \
+        "$START" 2>&1)
+  if [ -e "$st/state/.afk" ]; then
+    pass "a daemon entry outside its delivery target still enters away mode ($out)"
+  else
+    fail "a deliverable daemon entry was refused ($out)"
   fi
   rm -rf "$st"
 }
@@ -1024,6 +1174,9 @@ unit_native_lifecycle
 unit_native_refused_on_native_busy_backend
 unit_native_allowed_when_daemon_is_not_the_target
 unit_verify_delivery_path_refuses_and_rolls_back
+unit_refused_entry_preserves_unconfirmed_terminal_record
+unit_refresh_refuses_a_pre_existing_self_hosted_daemon
+unit_afk_start_refuses_self_hosting_before_writing_the_flag
 unit_native_entry_preserves_prepared_state
 unit_close_failure_preserves_record
 unit_record_publication_atomic

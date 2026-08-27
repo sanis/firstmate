@@ -293,9 +293,11 @@ The pane-independent max-defer alert is configured in [`wedge-alarm.md`](wedge-a
 
 Under Herdr the away daemon always runs in its own terminal, whatever the harness offers.
 A harness-native in-pane background job is not usable here: Herdr's native agent state observes the pane's own background jobs, so a daemon hosted in the captain's pane keeps that pane reporting `working` for its whole lifetime, and the daemon's busy guard then defers every injection into it.
-That is a self-referential deadlock rather than a tuning problem, so `bin/fm-afk-launch.sh start-native` refuses on Herdr and the daemon refuses again at startup if it finds itself a tenant of its own supervisor target.
+That is a self-referential deadlock rather than a tuning problem, so `bin/fm-afk-launch.sh start-native` refuses on Herdr, `bin/fm-afk-start.sh` refuses before it writes any lifecycle state, and the daemon refuses again at startup if it finds itself a tenant of its own supervisor target.
 `bin/fm-afk-launch.sh` creates a dedicated unfocused Herdr workspace, runs the daemon there with an explicit supervisor target and backend, records the exact daemon pane, and closes only that pane on stop.
 Before reporting success it verifies once that the delivery path is not already permanently blocked, and rolls the whole entry back rather than entering away mode that cannot reach the captain.
+The rollback closes the created terminal by its exact recorded id and drops the record only once that close is confirmed, so an unconfirmed close still leaves an id `reconcile` can act on.
+The same verification runs when a daemon is already alive, which is the only place a pre-existing in-pane daemon can be caught, since such a daemon is never re-created.
 That check is deliberately identity-based, never a busy sample: Firstmate is mid-turn running the launcher, so the captain pane is legitimately busy at entry.
 It never splits the captain's active tab and never uses shell `&`.
 Recovery reconciles only the recorded exact id.
