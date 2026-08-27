@@ -64,7 +64,7 @@ while [ "$#" -gt 0 ]; do
       write_out=$2
       shift 2
       ;;
-    --connect-timeout|--max-filesize|--max-time|--retry)
+    --connect-timeout|--max-filesize|--max-time|--retry|--speed-limit|--speed-time)
       shift 2
       ;;
     -*)

@@ -11,8 +11,11 @@
 # and a bounded give-up that still fails.
 #
 # Everything here drives the real interface - fm_download as installers source
-# it, and the installer scripts themselves - against a local curl stub. Nothing
-# reaches the network and nothing asserts implementation source.
+# it, and the installer scripts themselves - against a local curl stub. The one
+# exception is the stall case, which must run REAL curl because the stall guard
+# is curl's own behaviour and a stub could only confirm an assumption written
+# into the stub; it reaches a loopback server on 127.0.0.1 and nothing further.
+# Nothing leaves the host and nothing asserts implementation source.
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -35,9 +38,22 @@ TREEHOUSE_SHA_LINUX_AMD64=1d5a32751ab921670103fd201ddb2b91b47338cb13976f45642b82
 # (https://github.com/ogulcancelik/herdr/releases/tag/v0.7.4).
 HERDR_SHA_LINUX_X86_64=bc0fc02d4ba500f9cac2353a43e67fe036785ecca6eb55378e050fac3c103059
 
-# The bound the library publishes, read from the library itself so these tests
-# follow a deliberate policy change instead of pinning a stale number.
-ATTEMPTS=$(bash -c '. "$1"; printf "%s\n" "$FM_DOWNLOAD_ATTEMPTS"' _ "$LIB")
+# fm_download_bounds: the attempt bound and the two stall-guard numbers the
+# library resolves, printed as "<attempts> <speed-limit> <speed-time>". Read by
+# sourcing the library with every override seam cleared, so these tests follow a
+# deliberate policy change instead of pinning a stale number, and cannot be
+# fooled by an override leaking in from the host that runs them.
+fm_download_bounds() {
+  bash -c '
+    unset FM_DOWNLOAD_ATTEMPTS FM_DOWNLOAD_CONNECT_TIMEOUT
+    unset FM_DOWNLOAD_SPEED_LIMIT FM_DOWNLOAD_SPEED_TIME
+    . "$1"
+    printf "%s %s %s\n" \
+      "$FM_DOWNLOAD_ATTEMPTS" "$FM_DOWNLOAD_SPEED_LIMIT" "$FM_DOWNLOAD_SPEED_TIME"
+  ' _ "$LIB"
+}
+
+read -r ATTEMPTS SPEED_LIMIT SPEED_TIME < <(fm_download_bounds)
 
 # fm_download_driver <tmp>: write a script that sources the library and calls
 # fm_download exactly as an installer does, so these tests exercise the shipped
@@ -194,6 +210,103 @@ test_gives_up_within_the_published_bound() {
   pass "fm_download gives up after exactly $ATTEMPTS attempts and still fails"
 }
 
+# fm_download_stall_server <tmp>: start a loopback HTTP server that answers 200
+# with a Content-Length, writes a few body bytes, and then stops writing while
+# holding the connection open - the mid-body stall a dead CDN produces, and the
+# one failure shape a connect timeout cannot bound. Echoes "<pid> <port>". Every
+# connection gets the same treatment, so a retry ladder stalls on each attempt.
+fm_download_stall_server() {
+  local tmp=$1 pid waited
+  cat > "$tmp/stall-server.py" <<'STALL'
+import socket
+import sys
+import threading
+import time
+
+server = socket.socket()
+server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+server.bind(("127.0.0.1", 0))
+server.listen(8)
+with open(sys.argv[1], "w") as handle:
+    handle.write("%d\n" % server.getsockname()[1])
+
+def stall(connection):
+    try:
+        connection.recv(65536)
+        connection.sendall(b"HTTP/1.1 200 OK\r\nContent-Length: 1048576\r\n\r\n")
+        connection.sendall(b"partial")
+        while True:
+            time.sleep(3600)
+    except OSError:
+        pass
+
+while True:
+    accepted, _ = server.accept()
+    threading.Thread(target=stall, args=(accepted,), daemon=True).start()
+STALL
+  python3 "$tmp/stall-server.py" "$tmp/port" &
+  pid=$!
+  waited=0
+  while [ ! -s "$tmp/port" ]; do
+    if [ "$waited" -ge 100 ]; then
+      kill "$pid" 2>/dev/null
+      return 1
+    fi
+    sleep 0.1
+    waited=$((waited + 1))
+  done
+  printf '%s %s\n' "$pid" "$(cat "$tmp/port")"
+}
+
+test_a_stalled_transfer_is_abandoned_rather_than_hung() {
+  local tmp driver server_pid port driver_pid rc out deadline timed_out
+
+  if ! command -v python3 >/dev/null 2>&1; then
+    printf 'skip: python3 not found (required to serve a stalled response)\n'
+    return 0
+  fi
+
+  tmp=$(fm_test_tmproot fm-download-stall)
+  driver=$(fm_download_driver "$tmp")
+  read -r server_pid port < <(fm_download_stall_server "$tmp") \
+    || fail "the stalling server never reported its port"
+
+  # Real curl, no stub: the guard being proved is curl's own, so a fake curl
+  # could only confirm whatever assumption the fake was written with. The stall
+  # window is shortened through the library's published seam so the case costs
+  # seconds instead of the shipped 30 per attempt.
+  FM_DOWNLOAD_ATTEMPTS=2 FM_DOWNLOAD_SPEED_TIME=2 \
+    "$driver" "http://127.0.0.1:$port/asset.tar.gz" "$tmp/asset" > "$tmp/out" 2>&1 &
+  driver_pid=$!
+
+  # A hard bound in the test itself, so a regression that drops the guard fails
+  # loudly here instead of hanging the suite until CI's job timeout.
+  timed_out=0
+  deadline=$(($(date +%s) + 30))
+  while kill -0 "$driver_pid" 2>/dev/null; do
+    if [ "$(date +%s)" -ge "$deadline" ]; then
+      timed_out=1
+      kill -9 "$driver_pid" 2>/dev/null
+      break
+    fi
+    sleep 1
+  done
+  rc=0
+  wait "$driver_pid" 2>/dev/null || rc=$?
+  kill "$server_pid" 2>/dev/null
+  wait "$server_pid" 2>/dev/null || :
+  out=$(cat "$tmp/out")
+
+  [ "$timed_out" -eq 0 ] \
+    || fail "a stalled transfer was never abandoned: fm_download still ran after 30s"$'\n'"$out"
+  [ "$rc" -ne 0 ] || fail "a stalled transfer reported success"$'\n'"$out"
+  # The retry line names the status, which is how this case is distinguished
+  # from a connect failure: the response arrived healthy and then went quiet.
+  assert_contains "$out" "http 200" \
+    "the abandoned attempt was not the healthy-response-then-stall case this guards"
+  pass "fm_download abandons a stalled transfer instead of hanging on it"
+}
+
 test_caller_arguments_reach_curl_unchanged() {
   local tmp fakebin driver args
   read -r tmp fakebin < <(fm_download_setup fm-download-args)
@@ -209,6 +322,15 @@ test_caller_arguments_reach_curl_unchanged() {
   assert_contains "$args" "-fsSL" \
     "fm_download stopped failing on HTTP errors, staying silent, or following redirects"
   assert_contains "$args" "--connect-timeout" "fm_download left the connect phase unbounded"
+  assert_contains "$args" "--speed-limit $SPEED_LIMIT" \
+    "fm_download left an in-flight transfer without a progress floor"
+  assert_contains "$args" "--speed-time $SPEED_TIME" \
+    "fm_download left an in-flight transfer without a stall window"
+  # The header's worst case is arithmetic over the shipped bounds, so a silent
+  # drift in either number would leave that documented ceiling untrue.
+  if [ "$SPEED_LIMIT" -ne 1024 ] || [ "$SPEED_TIME" -ne 30 ]; then
+    fail "the shipped stall guard is $SPEED_LIMIT B/s over ${SPEED_TIME}s, not the documented 1024 over 30"
+  fi
   pass "fm_download forwards caller bounds and keeps curl's own safety flags"
 }
 
@@ -345,6 +467,7 @@ test_retries_a_server_side_transient_status
 test_missing_asset_fails_fast
 test_permanent_client_and_local_failures_are_not_retried
 test_gives_up_within_the_published_bound
+test_a_stalled_transfer_is_abandoned_rather_than_hung
 test_caller_arguments_reach_curl_unchanged
 test_treehouse_installer_recovers_and_keeps_its_bound
 test_herdr_installer_recovers_and_keeps_its_bound

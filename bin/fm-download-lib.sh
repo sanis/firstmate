@@ -15,9 +15,29 @@
 #
 # Bound, and why these numbers: 4 attempts with 1s, 2s then 4s of backoff, so a
 # sustained outage costs about 7 seconds of waiting rather than the minute the
-# previous 6-attempt ladder spent before failing anyway. Each attempt's connect
-# phase is bounded too, because curl's 300s default would let four attempts hang
-# for twenty minutes against a black hole and defeat the point of a bound.
+# previous 6-attempt ladder spent before failing anyway. Attempts alone are not
+# a bound, though, because curl leaves both ends of a request open by default:
+# a 300s connect timeout, and no transfer timeout whatsoever. Both ends are
+# closed here, and the arithmetic below is what the closed ends buy.
+#
+# Worst case, from the numbers this file sets:
+#   - one attempt costs at most 20s of connect plus 30s of stall detection: 50s
+#   - four attempts: 4 x 50s = 200s
+#   - backoff between them: 1s + 2s + 4s = 7s
+#   - total: 207s, about three and a half minutes
+# That is the ceiling for the slowest possible give-up. The common failure is
+# far cheaper: a request that dies during connect - a DNS failure, a refused
+# connection - never spends its connect or stall budget at all, so the whole
+# ladder costs only the 7s of backoff, measured at about 8s of wall clock
+# against a real unroutable host.
+#
+# The stall guard is deliberately keyed on progress rather than elapsed time. A
+# transfer sustaining at least 1024 B/s is never aborted however long it runs,
+# because that is a slow download and not a dead one; only a transfer that stays
+# below that floor for 30 continuous seconds is given up on. A flat wall-clock
+# --max-time cannot tell those two apart and would fail a large asset on a slow
+# runner, trading this stall for a new class of false failure. This bounds a
+# dead transfer, not a slow one, and that is the intended trade.
 #
 # Classification, and why each class sits where it does. The HTTP status is the
 # primary axis and curl's exit code only the secondary one, because curl reuses
@@ -51,11 +71,19 @@
 #     unrecognized failure fails fast rather than being assumed transient.
 set -u
 
+# Bounds (overridable for tests). The shipped defaults are the four numbers the
+# header's worst-case arithmetic is computed from.
 # Attempts include the first try: 4 means one download plus three retries.
-FM_DOWNLOAD_ATTEMPTS=4
+FM_DOWNLOAD_ATTEMPTS=${FM_DOWNLOAD_ATTEMPTS:-4}
 # Seconds allowed for each attempt's connect phase. Generous for any real
-# handshake, and short enough that four dead attempts stay inside the bound.
-FM_DOWNLOAD_CONNECT_TIMEOUT=20
+# handshake, and short enough to keep the per-attempt ceiling at 50s.
+FM_DOWNLOAD_CONNECT_TIMEOUT=${FM_DOWNLOAD_CONNECT_TIMEOUT:-20}
+# The stall guard: bytes per second an in-flight transfer must sustain, and how
+# many continuous seconds it may stay below that before curl abandons the
+# attempt. 1024 B/s is far under anything a real release-asset fetch delivers,
+# so this catches a dead transfer without punishing a slow one.
+FM_DOWNLOAD_SPEED_LIMIT=${FM_DOWNLOAD_SPEED_LIMIT:-1024}
+FM_DOWNLOAD_SPEED_TIME=${FM_DOWNLOAD_SPEED_TIME:-30}
 
 # fm_download_transient <curl-exit-code> <http-status>
 # Exit 0 when the failure is worth another attempt. See the header for why.
@@ -83,6 +111,8 @@ fm_download() {
     rc=0
     status=$(curl -fsSL \
       --connect-timeout "$FM_DOWNLOAD_CONNECT_TIMEOUT" \
+      --speed-limit "$FM_DOWNLOAD_SPEED_LIMIT" \
+      --speed-time "$FM_DOWNLOAD_SPEED_TIME" \
       --write-out '%{http_code}' \
       "$@" "$url" -o "$output") || rc=$?
     if [ "$rc" -eq 0 ]; then
