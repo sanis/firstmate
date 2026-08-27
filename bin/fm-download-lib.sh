@@ -4,7 +4,7 @@
 # Sourced, never executed. Every installer under bin/ that fetches a pinned
 # release asset does it through fm_download, so the retry policy - what is worth
 # retrying, how many attempts, and how long a hopeless download may cost - is
-# stated once here instead of drifting across five copies of the same flags.
+# stated once here instead of drifting across four copies of the same flags.
 #
 #   fm_download <url> <output-path> [extra curl args...]
 #       Downloads <url> to <output-path> with `curl -fsSL`, retrying only
