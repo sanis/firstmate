@@ -24,9 +24,13 @@ batched digest rather than per-wake injections.
    The flag survives a firstmate restart, so recovery re-enters afk when it is present.
 
 2. **Ensure the sub-supervisor daemon is running as a tracked background process.**
-   Its hosting differs by harness.
+   Its hosting is chosen by BACKEND first, then harness.
    Pick the right path:
-   - **Harness WITH a native in-pane tracked-background tool** (e.g. claude's
+   - **Backend herdr, any harness**: run `bin/fm-afk-launch.sh start`.
+     The harness-native in-pane host is not available here, whatever the harness offers.
+     Herdr's native agent state observes the pane's own background jobs, so a daemon hosted in the captain's pane keeps that pane reading as busy for its whole lifetime and can never deliver into it.
+     `start-native` refuses on herdr for this reason; do not work around the refusal.
+   - **Any other backend, harness WITH a native in-pane tracked-background tool** (e.g. claude's
      background bash, grok's background tool): first run
      `bin/fm-afk-launch.sh start-native`, then run
      `FM_AFK_STATE_PREPARED=1 bin/fm-afk-start.sh` through that native tool.
@@ -44,6 +48,7 @@ batched digest rather than per-wake injections.
      shrinks the captain's pane (docs/herdr-backend.md "Away-mode supervisor
      support").
    Both paths share `bin/fm-afk-start.sh` as the daemon entry.
+   `start` verifies once, before reporting success, that the delivery path is not already permanently blocked, and refuses the whole entry rather than entering away mode that cannot reach the captain.
    The native path tells it that the launcher already prepared lifecycle state; the terminal-backed path lets the entry perform its existing state setup inside the new terminal.
    It exits immediately if the identity-backed daemon lock already names a live process, otherwise it execs `bin/fm-supervise-daemon.sh` in the foreground.
    The daemon is **presence-gated**: it injects escalations only while
@@ -108,9 +113,11 @@ If anything stays buffered past `FM_MAX_DEFER_SECS` (default 300), the daemon
 attempts one normal flush, which still requires an idle pane and an affirmatively empty composer.
 The alarm is defense in depth rather than a substitute for keeping every genuinely idle supported composer injectable.
 If that submit cannot be confirmed, it raises a loud, rate-limited wedge alarm:
-an ERROR in the daemon log, a durable
+an ERROR on the daemon's stderr as well as in its log, a durable
 `state/.subsuper-inject-wedged` marker (surface it on the "while you were out"
 catch-up if present), a tmux status-line flash when applicable, and a configurable backend-independent active alert.
+The ERROR and the marker both name which source called the pane busy, and whether the primary harness's own rendered signature corroborates it.
+No shipped alert channel can confirm the captain actually received it, so the marker records what was dispatched separately from what was confirmed; treat a dispatched alert as sent, never as seen.
 `docs/wedge-alarm.md` owns the alert channel setup, and `docs/verification/supervision.md` "Wedge-alarm channels" owns active evidence.
 So a guard false-positive becomes a visible stall, never an unbounded silent no-op.
 

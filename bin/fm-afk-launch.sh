@@ -5,13 +5,20 @@
 #
 # Why this exists (docs/herdr-backend.md "Away-mode daemon terminal launch"):
 # bin/fm-afk-start.sh execs the supervise daemon in the FOREGROUND of whatever
-# terminal it is already in. Harnesses with a native in-pane tracked-background
-# tool (claude, grok) run it there directly and it is fine. A harness with NO
-# native background mechanism (pi) has to manufacture a terminal, and doing that
-# by SPLITTING the captain's active pane visibly shrinks it - the regression this
-# script fixes. Instead this creates a non-visible tracked terminal (a herdr tab/
-# workspace with --no-focus, or a detached tmux session) that never touches the
-# captain's active tab, and NEVER uses shell `&` (which herdr/codex can reap).
+# terminal it is already in. A harness with NO native background mechanism (pi)
+# has to manufacture a terminal, and doing that by SPLITTING the captain's active
+# pane visibly shrinks it - the regression this script fixes. Instead this creates
+# a non-visible tracked terminal (a herdr tab/workspace with --no-focus, or a
+# detached tmux session) that never touches the captain's active tab, and NEVER
+# uses shell `&` (which herdr/codex can reap).
+#
+# The harness-native in-pane host (claude, grok) is NOT available on every
+# backend. Where the backend's native agent state observes the pane's own
+# background jobs - herdr, see FM_SUPERVISOR_NATIVE_BUSY_BACKENDS in
+# bin/fm-supervisor-target-lib.sh - a daemon hosted in the captain's pane keeps
+# that pane reading as busy for its whole lifetime and can never deliver into it
+# (2026-08-26: 2169 consecutive deferrals over 8.7h). start-native refuses there
+# and the terminal-backed path above is used instead, for every harness.
 #
 # Correct supervisor targeting: the daemon finds the captain pane to inject into
 # from its OWN inherited env (discover_supervisor_target). Running it in a
@@ -26,9 +33,17 @@
 #                              record it. Idempotent: an already-running daemon
 #                              just refreshes state/.afk; a recorded-but-dead
 #                              terminal is reconciled (closed by id) first.
+#                              Before reporting success it verifies once that the
+#                              delivery path is not already permanently blocked
+#                              (fm_afk_launch_verify_delivery_path) and rolls the
+#                              whole entry back when it is.
 #   fm-afk-launch.sh start-native
 #                              Prepare lifecycle state for a harness-native
 #                              background job and record that no terminal exists.
+#                              Refuses on a backend whose native agent state
+#                              observes the pane's own background jobs, because
+#                              the daemon could never deliver into its own host
+#                              pane there; use `start` instead.
 #   fm-afk-launch.sh stop      Correct-ordered exit: SIGTERM the daemon so its
 #                              cleanup flushes WHILE state/.afk is still present,
 #                              wait for it, close the recorded terminal by exact
@@ -458,6 +473,62 @@ fm_afk_launch_create_tmux() {  # <captain-target> <captain-backend>
   fm_afk_launch_log "daemon launched in detached tmux session '$session', supervising $captain_target"
 }
 
+# Verify, once, that the delivery path away mode depends on is not ALREADY
+# permanently blocked, and refuse the whole entry when it is. A refusal at the
+# moment the captain steps away, naming what is blocked, beats a night of
+# silence with the escalations sitting in a buffer (2026-08-26).
+#
+# Every condition here is timing-independent on purpose. Busy-ness deliberately
+# is NOT one of them: firstmate is mid-turn running this very launcher, so the
+# captain pane is legitimately busy at entry and a busy sample would refuse every
+# healthy launch. Do not "improve" this into a busy probe.
+fm_afk_launch_verify_delivery_path() {  # <captain-target> <captain-backend>
+  local captain_target=$1 captain_backend=$2
+  if ! fm_backend_list_contains "$FM_SUPERVISOR_SUPPORTED_BACKENDS" "$captain_backend"; then
+    fm_afk_launch_log "away mode not entered: the away daemon cannot supervise a '$captain_backend' pane (supported: $FM_SUPERVISOR_SUPPORTED_BACKENDS)"
+    return 1
+  fi
+  if ! fm_backend_target_exists "$captain_backend" "$captain_target"; then
+    fm_afk_launch_log "away mode not entered: escalations would be delivered to '$captain_target', which is not a live $captain_backend pane"
+    return 1
+  fi
+  # The daemon must be running SOMEWHERE OTHER than the pane it delivers into.
+  # fm_afk_launch_record_read populates FM_AFK_REC_BACKEND/FM_AFK_REC_TARGET;
+  # a 'none/-/native' record means an in-pane host, which on a native-busy
+  # backend can never deliver.
+  if fm_afk_launch_record_read && [ "$FM_AFK_REC_BACKEND" = none ] \
+     && fm_supervisor_backend_has_native_busy "$captain_backend"; then
+    fm_afk_launch_log "away mode not entered: the daemon would run inside '$captain_target', the same pane it must deliver into, and on $captain_backend its own background job keeps that pane reading as busy - so no escalation could ever be delivered. Enter through 'bin/fm-afk-launch.sh start' instead of the in-pane path."
+    return 1
+  fi
+  # Daemon liveness is NOT rechecked here: fm_afk_launch_commit_terminal already
+  # owns it through fm_afk_launch_wait_ready, and a second copy would drift.
+  return 0
+}
+
+# Undo a launch whose delivery path failed verification: stop the daemon if it
+# came up, close the terminal we created by its exact recorded id, and drop the
+# record. The caller then restores the pre-entry state backup, so a refused entry
+# leaves nothing behind.
+fm_afk_launch_teardown_after_failed_verify() {
+  local pid
+  if daemon_lock_held_by_live_daemon; then
+    pid=$(daemon_lock_pid 2>/dev/null) || pid=""
+    if [ -n "$pid" ]; then
+      kill -TERM "$pid" 2>/dev/null || true
+      for _ in $(seq 1 40); do
+        fm_pid_alive "$pid" || break
+        sleep 0.25
+      done
+    fi
+  fi
+  if fm_afk_launch_record_read && [ "$FM_AFK_REC_BACKEND" != none ]; then
+    fm_afk_launch_close_recorded || \
+      fm_afk_launch_log "could not close the daemon terminal ${FM_AFK_REC_BACKEND}:${FM_AFK_REC_TARGET} after a refused entry; close it by that exact id"
+  fi
+  rm -f "$FM_AFK_LAUNCH_RECORD" 2>/dev/null || true
+}
+
 fm_afk_launch_start() {
   local captain_target captain_backend backup artifact had_afk=0 result
   if [ -e "$FM_AFK_LAUNCH_STATE/.afk-return-catchup" ]; then
@@ -519,6 +590,10 @@ fm_afk_launch_start() {
         ;;
     esac
   fi
+  if [ "$result" -eq 0 ] && ! fm_afk_launch_verify_delivery_path "$captain_target" "$captain_backend"; then
+    fm_afk_launch_teardown_after_failed_verify
+    result=1
+  fi
   if [ "$result" -ne 0 ]; then
     fm_afk_launch_restore_backup "$backup" "$had_afk" || result=1
   else
@@ -528,10 +603,30 @@ fm_afk_launch_start() {
 }
 
 fm_afk_launch_start_native() {
-  local backup artifact had_afk=0 result=0
+  local backup artifact had_afk=0 result=0 captain_target captain_backend
   mkdir -p "$FM_AFK_LAUNCH_STATE" || return 1
   if [ -e "$FM_AFK_LAUNCH_STATE/.afk-return-catchup" ]; then
     fm_afk_launch_log "return catch-up is still pending; run bin/fm-afk-return.sh check before re-entering away mode"
+    return 1
+  fi
+  # Refuse the harness-native in-pane host wherever the daemon would become a
+  # tenant of the pane it must deliver into. Checked before any lifecycle state
+  # is written, so a refused entry never has to be rolled back; the return gate
+  # above stays the outermost guard.
+  #
+  # This is the code half of a rule the /afk skill states in prose. Both must
+  # agree, and a documented procedure that walks the captain into an
+  # undeliverable channel is exactly what happened on 2026-08-26, so the
+  # launcher enforces it rather than trusting the instruction to be followed.
+  # Unlike `start`, this path creates no terminal, so it does not need discovery
+  # to succeed - the daemon repeats it in its own process. Take whatever the
+  # discovery prints (it prints its fallback even when it reports one) and refuse
+  # only on a combination that is definitely self-blocking; an unresolved
+  # fallback is tmux, which is not.
+  captain_target=$(discover_supervisor_target) || true
+  captain_backend=$(discover_supervisor_backend) || true
+  if supervisor_pane_is_self_hosted "$captain_backend" "$captain_target"; then
+    fm_afk_launch_log "refusing the in-pane away daemon on $captain_backend: it would run inside '$captain_target', the same pane it must deliver into, and its own background job keeps that pane reading as busy for its whole lifetime - no escalation could ever be delivered. Use 'bin/fm-afk-launch.sh start', which runs the daemon in its own non-visible terminal and passes this pane in as the delivery target."
     return 1
   fi
   if daemon_lock_held_by_live_daemon; then

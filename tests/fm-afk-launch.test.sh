@@ -488,7 +488,11 @@ unit_native_lifecycle() {
   st=$(mktemp -d "${TMPDIR:-/tmp}/fm-afk-native.XXXXXX")
   mkdir -p "$st/state"
   : > "$st/state/.subsuper-escalations"
-  if FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" "$LAUNCH" start-native >/dev/null 2>&1 \
+  # Pinned env: this case is the native path on a backend where in-pane hosting
+  # is safe. Left ambient it would inherit a herdr session from the machine
+  # running the tests and hit the self-hosting refusal instead.
+  if FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" TMUX_PANE='' HERDR_ENV='' HERDR_PANE_ID='' \
+     "$LAUNCH" start-native >/dev/null 2>&1 \
     && [ "$(cut -f1 "$st/state/.afk-daemon-terminal")" = none ] \
     && [ -e "$st/state/.afk" ] \
     && [ ! -e "$st/state/.subsuper-escalations" ]; then
@@ -501,6 +505,83 @@ unit_native_lifecycle() {
     pass "native lifecycle: uniform stop clears state without closing a terminal"
   else
     fail "native lifecycle: uniform stop retained state"
+  fi
+  rm -rf "$st"
+}
+
+# The 2026-08-26 routing fix: the harness-native in-pane host is refused wherever
+# the daemon would be a tenant of the pane it must deliver into. The refusal must
+# land BEFORE any lifecycle state is written, so a refused entry leaves nothing
+# behind and away mode is not half-entered.
+unit_native_refused_on_native_busy_backend() {
+  local st out
+  st=$(mktemp -d "${TMPDIR:-/tmp}/fm-afk-native-refuse.XXXXXX")
+  mkdir -p "$st/state"
+  if out=$(FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
+           HERDR_ENV=1 HERDR_PANE_ID=w1R:p1 HERDR_SESSION=default TMUX_PANE='' \
+           "$LAUNCH" start-native 2>&1); then
+    fail "start-native must refuse on herdr, where the daemon would block its own delivery"
+  else
+    pass "start-native refuses the in-pane daemon on a native-busy backend"
+  fi
+  case "$out" in
+    *"same pane it must deliver into"*) pass "start-native refusal says what is blocked and why" ;;
+    *) fail "start-native refusal did not explain the blockage: $out" ;;
+  esac
+  case "$out" in
+    *"fm-afk-launch.sh start"*) pass "start-native refusal names the path to use instead" ;;
+    *) fail "start-native refusal did not name the supported path: $out" ;;
+  esac
+  if [ ! -e "$st/state/.afk" ] && [ ! -e "$st/state/.afk-daemon-terminal" ]; then
+    pass "refused start-native wrote no lifecycle state at all"
+  else
+    fail "refused start-native left away-mode state behind"
+  fi
+  rm -rf "$st"
+}
+
+# A pane that is NOT the supervisor target is not self-hosting, so the native
+# path stays available where it is safe. Without this the assertion above could
+# pass by start-native having simply stopped working on herdr.
+unit_native_allowed_when_daemon_is_not_the_target() {
+  local st
+  st=$(mktemp -d "${TMPDIR:-/tmp}/fm-afk-native-allow.XXXXXX")
+  mkdir -p "$st/state"
+  if FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
+     HERDR_ENV=1 HERDR_PANE_ID=w9Z:p4 HERDR_SESSION=default TMUX_PANE='' \
+     FM_SUPERVISOR_TARGET='default:w1R:p1' FM_SUPERVISOR_BACKEND=herdr \
+     "$LAUNCH" start-native >/dev/null 2>&1 \
+     && [ -e "$st/state/.afk" ]; then
+    pass "start-native still proceeds when the daemon pane is not the delivery target"
+  else
+    fail "start-native must not refuse a daemon that lives outside its supervisor pane"
+  fi
+  FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" "$LAUNCH" stop >/dev/null 2>&1
+  rm -rf "$st"
+}
+
+# R4: an entry whose delivery path is already blocked is refused and fully rolled
+# back, rather than reporting success and going quiet for the night.
+unit_verify_delivery_path_refuses_and_rolls_back() {
+  local st out
+  st=$(mktemp -d "${TMPDIR:-/tmp}/fm-afk-verify.XXXXXX")
+  mkdir -p "$st/state"
+  if out=$(FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
+           FM_SUPERVISOR_TARGET='%99' FM_SUPERVISOR_BACKEND=zellij \
+           "$LAUNCH" start 2>&1); then
+    fail "start must refuse a backend the away daemon cannot supervise"
+  else
+    pass "start refuses an entry whose delivery path is already blocked"
+  fi
+  case "$out" in
+    *"away mode not entered"*|*"no non-visible daemon-launch primitive"*)
+      pass "refused start says away mode was not entered" ;;
+    *) fail "refused start did not say what happened: $out" ;;
+  esac
+  if [ ! -e "$st/state/.afk" ]; then
+    pass "refused start rolled the away-mode flag back"
+  else
+    fail "refused start left away mode half-entered"
   fi
   rm -rf "$st"
 }
@@ -940,6 +1021,9 @@ unit_readiness_failure_rolls_back_terminal
 unit_readiness_failure_preserves_unconfirmed_record
 unit_tmux_absence_distinguishes_probe_failure
 unit_native_lifecycle
+unit_native_refused_on_native_busy_backend
+unit_native_allowed_when_daemon_is_not_the_target
+unit_verify_delivery_path_refuses_and_rolls_back
 unit_native_entry_preserves_prepared_state
 unit_close_failure_preserves_record
 unit_record_publication_atomic

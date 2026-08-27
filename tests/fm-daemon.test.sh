@@ -1795,6 +1795,189 @@ test_pane_is_busy_defaults_to_tmux_when_backend_omitted() {
   pass "pane_is_busy: omitted backend defaults to tmux for Grok's isolated fallback"
 }
 
+# THE 2026-08-26 COUNTERFACTUAL, as a portable regression.
+#
+# The away daemon is launched through the harness's own background tool on the
+# in-pane path, which leaves a background shell running in the captain's pane for
+# the daemon's whole lifetime. Claude renders that as a background-shell count in
+# its status footer. A pane whose ONLY difference is that footer segment must not,
+# by itself, be classified busy by firstmate's own rendered guard - otherwise the
+# daemon disqualifies its own delivery target by existing.
+#
+# Pinned here with real captures and no harness because this is the classifier's
+# own logic; the vendor-surface half of the same fact (that herdr's native agent
+# state DOES flip on it, which is why the fix moves the daemon out of the pane
+# rather than re-tuning a guard) is a herdr manifest fact firstmate does not own
+# and must not encode as a second, drifting copy.
+FM_TEST_CLAUDE_FOOTER_IDLE='  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents'
+FM_TEST_CLAUDE_FOOTER_BG_SHELL='  ⏵⏵ bypass permissions on · 1 shell · ← for agents'
+
+test_claude_background_shell_footer_is_not_a_busy_signature() {
+  local idle_pane busy_shell_pane real_turn_pane
+  idle_pane=$(printf '%s\n%s\n%s\n' '────────────' '❯' "$FM_TEST_CLAUDE_FOOTER_IDLE")
+  busy_shell_pane=$(printf '%s\n%s\n%s\n' '────────────' '❯' "$FM_TEST_CLAUDE_FOOTER_BG_SHELL")
+  real_turn_pane=$(printf '%s\n%s\n' '✽ Stewing… (9m 5s · ↓ 27.9k tokens)' "$FM_TEST_CLAUDE_FOOTER_BG_SHELL")
+
+  printf '%s' "$idle_pane" | fm_busy_lines_match claude \
+    && fail "an idle claude pane must not match the claude busy signature"
+  printf '%s' "$busy_shell_pane" | fm_busy_lines_match claude \
+    && fail "a background-shell footer alone must not match the claude busy signature - the away daemon would block its own delivery"
+  # Drive the two apart: the SAME footer during a real turn is still busy, so the
+  # assertion above cannot pass vacuously by the signature having stopped working.
+  printf '%s' "$real_turn_pane" | fm_busy_lines_match claude \
+    || fail "a genuine claude turn must still match the busy signature"
+
+  pass "claude busy signature: a background-shell footer alone is not busy, while a real turn carrying the same footer still is"
+}
+
+test_pane_busy_source_names_native_and_rendered() {
+  (
+    fm_backend_busy_state() { printf 'busy'; }
+    fm_backend_capture() { fail "capture must not run once native state is conclusive"; }
+    [ "$(FM_DAEMON_PRIMARY_HARNESS=claude pane_busy_source 'default:w1:p2' herdr)" = native ] \
+      || fail "a native busy verdict should be reported as source 'native'"
+  ) || fail "native busy-source subshell failed"
+  (
+    fm_backend_busy_state() { printf 'idle'; }
+    fm_backend_capture() { printf 'esc to interrupt\n'; }
+    [ "$(FM_DAEMON_PRIMARY_HARNESS=claude pane_busy_source 'default:w1:p2' herdr)" = rendered ] \
+      || fail "a rendered-only busy verdict should be reported as source 'rendered'"
+  ) || fail "rendered busy-source subshell failed"
+  (
+    fm_backend_busy_state() { printf 'idle'; }
+    fm_backend_capture() { printf '%s\n' "$FM_TEST_CLAUDE_FOOTER_BG_SHELL"; }
+    [ -z "$(FM_DAEMON_PRIMARY_HARNESS=claude pane_busy_source 'default:w1:p2' herdr)" ] \
+      || fail "an idle pane carrying only a background-shell footer must report no busy source"
+  ) || fail "not-busy busy-source subshell failed"
+  pass "pane_busy_source: reports which source called the pane busy, or nothing"
+}
+
+test_pane_busy_sources_disagree_detects_uncorroborated_native() {
+  (
+    fm_backend_busy_state() { printf 'busy'; }
+    fm_backend_capture() { printf '%s\n' "$FM_TEST_CLAUDE_FOOTER_BG_SHELL"; }
+    FM_DAEMON_PRIMARY_HARNESS=claude pane_busy_sources_disagree 'default:w1:p2' herdr \
+      || fail "native busy with no rendered corroboration must be reported as a disagreement"
+  ) || fail "disagreement subshell failed"
+  (
+    fm_backend_busy_state() { printf 'busy'; }
+    fm_backend_capture() { printf 'esc to interrupt\n'; }
+    if FM_DAEMON_PRIMARY_HARNESS=claude pane_busy_sources_disagree 'default:w1:p2' herdr; then
+      fail "native busy corroborated by the rendered signature is not a disagreement"
+    fi
+  ) || fail "agreement subshell failed"
+  (
+    fm_backend_busy_state() { printf 'idle'; }
+    fm_backend_capture() { printf 'esc to interrupt\n'; }
+    if FM_DAEMON_PRIMARY_HARNESS=claude pane_busy_sources_disagree 'default:w1:p2' herdr; then
+      fail "a rendered-only busy verdict is not a native disagreement"
+    fi
+  ) || fail "rendered-only disagreement subshell failed"
+  pass "pane_busy_sources_disagree: flags a native busy verdict the harness signature does not corroborate"
+}
+
+test_inject_deferral_names_the_blocking_source_and_claims_no_cause() {
+  local dir state log out
+  dir=$(make_supercase inject-defer-message)
+  state="$dir/state"
+  afk_enter "$state"
+  log="$dir/daemon.log"
+  (
+    LOG="$log"
+    fm_backend_target_exists() { return 0; }
+    pane_busy_source() { printf 'native'; }
+    fm_backend_composer_state() { fail "composer_state should not be consulted once the busy-guard deferred"; }
+    if FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2" inject_msg "hello" "$state"; then
+      fail "inject_msg should defer while the pane reports busy"
+    fi
+  ) || fail "deferral-message subshell failed"
+  out=$(cat "$log" 2>/dev/null || true)
+  assert_contains "$out" "reported busy by herdr native state" "the deferral must name which source blocked it"
+  assert_contains "$out" "default:w1:p2" "the deferral must name the pane it could not reach"
+  assert_not_contains "$out" "agent mid-turn" "the deferral must not assert a cause it did not observe"
+  pass "inject deferral names the blocking source and no longer claims the agent is mid-turn"
+}
+
+test_log_error_reaches_stderr_as_well_as_the_log() {
+  local dir log err out
+  dir=$(make_supercase daemon-log-error)
+  log="$dir/daemon.log"
+  err=$(LOG="$log" log_error "ERROR: away-mode escalation undelivered 900s" 2>&1 >/dev/null)
+  out=$(cat "$log" 2>/dev/null || true)
+  assert_contains "$out" "undelivered 900s" "log_error must still write the private daemon log"
+  assert_contains "$err" "undelivered 900s" "log_error must also reach stderr, where a human can see it"
+  pass "log_error: an ERROR reaches stderr as well as the private daemon log"
+}
+
+test_wedge_alarm_accounting_separates_dispatch_from_delivery() {
+  local dir log alert_log
+  dir=$(make_supercase wedge-accounting)
+  log="$dir/daemon.log"; alert_log="$dir/alerts.log"
+  (
+    LOG="$log"
+    FM_WEDGE_ALARM_LOG="$alert_log" FM_WEDGE_ALARM_CHANNEL=osascript \
+      wedge_alarm_notify "away-mode escalations WEDGED 900s undelivered - see /s/.marker" "/s/.marker"
+    assert_contains "$WEDGE_ALARM_LAST_ACCOUNTING" "alerts dispatched: osascript" \
+      "a dispatched channel must be recorded as dispatched"
+    assert_contains "$WEDGE_ALARM_LAST_ACCOUNTING" "CONFIRMED by: none" \
+      "no shipped channel confirms delivery, and the accounting must say so"
+  ) || fail "wedge accounting subshell failed"
+  assert_contains "$(cat "$log")" "alerts dispatched: osascript" \
+    "the accounting must be logged, not left as silence-means-success"
+  pass "wedge alarm accounting: records dispatch and delivery separately, never conflating exit 0 with receipt"
+}
+
+test_inject_wedge_alarm_marker_names_blocker_and_alert_accounting() {
+  local dir state marker body
+  dir=$(make_supercase wedge-marker-diagnosis)
+  state="$dir/state"
+  afk_enter "$state"
+  printf 'dev-x.status: needs-decision: pick one\n' > "$state/.subsuper-escalations"
+  marker="$state/.subsuper-inject-wedged"
+  (
+    LOG="$dir/daemon.log"
+    fm_backend_busy_state() { printf 'busy'; }
+    fm_backend_capture() { printf '%s\n' "$FM_TEST_CLAUDE_FOOTER_BG_SHELL"; }
+    FM_WEDGE_ALARM_LOG="$dir/alerts.log" FM_WEDGE_ALARM_CHANNEL=osascript \
+      FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2" \
+      FM_DAEMON_PRIMARY_HARNESS=claude \
+      inject_wedge_alarm "$state" 31205
+  ) || fail "wedge marker subshell failed"
+  body=$(cat "$marker" 2>/dev/null || true)
+  assert_contains "$body" "default:w1:p2" "the marker must name the pane that could not be reached"
+  assert_contains "$body" "does NOT corroborate" \
+    "the marker must say when the native busy verdict is uncorroborated - the 2026-08-26 fingerprint"
+  assert_contains "$body" "Alert accounting:" "the marker must carry what the alert actually established"
+  assert_contains "$body" "needs-decision: pick one" "the marker must still carry the buffered escalations"
+  pass "wedge marker: names the blocking pane, the uncorroborated native verdict, and the alert accounting"
+}
+
+test_supervisor_pane_is_self_hosted_scopes_to_native_busy_backends() {
+  (
+    unset TMUX_PANE
+    HERDR_ENV=1 HERDR_PANE_ID=w1R:p1 HERDR_SESSION=default \
+      supervisor_pane_is_self_hosted herdr "default:w1R:p1" \
+      || fail "a daemon in the very pane it supervises on herdr must be reported self-hosted"
+    if HERDR_ENV=1 HERDR_PANE_ID=w9Z:p1 HERDR_SESSION=default \
+         supervisor_pane_is_self_hosted herdr "default:w1R:p1"; then
+      fail "a daemon in its own separate herdr pane must not be reported self-hosted"
+    fi
+  ) || fail "herdr self-hosting subshell failed"
+  (
+    unset HERDR_ENV HERDR_PANE_ID
+    if TMUX_PANE='%7' supervisor_pane_is_self_hosted tmux '%7'; then
+      fail "tmux has no native agent-state source, so in-pane hosting there is not self-blocking"
+    fi
+  ) || fail "tmux self-hosting subshell failed"
+  (
+    unset TMUX_PANE HERDR_ENV HERDR_PANE_ID
+    if supervisor_pane_is_self_hosted herdr "default:w1R:p1"; then
+      fail "a daemon in no recognizable pane cannot be a tenant of the target"
+    fi
+  ) || fail "no-pane self-hosting subshell failed"
+  pass "supervisor_pane_is_self_hosted: only a native-busy backend hosting the daemon in its own target"
+}
+
 test_pane_input_pending_herdr_dispatch() {
   (
     fm_backend_composer_state() { [ "$1" = herdr ] && [ "$2" = "default:w1:p2" ] || fail "unexpected composer_state args: $1 $2"; printf 'pending'; }
@@ -1821,7 +2004,7 @@ test_inject_msg_herdr_busy_guard_defers() {
   afk_enter "$state"
   (
     fm_backend_target_exists() { [ "$1" = herdr ] && [ "$2" = "default:w1:p2" ] || fail "unexpected target_exists args: $1 $2"; return 0; }
-    pane_is_busy() { return 0; }
+    pane_busy_source() { printf 'native'; }
     fm_backend_composer_state() { fail "composer_state should not be consulted once the busy-guard already deferred"; }
     fm_backend_send_text_submit() { fail "send_text_submit should not run when the busy-guard defers"; }
     if FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2" inject_msg "hello" "$state"; then
@@ -1838,7 +2021,7 @@ test_inject_msg_herdr_composer_guard_defers() {
   afk_enter "$state"
   (
     fm_backend_target_exists() { return 0; }
-    pane_is_busy() { return 1; }
+    pane_busy_source() { :; }
     fm_backend_composer_state() { [ "$1" = herdr ] && [ "$2" = "default:w1:p2" ] || fail "unexpected composer_state args: $1 $2"; printf 'pending'; }
     fm_backend_send_text_submit() { fail "send_text_submit should not run when the composer-guard defers"; }
     if FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2" inject_msg "hello" "$state"; then
@@ -1855,7 +2038,7 @@ test_inject_msg_herdr_pane_gone_defers() {
   afk_enter "$state"
   (
     fm_backend_target_exists() { return 1; }
-    pane_is_busy() { fail "busy guard should not be consulted once the pane-exists check already failed"; }
+    pane_busy_source() { fail "busy guard should not be consulted once the pane-exists check already failed"; }
     fm_backend_send_text_submit() { fail "send_text_submit should not run when the pane does not exist"; }
     if FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:gone" inject_msg "hello" "$state"; then
       fail "inject_msg should defer when the herdr target does not exist"
@@ -1871,7 +2054,7 @@ test_inject_msg_herdr_submits_through_backend_dispatch() {
   afk_enter "$state"
   (
     fm_backend_target_exists() { return 0; }
-    pane_is_busy() { return 1; }
+    pane_busy_source() { :; }
     fm_backend_composer_state() { printf 'empty'; }
     fm_backend_send_text_submit() {
       [ "$1" = herdr ] && [ "$2" = "default:w1:p2" ] || fail "unexpected send_text_submit args: $1 $2"
@@ -1896,7 +2079,7 @@ test_inject_msg_defers_on_dead_shell_unknown() {
   afk_enter "$state"
   (
     fm_backend_target_exists() { return 0; }
-    pane_is_busy() { return 1; }
+    pane_busy_source() { :; }
     fm_backend_composer_state() { printf 'unknown'; }
     fm_backend_send_text_submit() { fail "send_text_submit must NOT run when the composer is a dead shell (unknown)"; }
     if FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2" inject_msg "hello" "$state"; then
@@ -1913,7 +2096,7 @@ test_inject_msg_defers_on_unrecognized_composer_state() {
   afk_enter "$state"
   (
     fm_backend_target_exists() { return 0; }
-    pane_is_busy() { return 1; }
+    pane_busy_source() { :; }
     fm_backend_composer_state() { printf 'future-state'; }
     fm_backend_send_text_submit() { fail "send_text_submit must not run for an unrecognized composer state"; }
     if FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2" inject_msg "hello" "$state"; then
@@ -2019,6 +2202,14 @@ test_discover_supervisor_target_herdr
 test_pane_is_busy_herdr_native_busy_state
 test_primary_busy_guard_is_harness_scoped
 test_pane_is_busy_defaults_to_tmux_when_backend_omitted
+test_claude_background_shell_footer_is_not_a_busy_signature
+test_pane_busy_source_names_native_and_rendered
+test_pane_busy_sources_disagree_detects_uncorroborated_native
+test_inject_deferral_names_the_blocking_source_and_claims_no_cause
+test_log_error_reaches_stderr_as_well_as_the_log
+test_wedge_alarm_accounting_separates_dispatch_from_delivery
+test_inject_wedge_alarm_marker_names_blocker_and_alert_accounting
+test_supervisor_pane_is_self_hosted_scopes_to_native_busy_backends
 test_pane_input_pending_herdr_dispatch
 test_inject_msg_herdr_busy_guard_defers
 test_inject_msg_herdr_composer_guard_defers

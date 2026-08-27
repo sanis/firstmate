@@ -21,7 +21,10 @@ It lists channel directives, one per non-empty, non-comment line, and every list
 An absent `config/wedge-alarm` behaves as `auto`, which is default-on on macOS.
 This is deliberate because the alarm fires only after a genuine max-defer wedge and is rate-limited to at most once per max-defer window.
 
-Each channel is best-effort.
+Each channel is best-effort, and each is fire-and-forget.
+No shipped channel can confirm that the captain received an alert: `osascript` exits 0 whether macOS shows the banner, suppresses it under a Focus mode, or drops it for want of notification permission, and `herdr` and `command:` have the same shape.
+The daemon therefore records dispatch and delivery separately, in its log and in the durable marker, and never lets an exit status stand for delivery.
+Read a dispatched alert as sent, never as seen, and prefer a `command:` channel that reaches the captain off the machine.
 A missing binary or non-zero exit logs a warning and continues to the next channel without crashing the daemon loop.
 Every invocation is process-group bounded by `FM_WEDGE_ALARM_TIMEOUT_SECS`, which defaults to 10 seconds, including `command:`, `osascript`, `herdr`, and the test seam.
 On timeout or daemon shutdown, the notifier process group is terminated and the next configured channel may run.

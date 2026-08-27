@@ -635,6 +635,49 @@ FM_AFK_PI_HERDR_E2E=1 HERDR_LAB_HELPER=bin/fm-herdr-lab.sh \
 Observed guarantees: pending composer input refused injection and raised one alert; idle Pi accepted one marked escalation; the return gate refused ordinary work while a live blocker remained; resolving the blocker allowed the return flow.
 The dedicated Herdr daemon workspace topology is covered by `tests/fm-afk-launch.test.sh` and preserves the captain tab's pane count.
 
+#### In-pane daemon hosting is not usable under Herdr
+
+Verified 2026-08-27 on Herdr 0.8.2 with the Claude agent-detection manifest `2026.08.21.1`.
+This is why `bin/fm-afk-launch.sh start-native` refuses on Herdr and the daemon refuses again when it finds itself a tenant of its own supervisor target.
+
+Herdr's Claude manifest classifies a pane as `working` from its background-shell footer, independently of any turn:
+
+```toml
+[[rules]]
+id = "background_shell_working"
+state = "working"
+priority = 965
+region = "bottom_non_empty_lines(5)"
+line_regex = ['^\s*[⏸⏵].*·\s+[1-9]\d*\s+shells?\s+(?:·|$)']
+```
+
+A harness-native background job is exactly what puts that segment in the footer.
+Captured from a live Claude pane with `herdr pane read <pane> --lines 1`, with no background job and then with one running:
+
+```
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents
+  ⏵⏵ bypass permissions on · 1 shell · ← for agents
+```
+
+Running Herdr's own rule engine over two captures of an idle Claude pane that differ only by that segment:
+
+```sh
+herdr agent explain --file idle-with-shell.txt    --agent claude
+herdr agent explain --file idle-without-shell.txt --agent claude
+```
+
+```
+state: working
+rule: background_shell_working (region=bottom_non_empty_lines(5) priority=965)
+
+state: idle
+rule: live_prompt_box (region=prompt_box_body priority=950)
+```
+
+So a daemon hosted in the captain's pane holds that pane at `working` for its whole lifetime, `pane_is_busy` trusts the native verdict first, and every injection defers.
+Firstmate's own Claude delivery signature does not match that footer, so the two sources disagree; `tests/fm-daemon.test.sh` pins the Firstmate half with real captures and no harness, and `pane_busy_sources_disagree` reports the disagreement into the wedge alarm and its durable marker.
+Refresh this record after a Herdr upgrade or an agent-detection manifest update, because both halves are vendor surfaces Firstmate does not own.
+
 ## Zellij
 
 The current compatibility floor and latest verification are Zellij 0.44.0 with `jq` on macOS aarch64.
