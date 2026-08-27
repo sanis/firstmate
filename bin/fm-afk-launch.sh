@@ -33,10 +33,14 @@
 #                              record it. Idempotent: an already-running daemon
 #                              just refreshes state/.afk; a recorded-but-dead
 #                              terminal is reconciled (closed by id) first.
-#                              Before reporting success it verifies once that the
-#                              delivery path is not already permanently blocked
-#                              (fm_afk_launch_verify_delivery_path) and rolls the
-#                              whole entry back when it is.
+#                              A REFRESH verifies first that the running daemon's
+#                              recorded delivery pane is still the pane firstmate
+#                              occupies and is still live
+#                              (fm_afk_launch_verify_delivery_path), and refuses
+#                              the refresh when it is not. A fresh launch needs no
+#                              such check: the daemon validates its own backend
+#                              and target at startup and exits when either fails,
+#                              which fails the launch through wait_ready.
 #   fm-afk-launch.sh start-native
 #                              Prepare lifecycle state for a harness-native
 #                              background job and record that no terminal exists.
@@ -161,7 +165,7 @@ fm_afk_launch_lock_release() {
 }
 
 fm_afk_launch_usage() {
-  sed -n '2,55p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '2,64p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 # The command run inside the created terminal. Real launch runs the shared
@@ -170,11 +174,22 @@ fm_afk_launch_entry_cmd() {
   printf '%s' "${FM_AFK_LAUNCH_ENTRY:-$FM_ROOT/bin/fm-afk-start.sh}"
 }
 
-fm_afk_launch_record_write() {  # <backend> <target> <extra>
-  local pending
+# <supervisor-target> is the pane the daemon was LAUNCHED to deliver into, which
+# is not recoverable from anywhere else once the launcher exits: the daemon holds
+# it in its own env as FM_SUPERVISOR_TARGET. Recorded so a later refresh can
+# compare the pane escalations actually go to against the pane firstmate occupies
+# now. Omitted (a 3-field record) when it is not known, which readers must treat
+# as unknown rather than as a match.
+fm_afk_launch_record_write() {  # <backend> <target> <extra> [supervisor-target]
+  local pending supervisor=${4:-}
   mkdir -p "$FM_AFK_LAUNCH_STATE" || return 1
   pending=$(mktemp "$FM_AFK_LAUNCH_STATE/.afk-daemon-terminal.pending.XXXXXX") || return 1
-  printf '%s\t%s\t%s\n' "$1" "$2" "$3" > "$pending" || { rm -f "$pending"; return 1; }
+  if [ -n "$supervisor" ]; then
+    printf '%s\t%s\t%s\t%s\n' "$1" "$2" "$3" "$supervisor" > "$pending" \
+      || { rm -f "$pending"; return 1; }
+  else
+    printf '%s\t%s\t%s\n' "$1" "$2" "$3" > "$pending" || { rm -f "$pending"; return 1; }
+  fi
   mv "$pending" "$FM_AFK_LAUNCH_RECORD" || { rm -f "$pending"; return 1; }
 }
 
@@ -182,8 +197,14 @@ fm_afk_launch_flag_write() {
   fm_afk_flag_write "$FM_AFK_LAUNCH_STATE"
 }
 
-# Read the recorded terminal into FM_AFK_REC_BACKEND/FM_AFK_REC_TARGET, plus, for
-# an in-pane (`none`) record, the daemon's own host pane into FM_AFK_REC_HOST.
+# Read the recorded terminal into FM_AFK_REC_BACKEND/FM_AFK_REC_TARGET, the pane
+# the daemon delivers into as FM_AFK_REC_SUPERVISOR, and, for an in-pane (`none`)
+# record, the daemon's own host pane as FM_AFK_REC_HOST.
+#
+# A FOURTH field carries the supervisor target. A 3-field record predates that
+# field, so FM_AFK_REC_SUPERVISOR is empty and the delivery target is UNKNOWN -
+# never a proven match and never a proven mismatch. Genuinely malformed input
+# still fails closed with 2.
 #
 # The third field is a herdr workspace id for a herdr record - not needed to close
 # by id, so it is discarded there. For a `none` record it carries where the daemon
@@ -196,14 +217,25 @@ fm_afk_launch_flag_write() {
 #                       resolved it at start-native time.
 # Returns 1 when no record exists, 2 when it is malformed.
 fm_afk_launch_record_read() {
-  local extra record
-  FM_AFK_REC_BACKEND=""; FM_AFK_REC_TARGET=""; FM_AFK_REC_HOST=""; extra=""
+  local extra record fields
+  FM_AFK_REC_BACKEND=""; FM_AFK_REC_TARGET=""; FM_AFK_REC_HOST=""
+  FM_AFK_REC_SUPERVISOR=""; extra=""
   [ -f "$FM_AFK_LAUNCH_RECORD" ] || return 1
   record=$(cat "$FM_AFK_LAUNCH_RECORD" 2>/dev/null) || record=""
-  IFS=$'\t' read -r FM_AFK_REC_BACKEND FM_AFK_REC_TARGET extra \
-    < "$FM_AFK_LAUNCH_RECORD" || true
-  if ! printf '%s\n' "$record" | awk -F '\t' 'NF != 3 { bad=1 } END { exit !(NR == 1 && !bad) }' \
-    || [ -z "$FM_AFK_REC_BACKEND" ] || [ -z "$FM_AFK_REC_TARGET" ]; then
+  # Split with awk, not `IFS=$'\t' read`: tab is IFS WHITESPACE, so read collapses
+  # a run of tabs into one separator and an empty field silently shifts every
+  # later one - a tmux record's empty workspace-id slot would hand the supervisor
+  # target back as the workspace id.
+  fields=$(printf '%s\n' "$record" | awk -F '\t' 'END { print (NR == 1 ? NF : 0) }')
+  {
+    IFS= read -r FM_AFK_REC_BACKEND
+    IFS= read -r FM_AFK_REC_TARGET
+    IFS= read -r extra
+    IFS= read -r FM_AFK_REC_SUPERVISOR
+  } < <(printf '%s\n' "$record" | awk -F '\t' 'NR == 1 { for (i = 1; i <= 4; i++) print (i <= NF ? $i : "") }')
+  if { [ "$fields" -ne 3 ] && [ "$fields" -ne 4 ]; } \
+    || [ -z "$FM_AFK_REC_BACKEND" ] || [ -z "$FM_AFK_REC_TARGET" ] \
+    || { [ "$fields" -eq 4 ] && [ -z "$FM_AFK_REC_SUPERVISOR" ]; }; then
     fm_afk_launch_log "daemon terminal record is malformed; refusing to act on it"
     return 2
   fi
@@ -324,9 +356,10 @@ fm_afk_launch_wait_ready() {  # <backend> <target>
   return 1
 }
 
-fm_afk_launch_commit_terminal() {  # <backend> <target> <extra> [already-recorded]
-  local backend=$1 target=$2 extra=$3 already_recorded=${4:-0}
-  if [ "$already_recorded" -ne 1 ] && ! fm_afk_launch_record_write "$backend" "$target" "$extra"; then
+fm_afk_launch_commit_terminal() {  # <backend> <target> <extra> [already-recorded] [supervisor-target]
+  local backend=$1 target=$2 extra=$3 already_recorded=${4:-0} supervisor=${5:-}
+  if [ "$already_recorded" -ne 1 ] \
+     && ! fm_afk_launch_record_write "$backend" "$target" "$extra" "$supervisor"; then
     fm_afk_launch_log "failed to persist daemon terminal record; closing $backend:$target"
     fm_afk_launch_close_terminal "$backend" "$target"
     return 1
@@ -430,7 +463,7 @@ fm_afk_launch_create_herdr() {  # <captain-target> <captain-backend>
   pane=$(printf '%s' "$out" | jq -r '.result.root_pane.pane_id // empty' 2>/dev/null)
   if [ "$create_result" -ne 0 ] && [ -n "$wsid" ] && [ -n "$pane" ]; then
     fm_afk_launch_log "herdr create failed after returning exact ids; closing $session:$pane"
-    if fm_afk_launch_record_write herdr "$session:$pane" "$wsid"; then
+    if fm_afk_launch_record_write herdr "$session:$pane" "$wsid" "$captain_target"; then
       FM_AFK_REC_BACKEND=herdr
       FM_AFK_REC_TARGET="$session:$pane"
       fm_afk_launch_close_recorded || true
@@ -449,7 +482,7 @@ fm_afk_launch_create_herdr() {  # <captain-target> <captain-backend>
   entry=$(fm_afk_launch_entry_cmd)
   cmd=$(printf 'exec env FM_HOME=%q FM_SUPERVISOR_TARGET=%q FM_SUPERVISOR_BACKEND=%q %q' \
     "$FM_HOME" "$captain_target" "$captain_backend" "$entry")
-  if ! fm_afk_launch_record_write herdr "$session:$pane" "$wsid"; then
+  if ! fm_afk_launch_record_write herdr "$session:$pane" "$wsid" "$captain_target"; then
     fm_afk_launch_log "failed to persist herdr daemon terminal record; closing $session:$pane"
     fm_afk_launch_close_terminal herdr "$session:$pane"
     return 1
@@ -461,7 +494,7 @@ fm_afk_launch_create_herdr() {  # <captain-target> <captain-backend>
     fm_afk_launch_close_recorded || true
     return 1
   fi
-  fm_afk_launch_commit_terminal herdr "$session:$pane" "$wsid" 1 || return 1
+  fm_afk_launch_commit_terminal herdr "$session:$pane" "$wsid" 1 "$captain_target" || return 1
   fm_afk_launch_log "daemon launched in non-visible herdr workspace $wsid (pane $session:$pane), supervising $captain_target"
 }
 
@@ -476,7 +509,7 @@ fm_afk_launch_create_tmux() {  # <captain-target> <captain-backend>
   entry=$(fm_afk_launch_entry_cmd)
   cmd=$(printf 'exec env FM_HOME=%q FM_SUPERVISOR_TARGET=%q FM_SUPERVISOR_BACKEND=%q %q' \
     "$FM_HOME" "$captain_target" "$captain_backend" "$entry")
-  if ! fm_afk_launch_record_write tmux "$session" ""; then
+  if ! fm_afk_launch_record_write tmux "$session" "" "$captain_target"; then
     fm_afk_launch_log "failed to persist planned tmux daemon session '$session'"
     return 1
   fi
@@ -487,52 +520,63 @@ fm_afk_launch_create_tmux() {  # <captain-target> <captain-backend>
     fi
     return 1
   fi
-  fm_afk_launch_commit_terminal tmux "$session" "" 1 || return 1
+  fm_afk_launch_commit_terminal tmux "$session" "" 1 "$captain_target" || return 1
   fm_afk_launch_log "daemon launched in detached tmux session '$session', supervising $captain_target"
 }
 
-# Verify, once, that the delivery path away mode depends on is not ALREADY
-# permanently blocked, and refuse the whole entry when it is. A refusal at the
-# moment the captain steps away, naming what is blocked, beats a night of
-# silence with the escalations sitting in a buffer (2026-08-26).
+# REFRESH-ONLY. Verify that the delivery path the ALREADY-RUNNING daemon depends
+# on is not blocked, and refuse the refresh when it is. Every condition here
+# observes something only a later entry can see: that daemon started earlier, and
+# the world may have moved under it since.
 #
-# Every condition here is timing-independent on purpose. Busy-ness deliberately
-# is NOT one of them: firstmate is mid-turn running this very launcher, so the
-# captain pane is legitimately busy at entry and a busy sample would refuse every
-# healthy launch. Do not "improve" this into a busy probe.
+# There is deliberately no fresh-path counterpart. A fresh entry's daemon
+# validates its own backend and its own target at startup and exits when either
+# fails, which reaches the launcher through fm_afk_launch_wait_ready; a second
+# copy here added no coverage, only another chance to refuse on a transient
+# backend hiccup that fm_backend_target_exists cannot tell from absence.
 #
-# The caller passes which entry it is, because the two paths leave the captain in
-# genuinely different states and the refusal must say which one they are in:
-#   fresh   - the caller rolls the entry back, so away mode really is not entered.
-#   refresh - state/.afk is already present, the daemon holds the lock, and this
-#             returns before fm_afk_launch_flag_write without clearing any of it.
-#             Away mode stays ON, undeliverable. Reporting "not entered" there
-#             would be this change's own defect pointed the other way: a live
-#             away mode that reads as not-armed, the watcher still in
-#             daemon-owned one-shot mode, and the daemon still buffering
-#             escalations the captain has been told do not exist.
-fm_afk_launch_verify_delivery_path() {  # <captain-target> <captain-backend> <fresh|refresh>
-  local captain_target=$1 captain_backend=$2 entry_mode=${3:-fresh} lead
-  case "$entry_mode" in
-    refresh) lead="away mode is STILL ON from the earlier entry and this command changed nothing, but the running daemon's delivery path is blocked" ;;
-    *) lead="away mode not entered" ;;
-  esac
+# Every condition is timing-independent on purpose. Busy-ness deliberately is NOT
+# one of them: firstmate is mid-turn running this very launcher, so the captain
+# pane is legitimately busy at entry and a busy sample would refuse every healthy
+# refresh. Do not "improve" this into a busy probe.
+#
+# The refusals all open by saying away mode is STILL ON, because it is: state/.afk
+# is already present, the daemon holds the lock, and this returns before
+# fm_afk_launch_flag_write without clearing any of it. Reporting "not entered"
+# here would be this change's own defect pointed the other way - a live away mode
+# that reads as not-armed, the watcher still in daemon-owned one-shot mode, and
+# the daemon still buffering escalations the captain has been told do not exist.
+fm_afk_launch_verify_delivery_path() {  # <captain-target> <captain-backend>
+  local captain_target=$1 captain_backend=$2 lead delivery_target
+  lead="away mode is STILL ON from the earlier entry and this command changed nothing, but the running daemon's delivery path is blocked"
   if ! fm_backend_list_contains "$FM_SUPERVISOR_SUPPORTED_BACKENDS" "$captain_backend"; then
     fm_afk_launch_log "$lead: the away daemon cannot supervise a '$captain_backend' pane (supported: $FM_SUPERVISOR_SUPPORTED_BACKENDS)"
     return 1
   fi
-  # Probed on the REFRESH path only, where it observes something genuinely new:
-  # that daemon started earlier and the captain's pane may have moved since. On
-  # the fresh path the daemon's own startup validated the identical condition
-  # moments ago (bin/fm-supervise-daemon.sh's startup target check, whose failure
-  # already reaches here through fm_afk_launch_wait_ready), so a second probe
-  # adds no coverage - only another chance to refuse. fm_backend_target_exists
-  # deliberately cannot tell a transient backend failure from genuine absence,
-  # and that conflation is right for its other callers, so the narrowing belongs
-  # here rather than in the shared owner.
-  if [ "$entry_mode" = refresh ] \
-     && ! fm_backend_target_exists "$captain_backend" "$captain_target"; then
-    fm_afk_launch_log "$lead: escalations would be delivered to '$captain_target', which is not a live $captain_backend pane"
+  # WHICH pane the running daemon delivers into is the record's answer, not
+  # discovery's: the daemon holds its FM_SUPERVISOR_TARGET from the entry that
+  # launched it and never retargets. Probing whatever firstmate occupies NOW
+  # would report the delivery path verified while every escalation goes to a pane
+  # the captain has left - looks armed, is not, which is this change's defining
+  # failure. So compare the recorded target against current discovery first, and
+  # probe the recorded one.
+  delivery_target=""
+  if fm_afk_launch_record_read; then
+    delivery_target=$FM_AFK_REC_SUPERVISOR
+  fi
+  if [ -n "$delivery_target" ] && [ "$delivery_target" != "$captain_target" ]; then
+    fm_afk_launch_log "$lead: the daemon already running delivers into '$delivery_target', but firstmate is now in '$captain_target' - every escalation it sends goes to a pane you have left. Run 'bin/fm-afk-launch.sh stop' and re-enter with 'bin/fm-afk-launch.sh start', which launches a daemon targeting this pane."
+    return 1
+  fi
+  if [ -z "$delivery_target" ]; then
+    # A record written before the supervisor target was recorded says nothing
+    # about where this daemon delivers. Unknown never refuses - "assume the
+    # worst" is still an assertion - and it must not be probed as if it were the
+    # daemon's target either, because that would report a pane verified that
+    # nothing established the daemon uses.
+    fm_afk_launch_log "the away daemon already running did not record which pane it delivers into, so this refresh cannot check that it still reaches '$captain_target'. Away mode stays on with that unverified - to make it verified, run 'bin/fm-afk-launch.sh stop' and re-enter with 'bin/fm-afk-launch.sh start'."
+  elif ! fm_backend_target_exists "$captain_backend" "$delivery_target"; then
+    fm_afk_launch_log "$lead: the daemon already running delivers into '$delivery_target', which is not a live $captain_backend pane"
     return 1
   fi
   # The daemon must be running SOMEWHERE OTHER than the pane it delivers into.
@@ -554,7 +598,7 @@ fm_afk_launch_verify_delivery_path() {  # <captain-target> <captain-backend> <fr
   # Reached from the already-running refresh path, where a pre-existing in-pane
   # daemon would otherwise be silently refreshed; a fresh create always records a
   # real terminal before it gets here.
-  if fm_afk_launch_record_read && [ "$FM_AFK_REC_BACKEND" = none ] \
+  if [ "$FM_AFK_REC_BACKEND" = none ] \
      && fm_supervisor_backend_has_native_busy "$captain_backend"; then
     if [ -z "$FM_AFK_REC_HOST" ]; then
       fm_afk_launch_log "the away daemon already running did not record which pane it is hosted in, so nothing here can tell whether it is a tenant of '$captain_target'. Its own startup check cannot close this either: it either started under a build that predates this routing rule and never ran that check, or it could not resolve its own pane then any more than this record names one now. Away mode is being refreshed onto a daemon whose delivery path is unverified - to make it verified, run 'bin/fm-afk-launch.sh stop' and re-enter with 'bin/fm-afk-launch.sh start', which places the daemon in its own non-visible terminal and passes this pane in as the delivery target."
@@ -570,40 +614,6 @@ fm_afk_launch_verify_delivery_path() {  # <captain-target> <captain-backend> <fr
   # Daemon liveness is NOT rechecked here: fm_afk_launch_commit_terminal already
   # owns it through fm_afk_launch_wait_ready, and a second copy would drift.
   return 0
-}
-
-# Undo a launch whose delivery path failed verification: stop the daemon if it
-# came up and close the terminal we created by its exact recorded id. The caller
-# then restores the pre-entry state backup, so a refused entry leaves nothing
-# behind.
-#
-# The record is dropped by fm_afk_launch_close_recorded, and ONLY once that
-# confirms the terminal is gone - the same invariant fm_afk_launch_stop keeps.
-# Deleting it on an unconfirmed close would erase the one durable copy of the
-# exact daemon terminal id and strand a live pane nobody can address.
-fm_afk_launch_teardown_after_failed_verify() {
-  local pid read_result
-  if daemon_lock_held_by_live_daemon; then
-    pid=$(daemon_lock_pid 2>/dev/null) || pid=""
-    if [ -n "$pid" ]; then
-      kill -TERM "$pid" 2>/dev/null || true
-      for _ in $(seq 1 40); do
-        fm_pid_alive "$pid" || break
-        sleep 0.25
-      done
-    fi
-  fi
-  fm_afk_launch_record_read
-  read_result=$?
-  # 1: no record to undo. 2: malformed - fail closed exactly as reconcile/stop
-  # do, rather than acting on or discarding a partial id.
-  [ "$read_result" -eq 0 ] || return 0
-  if [ "$FM_AFK_REC_BACKEND" = none ]; then
-    rm -f "$FM_AFK_LAUNCH_RECORD" 2>/dev/null || true
-    return 0
-  fi
-  fm_afk_launch_close_recorded || \
-    fm_afk_launch_log "could not confirm teardown of the daemon terminal ${FM_AFK_REC_BACKEND}:${FM_AFK_REC_TARGET} after a refused entry; its exact id stays recorded in $FM_AFK_LAUNCH_RECORD - close it by that id or run 'bin/fm-afk-launch.sh reconcile'"
 }
 
 fm_afk_launch_start() {
@@ -627,7 +637,7 @@ fm_afk_launch_start() {
     # hosted in the captain's own pane from before this routing rule existed.
     # Verified BEFORE the flag refresh, so a refusal leaves lifecycle state
     # exactly as it found it and nothing has to be rolled back.
-    fm_afk_launch_verify_delivery_path "$captain_target" "$captain_backend" refresh || return 1
+    fm_afk_launch_verify_delivery_path "$captain_target" "$captain_backend" || return 1
     if ! fm_afk_launch_flag_write; then
       fm_afk_launch_log "failed to refresh away-mode flag"
       return 1
@@ -672,10 +682,6 @@ fm_afk_launch_start() {
         result=1
         ;;
     esac
-  fi
-  if [ "$result" -eq 0 ] && ! fm_afk_launch_verify_delivery_path "$captain_target" "$captain_backend" fresh; then
-    fm_afk_launch_teardown_after_failed_verify
-    result=1
   fi
   if [ "$result" -ne 0 ]; then
     fm_afk_launch_restore_backup "$backup" "$had_afk" || result=1
@@ -744,9 +750,9 @@ fm_afk_launch_start_native() {
   fi
   if [ "$result" -eq 0 ]; then
     if [ -n "$own_host" ]; then
-      fm_afk_launch_record_write none - "native:$own_host" || result=1
+      fm_afk_launch_record_write none - "native:$own_host" "$captain_target" || result=1
     else
-      fm_afk_launch_record_write none - native || result=1
+      fm_afk_launch_record_write none - native "$captain_target" || result=1
     fi
   fi
   if [ "$result" -ne 0 ]; then

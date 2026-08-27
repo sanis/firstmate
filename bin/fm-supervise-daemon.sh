@@ -1066,14 +1066,6 @@ wedge_alarm_publish_marker() {  # <marker> <state> <age> <stamp> <target> <backe
   mv "$pending" "$marker" 2>/dev/null || { rm -f "$pending" 2>/dev/null; return 1; }
 }
 
-# Raise a loud, rate-limited alarm when escalations cannot be delivered after
-# max-defer (the supervisor pane is genuinely busy/wedged, or the submit's Enter
-# is swallowed). The daemon must NEVER silently wedge: this logs
-# an ERROR, drops a durable marker firstmate/recovery can surface, flashes
-# the tmux supervisor client's status line when applicable, and attempts a
-# configurable backend-independent active alert (wedge_alarm_notify). Nothing
-# is lost - the buffer and the
-# wake-queue both survive - but the stall stops being invisible.
 # What the two busy sources say about the pane RIGHT NOW, as one sentence, from
 # a single pane_busy_probe sample. Costs a backend read, so inject_wedge_alarm
 # calls it only AFTER the durable marker already exists.
@@ -1129,6 +1121,14 @@ inject_wedge_diagnosis() {  # <target> <backend> <busy-detail>
   esac
 }
 
+# Raise a loud, rate-limited alarm when escalations cannot be delivered after
+# max-defer (the supervisor pane is genuinely busy/wedged, or the submit's Enter
+# is swallowed). The daemon must NEVER silently wedge: this logs
+# an ERROR, drops a durable marker firstmate/recovery can surface, flashes
+# the tmux supervisor client's status line when applicable, and attempts a
+# configurable backend-independent active alert (wedge_alarm_notify). Nothing
+# is lost - the buffer and the
+# wake-queue both survive - but the stall stops being invisible.
 inject_wedge_alarm() {  # <state> <age-seconds>
   local state=$1 age=$2 marker target backend max_defer now notify=1 diagnosis stamp
   local busy_diagnosis pending_stage

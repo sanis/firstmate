@@ -571,21 +571,23 @@ unit_native_allowed_when_daemon_is_not_the_target() {
   rm -rf "$st"
 }
 
-# Round-trip through the public entries: what start-native records must be the
-# daemon's REAL pane, so the refresh comparison is between two observed panes
-# rather than inferred from "no terminal was recorded". Both directions run off
-# the same recorded entry - only the captain target changes.
-unit_native_record_carries_the_real_host_pane() {
+# Round-trip through the public entries: the pane the daemon was launched to
+# deliver into is recorded at entry, and a later refresh checks THAT pane rather
+# than whatever discovery resolves at refresh time. A running daemon still
+# injecting into a pane firstmate has left is this change's defining failure -
+# away mode reporting a verified delivery path while nothing reaches the captain.
+unit_refresh_verifies_the_daemons_recorded_delivery_pane() {
   local st out
-  st=$(mktemp -d "${TMPDIR:-/tmp}/fm-afk-native-host.XXXXXX")
+  st=$(mktemp -d "${TMPDIR:-/tmp}/fm-afk-recorded-target.XXXXXX")
   mkdir -p "$st/state"
   if ! FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
        HERDR_ENV=1 HERDR_PANE_ID=w9Z:p4 HERDR_SESSION=default TMUX_PANE='' \
        FM_SUPERVISOR_TARGET='default:w1R:p1' FM_SUPERVISOR_BACKEND=herdr \
        "$LAUNCH" start-native >/dev/null 2>&1; then
-    fail "native host: start-native refused a daemon that lives outside its delivery target"
+    fail "recorded target: start-native refused a daemon that lives outside its delivery target"
     rm -rf "$st"; return 0
   fi
+  # (1) Firstmate is still in the pane the daemon was launched to deliver into.
   FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
     FM_SUPERVISOR_TARGET='default:w1R:p1' FM_SUPERVISOR_BACKEND=herdr bash -c '
     . "$1"
@@ -595,14 +597,14 @@ unit_native_record_carries_the_real_host_pane() {
     fm_afk_launch_start
   ' _ "$LAUNCH" >/dev/null 2>&1
   if [ -e "$st/refreshed" ]; then
-    pass "native host: the recorded pane is not the delivery target, so refresh proceeds"
+    pass "recorded target: a refresh into the daemon's own delivery pane proceeds"
   else
-    fail "native host: refresh refused a daemon recorded outside its delivery target"
+    fail "recorded target: refused a refresh into the pane the daemon actually delivers into"
   fi
-  # Same record, delivery target moved onto the daemon's own recorded pane.
+  # (2) Firstmate has since moved to another pane; the daemon has not.
   rm -f "$st/refreshed"
   out=$(FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
-        FM_SUPERVISOR_TARGET='default:w9Z:p4' FM_SUPERVISOR_BACKEND=herdr bash -c '
+        FM_SUPERVISOR_TARGET='default:w4Q:p2' FM_SUPERVISOR_BACKEND=herdr bash -c '
     . "$1"
     daemon_lock_held_by_live_daemon() { return 0; }
     fm_backend_target_exists() { return 0; }
@@ -610,103 +612,47 @@ unit_native_record_carries_the_real_host_pane() {
     fm_afk_launch_start
   ' _ "$LAUNCH" 2>&1)
   if [ ! -e "$st/refreshed" ]; then
-    pass "native host: delivering into the daemon's own recorded pane is refused"
+    pass "recorded target: a daemon delivering into a pane firstmate has left is refused"
   else
-    fail "native host: co-tenancy with the recorded pane was not caught ($out)"
+    fail "recorded target: reported a verified delivery path into a pane firstmate has left ($out)"
   fi
   case "$out" in
-    *"default:w9Z:p4"*) pass "native host: the refusal names the pane the daemon is actually in" ;;
-    *) fail "native host: refusal did not name the recorded host pane: $out" ;;
+    *"default:w1R:p1"*"default:w4Q:p2"*) pass "recorded target: the refusal names both the daemon's pane and the current one" ;;
+    *) fail "recorded target: refusal did not name both panes: $out" ;;
+  esac
+  case "$out" in
+    *"away mode is STILL ON"*) pass "recorded target: the refusal says away mode is still on" ;;
+    *) fail "recorded target: refusal did not report a live away mode: $out" ;;
+  esac
+  if [ -e "$st/state/.afk" ]; then
+    pass "recorded target: the refused refresh left away mode exactly as it found it"
+  else
+    fail "recorded target: the refused refresh cleared the away-mode flag it does not own"
+  fi
+  # (3) A record predating the field says nothing about where the daemon
+  # delivers. Unknown must never refuse - "assume the worst" is still an
+  # assertion - so the refresh proceeds and says the check could not be made.
+  printf 'none\t-\tnative:default:w9Z:p4\n' > "$st/state/.afk-daemon-terminal"
+  rm -f "$st/refreshed"
+  out=$(FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
+        FM_SUPERVISOR_TARGET='default:w4Q:p2' FM_SUPERVISOR_BACKEND=herdr bash -c '
+    . "$1"
+    daemon_lock_held_by_live_daemon() { return 0; }
+    fm_backend_target_exists() { return 0; }
+    fm_afk_launch_flag_write() { : > "$FM_HOME/refreshed"; }
+    fm_afk_launch_start
+  ' _ "$LAUNCH" 2>&1)
+  if [ -e "$st/refreshed" ]; then
+    pass "recorded target: a record with no delivery pane is not refused on an unobserved guess"
+  else
+    fail "recorded target: refused a legacy record without observing a mismatch ($out)"
+  fi
+  case "$out" in
+    *"did not record which pane it delivers into"*)
+      pass "recorded target: an unrecorded delivery pane is reported as unchecked" ;;
+    *) fail "recorded target: did not report that the delivery pane could not be checked: $out" ;;
   esac
   FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" "$LAUNCH" stop >/dev/null 2>&1
-  rm -rf "$st"
-}
-
-# R4: an entry whose delivery path is already blocked is refused and fully rolled
-# back, rather than reporting success and going quiet for the night.
-#
-# The daemon terminal really comes up here (a stubbed tmux that accepts
-# new-session), and the verification refuses, so this pins the rollback WIRING
-# itself rather than any single check: the created terminal must be closed by its
-# exact recorded id and the pre-entry state restored.
-unit_verify_delivery_path_refuses_and_rolls_back() {
-  local st out killed
-  st=$(mktemp -d "${TMPDIR:-/tmp}/fm-afk-verify.XXXXXX")
-  mkdir -p "$st/state"
-  printf 'pending\n' > "$st/state/.subsuper-escalations"
-  killed="$st/killed"
-  if out=$(FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
-           FM_SUPERVISOR_TARGET='%7' FM_SUPERVISOR_BACKEND=tmux \
-           FM_AFK_LAUNCH_ENTRY="$SLEEPER" KILLED="$killed" bash -c '
-    . "$1"
-    tmux() {
-      case "$1" in
-        new-session) return 0 ;;
-        kill-session) printf "%s" "$3" > "$KILLED"; return 0 ;;
-        has-session) printf "can'\''t find session: %s" "$3" >&2; return 1 ;;
-      esac
-      return 0
-    }
-    fm_afk_launch_wait_ready() { return 0; }
-    fm_afk_launch_verify_delivery_path() {
-      fm_afk_launch_log "away mode not entered: stubbed delivery-path refusal"
-      return 1
-    }
-    fm_afk_launch_start
-  ' _ "$LAUNCH" 2>&1); then
-    fail "start must refuse an entry whose delivery path verification refuses"
-  else
-    pass "start refuses an entry whose delivery path is already blocked"
-  fi
-  case "$(cat "$killed" 2>/dev/null || true)" in
-    fm-afk-daemon-*) pass "refused start tore the created daemon terminal down by its exact id" ;;
-    *) fail "refused start did not close the daemon terminal it had created" ;;
-  esac
-  if [ ! -e "$st/state/.afk" ] && [ ! -e "$st/state/.afk-daemon-terminal" ]; then
-    pass "refused start rolled the away-mode flag and terminal record back"
-  else
-    fail "refused start left away mode half-entered ($out)"
-  fi
-  if [ "$(cat "$st/state/.subsuper-escalations" 2>/dev/null || true)" = pending ]; then
-    pass "refused start restored the pre-entry delivery artifacts"
-  else
-    fail "refused start discarded the pre-entry delivery artifacts"
-  fi
-  rm -rf "$st"
-}
-
-# The two entry modes leave the captain in genuinely different states, so a
-# refusal must name the one they are actually in: a fresh entry is rolled back
-# ("not entered"), a refresh leaves a live, undeliverable away mode running.
-# Driven through the unsupported-backend refusal, which both modes reach.
-unit_refusal_names_the_state_of_the_entry_that_refused() {
-  local st fresh_out refresh_out
-  st=$(mktemp -d "${TMPDIR:-/tmp}/fm-afk-refusal-mode.XXXXXX")
-  mkdir -p "$st/state"
-  fresh_out=$(FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" bash -c '
-    . "$1"
-    fm_afk_launch_verify_delivery_path "%7" zellij fresh
-  ' _ "$LAUNCH" 2>&1)
-  refresh_out=$(FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" bash -c '
-    . "$1"
-    fm_afk_launch_verify_delivery_path "%7" zellij refresh
-  ' _ "$LAUNCH" 2>&1)
-  case "$fresh_out" in
-    *"away mode not entered"*) pass "fresh refusal reports the entry as not entered" ;;
-    *) fail "fresh refusal did not report a rolled-back entry: $fresh_out" ;;
-  esac
-  case "$fresh_out" in
-    *"STILL ON"*) fail "a rolled-back fresh entry claimed away mode is still on: $fresh_out" ;;
-    *) pass "fresh refusal does not claim a live away mode" ;;
-  esac
-  case "$refresh_out" in
-    *"away mode is STILL ON"*) pass "refresh refusal reports away mode as still active" ;;
-    *) fail "refresh refusal did not report a live away mode: $refresh_out" ;;
-  esac
-  case "$refresh_out" in
-    *"away mode not entered"*) fail "refresh refusal reported a live away mode as not entered: $refresh_out" ;;
-    *) pass "refresh refusal does not claim away mode was never entered" ;;
-  esac
   rm -rf "$st"
 }
 
@@ -761,7 +707,7 @@ unit_refresh_refuses_a_dead_delivery_target() {
   local st out
   st=$(mktemp -d "${TMPDIR:-/tmp}/fm-afk-refresh-dead-target.XXXXXX")
   mkdir -p "$st/state"
-  printf 'tmux\tdaemon-session\t\n' > "$st/state/.afk-daemon-terminal"
+  printf 'tmux\tdaemon-session\t\t%%99\n' > "$st/state/.afk-daemon-terminal"
   : > "$st/state/.afk"
   out=$(FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" \
         FM_SUPERVISOR_TARGET='%99' FM_SUPERVISOR_BACKEND=tmux bash -c '
@@ -794,28 +740,6 @@ unit_refresh_refuses_a_dead_delivery_target() {
     pass "refresh: a live delivery target still refreshes the away-mode flag"
   else
     fail "refresh: refused a live delivery target"
-  fi
-  rm -rf "$st"
-}
-
-# An UNCONFIRMED close during that rollback must keep the exact terminal id, the
-# same contract fm_afk_launch_stop keeps (unit_close_failure_preserves_record).
-# Dropping it strands a live daemon terminal nobody can address any more.
-unit_refused_entry_preserves_unconfirmed_terminal_record() {
-  local st
-  st=$(mktemp -d "${TMPDIR:-/tmp}/fm-afk-verify-unconfirmed.XXXXXX")
-  mkdir -p "$st/state"
-  printf 'tmux\texact-session\t\n' > "$st/state/.afk-daemon-terminal"
-  FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" bash -c '
-    . "$1"
-    fm_afk_launch_close_terminal() { return 1; }
-    fm_afk_launch_terminal_absent() { return 1; }
-    fm_afk_launch_teardown_after_failed_verify
-  ' _ "$LAUNCH" >/dev/null 2>&1
-  if [ "$(cut -f2 "$st/state/.afk-daemon-terminal" 2>/dev/null || true)" = exact-session ]; then
-    pass "refused entry: an unconfirmed terminal close preserves its exact reconciliation id"
-  else
-    fail "refused entry: an unconfirmed terminal close discarded the exact id"
   fi
   rm -rf "$st"
 }
@@ -1438,12 +1362,9 @@ unit_tmux_absence_distinguishes_probe_failure
 unit_native_lifecycle
 unit_native_refused_on_native_busy_backend
 unit_native_allowed_when_daemon_is_not_the_target
-unit_native_record_carries_the_real_host_pane
-unit_verify_delivery_path_refuses_and_rolls_back
+unit_refresh_verifies_the_daemons_recorded_delivery_pane
 unit_fresh_entry_is_not_torn_down_by_a_second_pane_probe
-unit_refusal_names_the_state_of_the_entry_that_refused
 unit_refresh_refuses_a_dead_delivery_target
-unit_refused_entry_preserves_unconfirmed_terminal_record
 unit_refresh_refuses_a_pre_existing_self_hosted_daemon
 unit_afk_start_refuses_self_hosting_before_writing_the_flag
 unit_native_entry_preserves_prepared_state
