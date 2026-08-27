@@ -1018,22 +1018,48 @@ wedge_alarm_notify() {  # <summary> <marker>
   return 0
 }
 
-# Write the durable wedge record. Split out because it is written up to THREE
-# times per alarm window on purpose: once before the pane is probed and before
-# any alert channel is dispatched, so the wedge is durably recorded even if a
-# backend read or a channel hangs and the daemon is killed mid-call; once with
-# the probe's diagnosis folded in; and once after wedge_alarm_notify returns, to
-# fold in what the dispatch actually established. The stamped timestamp is passed
-# in so every write describes the same instant.
-wedge_alarm_write_marker() {  # <marker> <state> <age> <stamp> <target> <backend> <diagnosis> <accounting>
-  local marker=$1 state=$2 age=$3 stamp=$4 target=$5 backend=$6 diagnosis=$7 accounting=$8
+# THE SINGLE PUBLISHER of the durable wedge record, called once per stage of an
+# alarm window. Two properties it exists to guarantee, both of which the record
+# is worthless without:
+#
+#   ATOMIC. The content is built in a temp file beside the marker and renamed
+#   over it, the way this repo publishes its other durable records
+#   (fm_afk_launch_record_write). An in-place truncate would let a SIGTERM from
+#   `fm-afk-launch.sh stop` - bash runs a pending trap between commands inside
+#   the group, including after the O_TRUNC open - leave an empty or half-written
+#   marker where a complete one had been. A reader sees the previous complete
+#   record or the new complete record, never a partial one.
+#
+#   ACCOUNTING DERIVED FROM THE STAGE ACTUALLY REACHED. The caller names the
+#   stage it is at, and the accounting line is composed HERE from that stage
+#   rather than carried in a variable that outlives the moment it described. The
+#   record a kill freezes on disk must be true of the instant it was written: a
+#   marker published on the way into dispatch may not say dispatch never started.
+wedge_alarm_publish_marker() {  # <marker> <state> <age> <stamp> <target> <backend> <diagnosis> <stage> [dispatch-result]
+  local marker=$1 state=$2 age=$3 stamp=$4 target=$5 backend=$6 diagnosis=$7 stage=$8 result=${9:-}
+  local accounting pending max_defer
+  max_defer="${FM_MAX_DEFER_SECS:-$MAX_DEFER_SECS_DEFAULT}"
+  case "$stage" in
+    not-started)
+      accounting="alert dispatch has not started yet; this record is published before any call that can hang, so a hung pane read or channel cannot cost the wedge its record" ;;
+    dispatching)
+      accounting="alert dispatch is starting NOW and its result is not known yet; a record frozen here means a channel was attempted and never reported back" ;;
+    suppressed)
+      accounting="no alert attempted in this window (an alert for this wedge already fired within the last ${max_defer}s)" ;;
+    dispatched)
+      accounting="$result" ;;
+    *)
+      accounting="alarm stage '$stage' is not one this daemon knows how to account for" ;;
+  esac
+  pending=$(mktemp "${marker}.pending.XXXXXX" 2>/dev/null) || return 1
   {
     printf 'fm away-mode inject WEDGED: %ss undelivered as of %s\n' "$age" "$stamp"
     printf 'Supervisor pane: %s (%s); %s.\n' "$target" "$backend" "$diagnosis"
     printf 'Alert accounting: %s\n' "$accounting"
     printf 'The supervisor pane could not accept an escalation. Buffered items:\n'
     cat "$state/.subsuper-escalations" 2>/dev/null
-  } 2>/dev/null > "$marker" || true
+  } 2>/dev/null > "$pending" || { rm -f "$pending" 2>/dev/null; return 1; }
+  mv "$pending" "$marker" 2>/dev/null || { rm -f "$pending" 2>/dev/null; return 1; }
 }
 
 # Raise a loud, rate-limited alarm when escalations cannot be delivered after
@@ -1100,8 +1126,8 @@ inject_wedge_diagnosis() {  # <target> <backend> <busy-detail>
 }
 
 inject_wedge_alarm() {  # <state> <age-seconds>
-  local state=$1 age=$2 marker target backend max_defer now notify=1 diagnosis stamp accounting
-  local busy_diagnosis
+  local state=$1 age=$2 marker target backend max_defer now notify=1 diagnosis stamp
+  local busy_diagnosis pending_stage
   marker="$state/.subsuper-inject-wedged"
   max_defer="${FM_MAX_DEFER_SECS:-$MAX_DEFER_SECS_DEFAULT}"
   # Re-alarm at most once per max-defer window so a long wedge does not spam.
@@ -1114,38 +1140,38 @@ inject_wedge_alarm() {  # <state> <age-seconds>
   stamp=$(date '+%Y-%m-%dT%H:%M:%S%z')
   if [ "$WEDGE_ALARM_LAST_EPOCH" -gt 0 ] && [ $((now - WEDGE_ALARM_LAST_EPOCH)) -lt "$max_defer" ]; then
     notify=0
-    accounting="no alert attempted in this window (an alert for this wedge already fired within the last ${max_defer}s)"
+    pending_stage=suppressed
   else
     WEDGE_ALARM_LAST_EPOCH=$now
-    accounting="alert dispatch has not started yet; this record was written first so the wedge survives a read or a channel that hangs"
+    pending_stage=not-started
   fi
-  # THE DURABLE MARKER IS WRITTEN BEFORE ANY CALL THAT CAN HANG - both the pane
+  # THE DURABLE MARKER IS PUBLISHED BEFORE ANY CALL THAT CAN HANG - both the pane
   # probe below and wedge_alarm_notify further down. fm_backend_capture and
   # fm_backend_busy_state are not timeout-bounded and notify is bounded only PER
   # CHANNEL, so a SIGTERM arriving in either window (`fm-afk-launch.sh stop`
   # waits 10s) must not be able to cost the wedge its primary,
-  # backend-independent record. This first write is honest about what it does not
-  # know yet; the two rewrites below fold in the probe and the dispatch result.
+  # backend-independent record. Every publication names the stage it is at, so
+  # whichever one a kill freezes on disk is true of the moment it was written.
   diagnosis=$(inject_wedge_diagnosis "$target" "$backend" \
-    "the pane has not been read yet - this record is written before any backend call, so a read that hangs cannot cost the wedge its durable record")
-  wedge_alarm_write_marker "$marker" "$state" "$age" "$stamp" "$target" "$backend" "$diagnosis" "$accounting"
+    "the pane has not been read yet - this record is published before any backend call, so a read that hangs cannot cost the wedge its durable record")
+  wedge_alarm_publish_marker "$marker" "$state" "$age" "$stamp" "$target" "$backend" "$diagnosis" "$pending_stage"
   # Name what is blocking, once per alarm window, so the next occurrence is
   # identifiable in seconds rather than over a night. A native busy verdict the
   # primary harness's own rendered signature does not corroborate is the
   # fingerprint of a native state tracking something other than the agent's turn.
   busy_diagnosis=$(pane_busy_diagnosis "$target" "$backend")
   diagnosis=$(inject_wedge_diagnosis "$target" "$backend" "$busy_diagnosis")
-  if [ "$notify" -eq 1 ]; then
+  if [ "$notify" -eq 0 ]; then
+    wedge_alarm_publish_marker "$marker" "$state" "$age" "$stamp" "$target" "$backend" "$diagnosis" suppressed
+  else
     log_error "ERROR: away-mode escalation undelivered ${age}s into $target; $diagnosis. Buffer + wake-queue preserved; alarm marker written."
-  fi
-  wedge_alarm_write_marker "$marker" "$state" "$age" "$stamp" "$target" "$backend" "$diagnosis" "$accounting"
-  if [ "$notify" -eq 1 ]; then
+    wedge_alarm_publish_marker "$marker" "$state" "$age" "$stamp" "$target" "$backend" "$diagnosis" dispatching
     # Reset per window: WEDGE_ALARM_LAST_ACCOUNTING is a process global, and a
     # marker must never report a previous window's dispatch as its own.
     WEDGE_ALARM_LAST_ACCOUNTING=""
     wedge_alarm_notify "away-mode escalations WEDGED ${age}s undelivered - see $marker" "$marker"
-    accounting="${WEDGE_ALARM_LAST_ACCOUNTING:-alert dispatch was attempted but no channel reported a result}"
-    wedge_alarm_write_marker "$marker" "$state" "$age" "$stamp" "$target" "$backend" "$diagnosis" "$accounting"
+    wedge_alarm_publish_marker "$marker" "$state" "$age" "$stamp" "$target" "$backend" "$diagnosis" dispatched \
+      "${WEDGE_ALARM_LAST_ACCOUNTING:-alert dispatch was attempted but no channel reported a result}"
   fi
   # Best-effort status-line flash. tmux's display-message is a client-side OSD
   # with no herdr equivalent; the log line + durable marker above are already

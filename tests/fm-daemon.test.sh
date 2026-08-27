@@ -2111,6 +2111,88 @@ test_wedge_marker_is_durable_before_the_pane_is_read() {
   pass "wedge marker: written durably before the pane is read, so a hung backend read still leaves the record"
 }
 
+# The marker is published several times per window, so every publication must be
+# atomic: an in-place truncate would let a SIGTERM landing mid-write destroy an
+# already-complete record. A reader sees the previous complete record or the new
+# one, never a partial one. Same contract as the launcher's terminal record
+# ("record publication: failed atomic rename preserves the complete prior record").
+test_wedge_marker_publication_is_atomic() {
+  local dir state marker body
+  dir=$(make_supercase wedge-marker-atomic)
+  state="$dir/state"
+  mkdir -p "$state"
+  printf 'dev-x.status: needs-decision: pick one\n' > "$state/.subsuper-escalations"
+  marker="$state/.subsuper-inject-wedged"
+  wedge_alarm_publish_marker "$marker" "$state" 900 "2026-08-27T00:00:00+0000" \
+    "default:w1:p2" herdr "an earlier verdict" dispatched "alerts dispatched: osascript" \
+    || fail "the first wedge marker publication failed"
+  (
+    mv() { return 1; }
+    if wedge_alarm_publish_marker "$marker" "$state" 1800 "2026-08-27T01:00:00+0000" \
+         "default:w1:p2" herdr "a later verdict" dispatched "a later accounting"; then
+      fail "a publication whose rename failed must report failure, not success"
+    fi
+  ) || fail "atomic-publication subshell failed"
+  body=$(cat "$marker" 2>/dev/null || true)
+  assert_contains "$body" "900s undelivered" \
+    "a failed rename must leave the previous COMPLETE record, not an empty file"
+  assert_contains "$body" "alerts dispatched: osascript" \
+    "the preserved record must keep its own accounting"
+  assert_contains "$body" "needs-decision: pick one" \
+    "the preserved record must keep its buffered escalations"
+  assert_not_contains "$body" "a later accounting" \
+    "a publication that never landed must not be partially visible"
+  if find "$state" -name '.subsuper-inject-wedged.pending.*' -print -quit | grep -q .; then
+    fail "a failed publication left its temp file behind"
+  else
+    pass "wedge marker: a failed atomic rename preserves the complete prior record and leaves no temp"
+  fi
+}
+
+# Dispatch is synchronous and bounded only PER CHANNEL, so the publication that
+# precedes it is the last one to complete when `fm-afk-launch.sh stop` SIGTERMs
+# the daemon inside a hanging channel. Whatever that freezes on disk has to be
+# true of the moment it was written: it may not say dispatch never started.
+test_wedge_marker_records_that_dispatch_began_when_a_kill_freezes_it() {
+  local dir state marker snapshot snap body
+  dir=$(make_supercase wedge-marker-dispatch-stage)
+  state="$dir/state"
+  afk_enter "$state"
+  printf 'dev-x.status: needs-decision: pick one\n' > "$state/.subsuper-escalations"
+  marker="$state/.subsuper-inject-wedged"
+  snapshot="$dir/marker-at-dispatch"
+  (
+    LOG="$dir/daemon.log"
+    WEDGE_ALARM_LAST_EPOCH=0
+    INJECT_LAST_BLOCK=busy
+    export FM_TEST_WEDGE_MARKER="$marker" FM_TEST_WEDGE_SNAPSHOT="$snapshot"
+    fm_backend_busy_state() { printf 'busy'; }
+    fm_backend_capture() { printf 'esc to interrupt\n'; }
+    # Stands in for a channel that hangs and is killed: capture exactly what is
+    # on disk at the instant dispatch begins.
+    wedge_alarm_notify() { cp "$FM_TEST_WEDGE_MARKER" "$FM_TEST_WEDGE_SNAPSHOT" 2>/dev/null || true; }
+    FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2" \
+      FM_DAEMON_PRIMARY_HARNESS=claude inject_wedge_alarm "$state" 900
+  ) || fail "dispatch-stage wedge subshell failed"
+  snap=$(cat "$snapshot" 2>/dev/null || true)
+  assert_contains "$snap" "900s undelivered" \
+    "a complete record must be on disk when dispatch begins"
+  assert_contains "$snap" "dispatch is starting NOW" \
+    "a record frozen at dispatch must say dispatch began"
+  assert_not_contains "$snap" "has not started yet" \
+    "a record frozen at dispatch must not claim no alert was attempted"
+  assert_contains "$snap" "needs-decision: pick one" \
+    "the record frozen at dispatch must still carry the buffered escalations"
+  # Control: once dispatch returns, the record carries its RESULT, not the
+  # in-flight wording, so the assertion above pins a stage and not a constant.
+  body=$(cat "$marker" 2>/dev/null || true)
+  assert_not_contains "$body" "dispatch is starting NOW" \
+    "the completed record must not still say dispatch is in flight"
+  assert_contains "$body" "no channel reported a result" \
+    "the completed record must state what the dispatch established"
+  pass "wedge marker: the record published on the way into dispatch says dispatch began"
+}
+
 # WEDGE_ALARM_LAST_ACCOUNTING is a process global. A window whose alert was
 # suppressed by the re-alarm rate limit must say so, never reprint an earlier
 # window's dispatch as if it belonged to this timestamped record.
@@ -2509,6 +2591,8 @@ test_wedge_alarm_accounting_separates_dispatch_from_delivery
 test_inject_wedge_alarm_marker_names_blocker_and_alert_accounting
 test_wedge_marker_is_durable_before_any_channel_is_dispatched
 test_wedge_marker_is_durable_before_the_pane_is_read
+test_wedge_marker_publication_is_atomic
+test_wedge_marker_records_that_dispatch_began_when_a_kill_freezes_it
 test_wedge_marker_never_inherits_a_previous_windows_alert_accounting
 test_wedge_marker_reports_the_block_inject_msg_actually_hit
 test_wedge_accounting_names_a_configured_but_unusable_channel
