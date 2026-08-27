@@ -534,8 +534,11 @@ fm_afk_launch_verify_delivery_path() {  # <captain-target> <captain-backend> <fr
   # unknown is never a refusal. "Assume the worst" would be one more guard
   # asserting what it never observed - the defect this whole change exists to
   # remove - and it would refuse a home that merely upgraded mid-away-session.
-  # The daemon's own startup check compares real panes in its own process and
-  # can therefore actually observe co-tenancy; that is the check that decides.
+  # Unknown is not benign either, and the log line below must not pretend the
+  # daemon's own startup check will cover it: that check already ran, in that
+  # daemon's own process, either under a build without this rule or with the same
+  # unresolvable pane. It cannot run again while the daemon is alive, so the only
+  # way to make this delivery path verified is a stop and a fresh entry.
   #
   # Reached from the already-running refresh path, where a pre-existing in-pane
   # daemon would otherwise be silently refreshed; a fresh create always records a
@@ -543,7 +546,7 @@ fm_afk_launch_verify_delivery_path() {  # <captain-target> <captain-backend> <fr
   if fm_afk_launch_record_read && [ "$FM_AFK_REC_BACKEND" = none ] \
      && fm_supervisor_backend_has_native_busy "$captain_backend"; then
     if [ -z "$FM_AFK_REC_HOST" ]; then
-      fm_afk_launch_log "the running in-pane daemon's record does not name the pane it is hosted in, so co-tenancy with '$captain_target' cannot be observed here; not refusing on an unverified guess - the daemon's own startup check compares real panes and refuses there if it is a tenant of its own target"
+      fm_afk_launch_log "the away daemon already running did not record which pane it is hosted in, so nothing here can tell whether it is a tenant of '$captain_target'. Its own startup check cannot close this either: it either started under a build that predates this routing rule and never ran that check, or it could not resolve its own pane then any more than this record names one now. Away mode is being refreshed onto a daemon whose delivery path is unverified - to make it verified, run 'bin/fm-afk-launch.sh stop' and re-enter with 'bin/fm-afk-launch.sh start', which places the daemon in its own non-visible terminal and passes this pane in as the delivery target."
     elif [ "$FM_AFK_REC_HOST" = "$captain_target" ]; then
       # This branch is reachable ONLY from start's already-running refresh path,
       # so the captain reading it has just run start; telling them to run start

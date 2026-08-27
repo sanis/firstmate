@@ -1018,11 +1018,13 @@ wedge_alarm_notify() {  # <summary> <marker>
   return 0
 }
 
-# Write the durable wedge record. Split out because it is written TWICE per
-# alarm window on purpose: once before any alert channel is dispatched, so the
-# wedge is durably recorded even if the daemon dies mid-dispatch, and once after
-# wedge_alarm_notify returns, to fold in what the dispatch actually established.
-# The stamped timestamp is passed in so both writes describe the same instant.
+# Write the durable wedge record. Split out because it is written up to THREE
+# times per alarm window on purpose: once before the pane is probed and before
+# any alert channel is dispatched, so the wedge is durably recorded even if a
+# backend read or a channel hangs and the daemon is killed mid-call; once with
+# the probe's diagnosis folded in; and once after wedge_alarm_notify returns, to
+# fold in what the dispatch actually established. The stamped timestamp is passed
+# in so every write describes the same instant.
 wedge_alarm_write_marker() {  # <marker> <state> <age> <stamp> <target> <backend> <diagnosis> <accounting>
   local marker=$1 state=$2 age=$3 stamp=$4 target=$5 backend=$6 diagnosis=$7 accounting=$8
   {
@@ -1042,9 +1044,64 @@ wedge_alarm_write_marker() {  # <marker> <state> <age> <stamp> <target> <backend
 # configurable backend-independent active alert (wedge_alarm_notify). Nothing
 # is lost - the buffer and the
 # wake-queue both survive - but the stall stops being invisible.
+# What the two busy sources say about the pane RIGHT NOW, as one sentence, from
+# a single pane_busy_probe sample. Costs a backend read, so inject_wedge_alarm
+# calls it only AFTER the durable marker already exists.
+pane_busy_diagnosis() {  # <target> <backend>
+  local target=$1 backend=$2 harness probe blocked_by corroboration
+  harness=$(fm_daemon_primary_harness)
+  probe=$(pane_busy_probe "$target" "$backend")
+  blocked_by=${probe%% *}
+  corroboration=${probe##* }
+  case "$blocked_by" in
+    native)
+      case "$corroboration" in
+        corroborated)
+          printf 'the pane reports busy through %s native agent state, corroborated by the %s rendered signature' "$backend" "$harness" ;;
+        uncorroborated)
+          printf 'the pane reports busy through %s native agent state, which the %s rendered signature does NOT corroborate - the native state is tracking something other than a turn in that pane' "$backend" "$harness" ;;
+        *)
+          printf 'the pane reports busy through %s native agent state; the pane could not be read, so the %s rendered signature could not be checked either way' "$backend" "$harness" ;;
+      esac ;;
+    rendered)
+      printf 'the pane reports busy through the %s rendered busy signature' "$harness" ;;
+    *)
+      if [ "$corroboration" = unreadable ]; then
+        printf '%s does not report the pane busy and the pane could not be read, so the %s rendered signature could not be checked either way' "$backend" "$harness"
+      else
+        printf 'neither %s native agent state nor the %s rendered signature reports the pane busy right now' "$backend" "$harness"
+      fi ;;
+  esac
+}
+
+# Compose the wedge diagnosis from the block inject_msg actually recorded - never
+# a guess. Its composer guard and its pane-exists check both return before a
+# single character is typed, so neither may be described as a submit. <busy-detail>
+# is folded into the cases that reference the pane's busy state; the pre-probe
+# marker passes a placeholder that says plainly the pane has not been read yet.
+inject_wedge_diagnosis() {  # <target> <backend> <busy-detail>
+  local target=$1 backend=$2 busy_detail=$3
+  case "$INJECT_LAST_BLOCK" in
+    busy)
+      printf 'delivery was blocked by the busy guard: %s' "$busy_detail" ;;
+    composer)
+      printf 'delivery stopped at the composer guard - the supervisor composer was not confirmed empty, so nothing was typed and no submit was attempted (%s)' "$busy_detail" ;;
+    target-missing)
+      printf 'delivery found no live %s pane at %s, so nothing was typed' "$backend" "$target" ;;
+    submit-unconfirmed)
+      printf 'the digest was typed and Enter was sent, but the submit was never confirmed - the text may still be sitting in the composer (%s)' "$busy_detail" ;;
+    afk-inactive)
+      printf 'delivery found away mode inactive, so the digest stayed buffered' ;;
+    encode-failed)
+      printf 'delivery could not build the escalation envelope, so nothing was typed' ;;
+    *)
+      printf 'no delivery attempt has recorded a block in this daemon process; %s' "$busy_detail" ;;
+  esac
+}
+
 inject_wedge_alarm() {  # <state> <age-seconds>
   local state=$1 age=$2 marker target backend max_defer now notify=1 diagnosis stamp accounting
-  local probe blocked_by corroboration harness busy_diagnosis
+  local busy_diagnosis
   marker="$state/.subsuper-inject-wedged"
   max_defer="${FM_MAX_DEFER_SECS:-$MAX_DEFER_SECS_DEFAULT}"
   # Re-alarm at most once per max-defer window so a long wedge does not spam.
@@ -1054,68 +1111,32 @@ inject_wedge_alarm() {  # <state> <age-seconds>
   now=$(_now)
   target="${FM_SUPERVISOR_TARGET:-$FM_SUPERVISOR_TARGET_DEFAULT}"
   backend="${FM_SUPERVISOR_BACKEND:-$FM_SUPERVISOR_BACKEND_DEFAULT}"
+  stamp=$(date '+%Y-%m-%dT%H:%M:%S%z')
+  if [ "$WEDGE_ALARM_LAST_EPOCH" -gt 0 ] && [ $((now - WEDGE_ALARM_LAST_EPOCH)) -lt "$max_defer" ]; then
+    notify=0
+    accounting="no alert attempted in this window (an alert for this wedge already fired within the last ${max_defer}s)"
+  else
+    WEDGE_ALARM_LAST_EPOCH=$now
+    accounting="alert dispatch has not started yet; this record was written first so the wedge survives a read or a channel that hangs"
+  fi
+  # THE DURABLE MARKER IS WRITTEN BEFORE ANY CALL THAT CAN HANG - both the pane
+  # probe below and wedge_alarm_notify further down. fm_backend_capture and
+  # fm_backend_busy_state are not timeout-bounded and notify is bounded only PER
+  # CHANNEL, so a SIGTERM arriving in either window (`fm-afk-launch.sh stop`
+  # waits 10s) must not be able to cost the wedge its primary,
+  # backend-independent record. This first write is honest about what it does not
+  # know yet; the two rewrites below fold in the probe and the dispatch result.
+  diagnosis=$(inject_wedge_diagnosis "$target" "$backend" \
+    "the pane has not been read yet - this record is written before any backend call, so a read that hangs cannot cost the wedge its durable record")
+  wedge_alarm_write_marker "$marker" "$state" "$age" "$stamp" "$target" "$backend" "$diagnosis" "$accounting"
   # Name what is blocking, once per alarm window, so the next occurrence is
   # identifiable in seconds rather than over a night. A native busy verdict the
   # primary harness's own rendered signature does not corroborate is the
   # fingerprint of a native state tracking something other than the agent's turn.
-  harness=$(fm_daemon_primary_harness)
-  probe=$(pane_busy_probe "$target" "$backend")
-  blocked_by=${probe%% *}
-  corroboration=${probe##* }
-  case "$blocked_by" in
-    native)
-      case "$corroboration" in
-        corroborated)
-          busy_diagnosis="the pane reports busy through $backend native agent state, corroborated by the $harness rendered signature" ;;
-        uncorroborated)
-          busy_diagnosis="the pane reports busy through $backend native agent state, which the $harness rendered signature does NOT corroborate - the native state is tracking something other than a turn in that pane" ;;
-        *)
-          busy_diagnosis="the pane reports busy through $backend native agent state; the pane could not be read, so the $harness rendered signature could not be checked either way" ;;
-      esac ;;
-    rendered)
-      busy_diagnosis="the pane reports busy through the $harness rendered busy signature" ;;
-    *)
-      if [ "$corroboration" = unreadable ]; then
-        busy_diagnosis="$backend does not report the pane busy and the pane could not be read, so the $harness rendered signature could not be checked either way"
-      else
-        busy_diagnosis="neither $backend native agent state nor the $harness rendered signature reports the pane busy right now"
-      fi ;;
-  esac
-  # What actually stopped the last delivery attempt, as inject_msg recorded it -
-  # never a guess. Its composer guard and its pane-exists check both return
-  # before a single character is typed, so neither may be described as a submit.
-  case "$INJECT_LAST_BLOCK" in
-    busy)
-      diagnosis="delivery was blocked by the busy guard: $busy_diagnosis" ;;
-    composer)
-      diagnosis="delivery stopped at the composer guard - the supervisor composer was not confirmed empty, so nothing was typed and no submit was attempted ($busy_diagnosis)" ;;
-    target-missing)
-      diagnosis="delivery found no live $backend pane at $target, so nothing was typed" ;;
-    submit-unconfirmed)
-      diagnosis="the digest was typed and Enter was sent, but the submit was never confirmed - the text may still be sitting in the composer ($busy_diagnosis)" ;;
-    afk-inactive)
-      diagnosis="delivery found away mode inactive, so the digest stayed buffered" ;;
-    encode-failed)
-      diagnosis="delivery could not build the escalation envelope, so nothing was typed" ;;
-    *)
-      diagnosis="no delivery attempt has recorded a block in this daemon process; $busy_diagnosis" ;;
-  esac
-  if [ "$WEDGE_ALARM_LAST_EPOCH" -gt 0 ] && [ $((now - WEDGE_ALARM_LAST_EPOCH)) -lt "$max_defer" ]; then
-    notify=0
-  else
-    WEDGE_ALARM_LAST_EPOCH=$now
-    log_error "ERROR: away-mode escalation undelivered ${age}s into $target; $diagnosis. Buffer + wake-queue preserved; alarm marker written."
-  fi
-  # The durable marker is written FIRST, before any channel is dispatched.
-  # wedge_alarm_notify is synchronous and bounded PER CHANNEL, so a hung channel
-  # holds this function for FM_WEDGE_ALARM_TIMEOUT_SECS at a time; a SIGTERM
-  # arriving in that window (`fm-afk-launch.sh stop` waits only 10s) must not be
-  # able to lose the primary, backend-independent record of the wedge.
-  stamp=$(date '+%Y-%m-%dT%H:%M:%S%z')
+  busy_diagnosis=$(pane_busy_diagnosis "$target" "$backend")
+  diagnosis=$(inject_wedge_diagnosis "$target" "$backend" "$busy_diagnosis")
   if [ "$notify" -eq 1 ]; then
-    accounting="alert dispatch starting; this record was written before dispatch so the wedge survives a channel that hangs"
-  else
-    accounting="no alert attempted in this window (an alert for this wedge already fired within the last ${max_defer}s)"
+    log_error "ERROR: away-mode escalation undelivered ${age}s into $target; $diagnosis. Buffer + wake-queue preserved; alarm marker written."
   fi
   wedge_alarm_write_marker "$marker" "$state" "$age" "$stamp" "$target" "$backend" "$diagnosis" "$accounting"
   if [ "$notify" -eq 1 ]; then

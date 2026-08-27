@@ -2062,6 +2062,55 @@ test_wedge_marker_is_durable_before_any_channel_is_dispatched() {
   pass "wedge marker: written durably before dispatch, so a daemon killed mid-alert still leaves the record"
 }
 
+# The durable marker must exist before ANY call that can hang, not just before
+# the alert channels. fm_backend_capture / fm_backend_busy_state are not
+# timeout-bounded, so a herdr server that stops answering `pane read` would
+# otherwise hold inject_wedge_alarm open with nothing on disk, and a SIGTERM in
+# that window (`fm-afk-launch.sh stop` waits 10s) loses the record entirely.
+# Emulated by a pane read that never returns.
+test_wedge_marker_is_durable_before_the_pane_is_read() {
+  local dir state marker body
+  dir=$(make_supercase wedge-marker-before-probe)
+  state="$dir/state"
+  afk_enter "$state"
+  printf 'dev-x.status: needs-decision: pick one\n' > "$state/.subsuper-escalations"
+  marker="$state/.subsuper-inject-wedged"
+  local snapshot snap
+  snapshot="$dir/marker-at-first-backend-call"
+  (
+    LOG="$dir/daemon.log"
+    WEDGE_ALARM_LAST_EPOCH=0
+    INJECT_LAST_BLOCK=busy
+    export FM_TEST_WEDGE_MARKER="$marker" FM_TEST_WEDGE_SNAPSHOT="$snapshot"
+    # Snapshot the marker at the instant of the FIRST backend call - the point a
+    # hung read would freeze the daemon with whatever is on disk right then.
+    _snap() { [ -e "$FM_TEST_WEDGE_SNAPSHOT" ] || cp "$FM_TEST_WEDGE_MARKER" "$FM_TEST_WEDGE_SNAPSHOT" 2>/dev/null || true; }
+    fm_backend_busy_state() { _snap; printf 'busy'; }
+    fm_backend_capture() { _snap; printf 'esc to interrupt\n'; }
+    FM_WEDGE_ALARM_EXEC=discard \
+      FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2" \
+      FM_DAEMON_PRIMARY_HARNESS=claude inject_wedge_alarm "$state" 900
+  ) || fail "pre-probe wedge subshell failed"
+  snap=$(cat "$snapshot" 2>/dev/null || true)
+  assert_contains "$snap" "900s undelivered" \
+    "the durable marker must already exist when the first backend read is made"
+  assert_contains "$snap" "default:w1:p2" "the pre-probe marker must already name the blocked pane"
+  assert_contains "$snap" "needs-decision: pick one" \
+    "the pre-probe marker must already carry the buffered escalations"
+  # And it must be honest about what it does not know yet rather than printing a
+  # busy verdict from a read that has not happened.
+  assert_contains "$snap" "has not been read yet" \
+    "the pre-probe marker must say the pane has not been read rather than assert a verdict"
+  # Control: the finished record carries the real verdict, so the placeholder is
+  # a first write and not the end state.
+  body=$(cat "$marker" 2>/dev/null || true)
+  assert_contains "$body" "corroborated by the claude rendered signature" \
+    "the completed marker must carry the probe's real verdict"
+  assert_not_contains "$body" "has not been read yet" \
+    "the completed marker must not still say the pane is unread"
+  pass "wedge marker: written durably before the pane is read, so a hung backend read still leaves the record"
+}
+
 # WEDGE_ALARM_LAST_ACCOUNTING is a process global. A window whose alert was
 # suppressed by the re-alarm rate limit must say so, never reprint an earlier
 # window's dispatch as if it belonged to this timestamped record.
@@ -2459,6 +2508,7 @@ test_log_error_reaches_stderr_as_well_as_the_log
 test_wedge_alarm_accounting_separates_dispatch_from_delivery
 test_inject_wedge_alarm_marker_names_blocker_and_alert_accounting
 test_wedge_marker_is_durable_before_any_channel_is_dispatched
+test_wedge_marker_is_durable_before_the_pane_is_read
 test_wedge_marker_never_inherits_a_previous_windows_alert_accounting
 test_wedge_marker_reports_the_block_inject_msg_actually_hit
 test_wedge_accounting_names_a_configured_but_unusable_channel

@@ -795,8 +795,18 @@ unit_refresh_refuses_a_pre_existing_self_hosted_daemon() {
     fail "refresh: a legacy in-pane record was refused without observing co-tenancy ($out)"
   fi
   case "$out" in
-    *"cannot be observed here"*) pass "refresh says plainly that the host pane is unknown" ;;
+    *"did not record which pane it is hosted in"*) pass "refresh says plainly that the host pane is unknown" ;;
     *) fail "refresh did not report that co-tenancy could not be observed: $out" ;;
+  esac
+  # The daemon that wrote this record is already running, so its own startup
+  # check has already run - under a build without this rule, or with the same
+  # unresolvable pane. Naming it as a backstop here would promise the captain a
+  # protection that cannot fire, in the exact moment they decide how far to trust
+  # away mode. The note must give them something they can act on instead.
+  case "$out" in
+    *"delivery path is unverified"*"'bin/fm-afk-launch.sh stop'"*)
+      pass "refresh names the unverified residual and an action that resolves it" ;;
+    *) fail "refresh left the captain with no action for an unverified delivery path: $out" ;;
   esac
   # Control: the same refresh with a real, separate daemon terminal proceeds, so
   # the assertions above cannot pass by refresh having stopped working.
