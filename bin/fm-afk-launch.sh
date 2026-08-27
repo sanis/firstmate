@@ -500,7 +500,11 @@ fm_afk_launch_verify_delivery_path() {  # <captain-target> <captain-backend>
   # a fresh create always records a real terminal before it gets here.
   if fm_afk_launch_record_read && [ "$FM_AFK_REC_BACKEND" = none ] \
      && fm_supervisor_backend_has_native_busy "$captain_backend"; then
-    fm_afk_launch_log "away mode not entered: the daemon would run inside '$captain_target', the same pane it must deliver into, and on $captain_backend its own background job keeps that pane reading as busy - so no escalation could ever be delivered. Enter through 'bin/fm-afk-launch.sh start' instead of the in-pane path."
+    # This branch is reachable ONLY from start's already-running refresh path, so
+    # the captain reading it has just run start; telling them to run start again
+    # would take the same branch and refuse again, forever. Name the state they
+    # are actually in: the pre-existing in-pane daemon has to go first.
+    fm_afk_launch_log "away mode not entered: the daemon already running inside '$captain_target' is a tenant of the same pane it must deliver into, and on $captain_backend its own background job keeps that pane reading as busy - so no escalation could ever be delivered. Stop it first with 'bin/fm-afk-launch.sh stop', then re-enter with 'bin/fm-afk-launch.sh start', which places the daemon in its own non-visible terminal and passes this pane in as the delivery target."
     return 1
   fi
   # Daemon liveness is NOT rechecked here: fm_afk_launch_commit_terminal already

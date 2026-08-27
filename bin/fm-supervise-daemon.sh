@@ -203,6 +203,13 @@ WEDGE_ALARM_NOTIFIER_PID=
 # What the last alarm window actually established about its own delivery,
 # recorded into the durable wedge marker so the catch-up shows it too.
 WEDGE_ALARM_LAST_ACCOUNTING=
+# What the LAST delivery attempt in this process actually stopped on, recorded
+# by inject_msg at every one of its refusal points and read by inject_wedge_alarm.
+# The alarm reports the OBSERVED block rather than re-deriving a likely one:
+# several of inject_msg's exits - the composer guard above all - never type a
+# character or attempt a submit, and a marker that blames an unconfirmed submit
+# for one of those sends the captain looking at the wrong thing.
+INJECT_LAST_BLOCK=
 # The captain-relevant verb set and the status classifiers (last_status_line,
 # status_is_captain_relevant, window_to_task, scan_captain_relevant_statuses) now
 # live in bin/fm-classify-lib.sh, shared with the always-on watcher.
@@ -615,20 +622,52 @@ pane_is_busy() {  # <target> [backend]
   [ -n "$(pane_busy_source "$@")" ]
 }
 
-# pane_busy_sources_disagree: 0 when the backend's native agent state calls the
-# pane busy but the primary harness's own rendered signature does not. That is
-# the fingerprint of a native verdict that is tracking something other than the
-# supervised agent's turn - the daemon's own in-pane background job, on the
-# 2026-08-26 incident. Consulted only from the wedge alarm, once per max-defer
-# window, because it costs a capture.
-pane_busy_sources_disagree() {  # <target> [backend]
-  local target=$1 backend=${2:-tmux} tail40 harness
-  [ "$(fm_backend_busy_state "$backend" "$target" 2>/dev/null)" = busy ] || return 1
+# pane_busy_probe: ONE sample of BOTH busy sources, for the wedge alarm's
+# once-per-window diagnosis. Prints "<source> <corroboration>":
+#   source        native | rendered | none
+#   corroboration corroborated   - the rendered signature agreed with native
+#                 uncorroborated - it was read and did NOT agree. The 2026-08-26
+#                                  fingerprint: a native state tracking the
+#                                  daemon's own in-pane job, not a turn.
+#                 unreadable     - the pane could not be captured, so the
+#                                  rendered signature was never checked
+#                 n-a            - no native verdict, nothing to corroborate
+#
+# Both verdicts come from the SAME pair of reads, and an unreadable capture is
+# its own outcome. A two-outcome boolean could not tell a corroborating capture
+# apart from a capture that never returned, and two independent samples could
+# report agreement between states observed at different instants; either way the
+# marker would assert a corroboration the daemon never observed, which is the
+# exact inverse of the signal this alarm exists to carry. Costs a capture
+# unconditionally, so the per-tick busy guard keeps using the cheap,
+# short-circuiting pane_busy_source instead.
+pane_busy_probe() {  # <target> [backend] -> "<source> <corroboration>"
+  local target=$1 backend=${2:-tmux} native harness tail40 rendered
+  native=$(fm_backend_busy_state "$backend" "$target" 2>/dev/null)
   harness=$(fm_daemon_primary_harness)
-  tail40=$(fm_backend_capture "$backend" "$target" 40 2>/dev/null) || return 1
-  printf '%s' "$tail40" | grep -v '^[[:space:]]*$' | tail -12 \
-    | fm_busy_lines_match "$harness" && return 1
-  return 0
+  if tail40=$(fm_backend_capture "$backend" "$target" 40 2>/dev/null); then
+    if printf '%s' "$tail40" | grep -v '^[[:space:]]*$' | tail -12 \
+       | fm_busy_lines_match "$harness"; then
+      rendered=busy
+    else
+      rendered=idle
+    fi
+  else
+    rendered=unreadable
+  fi
+  if [ "$native" = busy ]; then
+    case "$rendered" in
+      busy) printf 'native corroborated' ;;
+      idle) printf 'native uncorroborated' ;;
+      *)    printf 'native unreadable' ;;
+    esac
+    return 0
+  fi
+  case "$rendered" in
+    busy)       printf 'rendered n-a' ;;
+    unreadable) printf 'none unreadable' ;;
+    *)          printf 'none n-a' ;;
+  esac
 }
 
 # pane_input_pending dispatches through fm_backend_composer_state and treats
@@ -923,7 +962,7 @@ wedge_alarm_channel_confirms_delivery() {  # <channel>
 # only signal. Every notifier routes through the test-forced recorder seam.
 wedge_alarm_notify() {  # <summary> <marker>
   local summary=$1 marker=$2 ch resolved
-  local -a channels=() dispatched=() failed=() confirmed=()
+  local -a channels=() dispatched=() failed=() confirmed=() unusable=()
   WEDGE_ALARM_LAST_ACCOUNTING=""
   while IFS= read -r ch; do
     [ -n "$ch" ] || continue
@@ -940,7 +979,11 @@ wedge_alarm_notify() {  # <summary> <marker>
     resolved=$ch
     case "$resolved" in auto|default) resolved=$(wedge_alarm_platform_default) ;; esac
     case "$resolved" in
-      '') log "wedge alarm: no OS-level alert channel on $(uname); durable marker $marker is the only signal - set config/wedge-alarm (e.g. a command: directive)" ;;
+      '') log "wedge alarm: no OS-level alert channel on $(uname); durable marker $marker is the only signal - set config/wedge-alarm (e.g. a command: directive)"
+         # A configured channel that cannot be used HERE is not the same as no
+         # channel at all: on a Linux captain the default `auto` resolves to
+         # nothing, and "refused: none" alone would read as a healthy window.
+         unusable+=("${ch}=no-OS-channel-on-$(uname)") ;;
       osascript|herdr)
         if wedge_alarm_emit "$resolved" "$summary"; then
           dispatched+=("$resolved")
@@ -955,11 +998,14 @@ wedge_alarm_notify() {  # <summary> <marker>
         else
           failed+=(command)
         fi ;;
-      *) log "wedge alarm: unrecognized active-alert channel directive (redacted); marker still written" ;;
+      *) log "wedge alarm: unrecognized active-alert channel directive (redacted); marker still written"
+         # The directive itself stays redacted - it can carry a command line.
+         unusable+=("unrecognized-directive") ;;
     esac
   done
-  WEDGE_ALARM_LAST_ACCOUNTING=$(printf 'alerts dispatched: %s; refused: %s; delivery to the captain CONFIRMED by: %s' \
-    "${dispatched[*]:-none}" "${failed[*]:-none}" "${confirmed[*]:-none - every channel here is fire-and-forget, so a dispatched alert is not evidence the captain saw it}")
+  WEDGE_ALARM_LAST_ACCOUNTING=$(printf 'alerts dispatched: %s; refused: %s; configured but unusable here: %s; delivery to the captain CONFIRMED by: %s' \
+    "${dispatched[*]:-none}" "${failed[*]:-none}" "${unusable[*]:-none}" \
+    "${confirmed[*]:-none - every channel here is fire-and-forget, so a dispatched alert is not evidence the captain saw it}")
   log "wedge alarm: $WEDGE_ALARM_LAST_ACCOUNTING"
   return 0
 }
@@ -989,7 +1035,8 @@ wedge_alarm_write_marker() {  # <marker> <state> <age> <stamp> <target> <backend
 # is lost - the buffer and the
 # wake-queue both survive - but the stall stops being invisible.
 inject_wedge_alarm() {  # <state> <age-seconds>
-  local state=$1 age=$2 marker target backend max_defer now notify=1 blocked_by diagnosis stamp accounting
+  local state=$1 age=$2 marker target backend max_defer now notify=1 diagnosis stamp accounting
+  local probe blocked_by corroboration harness busy_diagnosis
   marker="$state/.subsuper-inject-wedged"
   max_defer="${FM_MAX_DEFER_SECS:-$MAX_DEFER_SECS_DEFAULT}"
   # Re-alarm at most once per max-defer window so a long wedge does not spam.
@@ -1003,16 +1050,47 @@ inject_wedge_alarm() {  # <state> <age-seconds>
   # identifiable in seconds rather than over a night. A native busy verdict the
   # primary harness's own rendered signature does not corroborate is the
   # fingerprint of a native state tracking something other than the agent's turn.
-  blocked_by=$(pane_busy_source "$target" "$backend")
+  harness=$(fm_daemon_primary_harness)
+  probe=$(pane_busy_probe "$target" "$backend")
+  blocked_by=${probe%% *}
+  corroboration=${probe##* }
   case "$blocked_by" in
-    '') diagnosis="the pane is not reporting busy, so the submit itself could not be confirmed" ;;
     native)
-      if pane_busy_sources_disagree "$target" "$backend"; then
-        diagnosis="blocked by $backend native agent state, which the $(fm_daemon_primary_harness) rendered signature does NOT corroborate - the native state is tracking something other than a turn in that pane"
+      case "$corroboration" in
+        corroborated)
+          busy_diagnosis="the pane reports busy through $backend native agent state, corroborated by the $harness rendered signature" ;;
+        uncorroborated)
+          busy_diagnosis="the pane reports busy through $backend native agent state, which the $harness rendered signature does NOT corroborate - the native state is tracking something other than a turn in that pane" ;;
+        *)
+          busy_diagnosis="the pane reports busy through $backend native agent state; the pane could not be read, so the $harness rendered signature could not be checked either way" ;;
+      esac ;;
+    rendered)
+      busy_diagnosis="the pane reports busy through the $harness rendered busy signature" ;;
+    *)
+      if [ "$corroboration" = unreadable ]; then
+        busy_diagnosis="$backend does not report the pane busy and the pane could not be read, so the $harness rendered signature could not be checked either way"
       else
-        diagnosis="blocked by $backend native agent state, corroborated by the $(fm_daemon_primary_harness) rendered signature"
+        busy_diagnosis="neither $backend native agent state nor the $harness rendered signature reports the pane busy right now"
       fi ;;
-    *) diagnosis="blocked by the $(fm_daemon_primary_harness) rendered busy signature" ;;
+  esac
+  # What actually stopped the last delivery attempt, as inject_msg recorded it -
+  # never a guess. Its composer guard and its pane-exists check both return
+  # before a single character is typed, so neither may be described as a submit.
+  case "$INJECT_LAST_BLOCK" in
+    busy)
+      diagnosis="delivery was blocked by the busy guard: $busy_diagnosis" ;;
+    composer)
+      diagnosis="delivery stopped at the composer guard - the supervisor composer was not confirmed empty, so nothing was typed and no submit was attempted ($busy_diagnosis)" ;;
+    target-missing)
+      diagnosis="delivery found no live $backend pane at $target, so nothing was typed" ;;
+    submit-unconfirmed)
+      diagnosis="the digest was typed and Enter was sent, but the submit was never confirmed - the text may still be sitting in the composer ($busy_diagnosis)" ;;
+    afk-inactive)
+      diagnosis="delivery found away mode inactive, so the digest stayed buffered" ;;
+    encode-failed)
+      diagnosis="delivery could not build the escalation envelope, so nothing was typed" ;;
+    *)
+      diagnosis="no delivery attempt has recorded a block in this daemon process; $busy_diagnosis" ;;
   esac
   if [ "$WEDGE_ALARM_LAST_EPOCH" -gt 0 ] && [ $((now - WEDGE_ALARM_LAST_EPOCH)) -lt "$max_defer" ]; then
     notify=0
@@ -1242,13 +1320,13 @@ inject_msg() {  # <message> [state]
   # (1) Presence-gate: inject ONLY when afk is active. When afk is off, the
   # daemon self-handles and stays quiet; firstmate drives the normal always-on
   # watcher triage. Escalations buffer and survive for the next catch-up flush.
-  afk_active "$state" || { log "inject deferred: afk inactive"; return 1; }
+  afk_active "$state" || { INJECT_LAST_BLOCK=afk-inactive; log "inject deferred: afk inactive"; return 1; }
   # (2) Single-line digest: collapse any embedded newlines so submission via
   # send-keys + Enter is unambiguous regardless of how the TUI composer treats
   # them. Then use the canonical typed envelope so downstream consumers retain
   # the exact away-supervisor kind without interpreting this payload's prose.
   msg=$(_collapse_newlines "$msg")
-  fm_operational_input_encode away-supervisor "$msg" encoded || return 1
+  fm_operational_input_encode away-supervisor "$msg" encoded || { INJECT_LAST_BLOCK=encode-failed; return 1; }
   msg=$encoded
   target="${FM_SUPERVISOR_TARGET:-$FM_SUPERVISOR_TARGET_DEFAULT}"
   # BACKEND-AWARE (previously a raw `tmux display-message` pane-exists probe):
@@ -1257,7 +1335,7 @@ inject_msg() {  # <message> [state]
   # when unset (sourced/test contexts that never ran fm_super_main's startup
   # discovery), matching this function's pre-existing default assumption.
   backend="${FM_SUPERVISOR_BACKEND:-tmux}"
-  fm_backend_target_exists "$backend" "$target" || return 1
+  fm_backend_target_exists "$backend" "$target" || { INJECT_LAST_BLOCK=target-missing; return 1; }
   # (3) Busy-guard: never inject into an in-use supervisor pane.
   busy_source=$(pane_busy_source "$target" "$backend")
   if [ -n "$busy_source" ]; then
@@ -1271,6 +1349,7 @@ inject_msg() {  # <message> [state]
     else
       log "inject deferred: supervisor pane $target reported busy by the $(fm_daemon_primary_harness) rendered busy signature"
     fi
+    INJECT_LAST_BLOCK=busy
     return 1
   fi
   #   b) Composer-guard: inject ONLY into a confirmed-empty GENUINE agent
@@ -1285,6 +1364,7 @@ inject_msg() {  # <message> [state]
   composer=$(fm_backend_composer_state "$backend" "$target" 2>/dev/null)
   if [ "$composer" != empty ]; then
     log "inject deferred: supervisor composer not confirmed-empty (state=${composer:-unknown}: pending input, dead-shell prompt, or unreadable pane)"
+    INJECT_LAST_BLOCK=composer
     return 1
   fi
   # (4) Type the digest ONCE, then submit with Enter (retry Enter only, never
@@ -1298,9 +1378,11 @@ inject_msg() {  # <message> [state]
   sleep_s=${FM_INJECT_CONFIRM_SLEEP:-$INJECT_CONFIRM_SLEEP_DEFAULT}
   verdict=$(fm_backend_send_text_submit "$backend" "$target" "$msg" "$retries" "$sleep_s" "$sleep_s")
   if [ "$verdict" = empty ]; then
+    INJECT_LAST_BLOCK=
     return 0  # Backend confirmed the submit.
   fi
   log "inject failed: submit unconfirmed after $retries retries (verdict=$verdict, text may be in composer)"
+  INJECT_LAST_BLOCK=submit-unconfirmed
   return 1
 }
 

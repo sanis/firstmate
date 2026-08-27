@@ -123,7 +123,7 @@ unit_relative_paths_are_absolute_before_daemon_launch() {
 # current session's buffered escalations.
 # ---------------------------------------------------------------------------
 unit_fresh_vs_refresh() {
-  local st sleep_pid lock
+  local st sleep_pid lock out
   st=$(mktemp -d "${TMPDIR:-/tmp}/fm-afk-refresh.XXXXXX")
   mkdir -p "$st/state"
   : > "$st/state/.subsuper-escalations"
@@ -136,7 +136,18 @@ unit_fresh_vs_refresh() {
   mkdir -p "$lock"
   printf '%s' "$sleep_pid" > "$lock/pid"
   ( . "$ROOT/bin/fm-wake-lib.sh"; fm_pid_identity "$sleep_pid" > "$lock/pid-identity" 2>/dev/null ) || true
-  FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" "$START" >/dev/null 2>&1
+  # Pinned env: left ambient this inherits the herdr session of the machine
+  # running the tests, hits fm-afk-start.sh's self-hosting refusal, and returns
+  # before it reaches the refresh branch at all - at which point "the artifacts
+  # are still there" is true because NOTHING ran, and the test cannot fail.
+  out=$(FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" TMUX_PANE='' HERDR_ENV='' HERDR_PANE_ID='' \
+        "$START" 2>&1)
+  # Prove the refresh branch actually executed before reading its side effects.
+  case "$out" in
+    *"daemon already running pid=$sleep_pid"*)
+      pass "refresh: the already-running branch is the one that ran" ;;
+    *) fail "refresh: entry never reached the already-running branch: $out" ;;
+  esac
   if [ -e "$st/state/.subsuper-escalations" ] && [ -e "$st/state/.subsuper-inject-wedged" ]; then
     pass "refresh: daemon already alive - stale artifacts preserved (current session's buffer kept)"
   else
@@ -665,6 +676,13 @@ unit_refresh_refuses_a_pre_existing_self_hosted_daemon() {
     *"same pane it must deliver into"*) pass "refresh refusal names what is blocked" ;;
     *) fail "refresh refusal did not explain the blockage: $out" ;;
   esac
+  # This branch is only reachable from `start`, so the captain reading it has
+  # just run `start`. Sending them back to `start` is a loop with no exit; the
+  # pre-existing in-pane daemon must be stopped first.
+  case "$out" in
+    *"'bin/fm-afk-launch.sh stop'"*) pass "refresh refusal names the remedy that actually clears the block" ;;
+    *) fail "refresh refusal did not tell the captain to stop the pre-existing daemon: $out" ;;
+  esac
   # Control: the same refresh with a real, separate daemon terminal proceeds, so
   # the assertion above cannot pass by refresh having stopped working.
   printf 'tmux\tdaemon-session\t\n' > "$st/state/.afk-daemon-terminal"
@@ -737,16 +755,25 @@ unit_afk_start_refuses_self_hosting_before_writing_the_flag() {
 }
 
 unit_native_entry_preserves_prepared_state() {
-  local st
+  local st out
   st=$(mktemp -d "${TMPDIR:-/tmp}/fm-afk-native-entry.XXXXXX")
   mkdir -p "$st/state"
   : > "$st/state/.afk"
   : > "$st/state/.subsuper-escalations"
-  FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" FM_AFK_STATE_PREPARED=1 bash -c '
+  # Same pinning as unit_fresh_vs_refresh: ambient herdr env would trip the
+  # self-hosting refusal before any of the prepared-state handling runs, and the
+  # "nothing was mutated" assertion would hold vacuously.
+  out=$(FM_HOME="$st" FM_STATE_OVERRIDE="$st/state" FM_AFK_STATE_PREPARED=1 \
+        TMUX_PANE='' HERDR_ENV='' HERDR_PANE_ID='' bash -c '
     . "$1"
     FM_AFK_DAEMON=/bin/true
     fm_afk_start_main
-  ' _ "$START" >/dev/null 2>&1
+  ' _ "$START" 2>&1)
+  case "$out" in
+    *"starting supervise daemon"*)
+      pass "native entry: the prepared-state path ran through to daemon startup" ;;
+    *) fail "native entry: never reached daemon startup: $out" ;;
+  esac
   if [ -e "$st/state/.afk" ] && [ -e "$st/state/.subsuper-escalations" ]; then
     pass "native entry: launcher-prepared lifecycle state is not rewritten"
   else

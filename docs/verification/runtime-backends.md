@@ -675,7 +675,8 @@ rule: live_prompt_box (region=prompt_box_body priority=950)
 ```
 
 So a daemon hosted in the captain's pane holds that pane at `working` for its whole lifetime, `pane_is_busy` trusts the native verdict first, and every injection defers.
-Firstmate's own Claude delivery signature does not match that footer, so the two sources disagree; `tests/fm-daemon.test.sh` pins the Firstmate half with real captures and no harness, and `pane_busy_sources_disagree` reports the disagreement into the wedge alarm and its durable marker.
+Firstmate's own Claude delivery signature does not match that footer, so the two sources disagree; `tests/fm-daemon.test.sh` pins the Firstmate half with real captures and no harness, and `pane_busy_probe` reports the disagreement into the wedge alarm and its durable marker.
+That probe reads both sources from one sample and reports an unreadable pane as its own outcome, so the marker never records corroboration it did not observe.
 Refresh this record after a Herdr upgrade or an agent-detection manifest update, because both halves are vendor surfaces Firstmate does not own.
 
 ## Zellij
