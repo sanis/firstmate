@@ -1,0 +1,62 @@
+=== BEFORE (base 5d3e2f1) ===
+=== away daemon running OUTSIDE the captain pane %0; that pane reads as busy ===
+
+$ tmux capture-pane -p -t %0 | head -2      # what the daemon sees
+> ✻ Thinking... (esc to interrupt)
+
+$ # daemon started (pid 38998). Waiting for the wedge alarm...
+> wedge marker appeared after 2s
+
+$ cat state/.subsuper-inject-wedged        # the durable record the captain reads
+> fm away-mode inject WEDGED: 32s undelivered as of 2026-08-27T13:41:12+0300
+> The supervisor pane could not accept an escalation. Buffered items:
+> crew-a: blocked on a decision and waiting on the captain
+
+$ cat alert-channel.log                    # what the alert channel received
+> ALERT HANDED OFF: away-mode escalations WEDGED 32s undelivered - see /var/folders/b8/p7dyhngn7l591759f0_ngqr40000gn/T//fm-demo-wedge.1iKNHp/state/.subsuper-inject-wedged
+
+$ grep -E "ERROR|wedge alarm|deferred" state/.supervise-daemon.log | tail -4
+> [2026-08-27T13:41:12+0300] inject deferred: supervisor pane busy (agent mid-turn)
+> [2026-08-27T13:41:12+0300] inject deferred: supervisor pane busy (agent mid-turn)
+> [2026-08-27T13:41:12+0300] ERROR: away-mode escalation undelivered 32s; inject could not confirm a 
+> submit (supervisor pane busy or wedged). Buffer + wake-queue preserved; alarm marker written.
+
+$ cat state/.subsuper-escalations          # nothing was lost
+> crew-a: blocked on a decision and waiting on the captain
+
+=== AFTER (head 362705c) ===
+=== away daemon running OUTSIDE the captain pane %0; that pane reads as busy ===
+
+$ tmux capture-pane -p -t %0 | head -2      # what the daemon sees
+> ✻ Thinking... (esc to interrupt)
+
+$ # daemon started (pid 37986). Waiting for the wedge alarm...
+> wedge marker appeared after 3s
+
+$ cat state/.subsuper-inject-wedged        # the durable record the captain reads
+> fm away-mode inject WEDGED: 32s undelivered as of 2026-08-27T13:41:01+0300
+> Supervisor pane: %0 (tmux); delivery was blocked by the busy guard: the pane reports busy through 
+> the claude rendered busy signature.
+> Alert accounting: alerts dispatched: command; refused: none; configured but unusable here: none; 
+> delivery to the captain CONFIRMED by: none - every channel here is fire-and-forget, so a dispatched 
+> alert is not evidence the captain saw it
+> The supervisor pane could not accept an escalation. Buffered items:
+> crew-a: blocked on a decision and waiting on the captain
+
+$ cat alert-channel.log                    # what the alert channel received
+> ALERT HANDED OFF: away-mode escalations WEDGED 32s undelivered - see /var/folders/b8/p7dyhngn7l591759f0_ngqr40000gn/T//fm-demo-wedge.b5p0XS/state/.subsuper-inject-wedged
+
+$ grep -E "ERROR|wedge alarm|deferred" state/.supervise-daemon.log | tail -4
+> [2026-08-27T13:41:01+0300] inject deferred: supervisor pane %0 reported busy by the claude rendered 
+> busy signature
+> [2026-08-27T13:41:01+0300] inject deferred: supervisor pane %0 reported busy by the claude rendered 
+> busy signature
+> [2026-08-27T13:41:02+0300] ERROR: away-mode escalation undelivered 32s into %0; delivery was 
+> blocked by the busy guard: the pane reports busy through the claude rendered busy signature. Buffer 
+> + wake-queue preserved; alarm marker written.
+> [2026-08-27T13:41:02+0300] wedge alarm: alerts dispatched: command; refused: none; configured but 
+> unusable here: none; delivery to the captain CONFIRMED by: none - every channel here is 
+> fire-and-forget, so a dispatched alert is not evidence the captain saw it
+
+$ cat state/.subsuper-escalations          # nothing was lost
+> crew-a: blocked on a decision and waiting on the captain

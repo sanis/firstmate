@@ -1,0 +1,13 @@
+=== fail-closed backstop: the daemon itself refuses to run inside its own delivery pane ===
+    (the delivery pane exists and is reachable; what is wrong is WHERE the daemon is)
+
+$ HERDR_ENV=1 HERDR_PANE_ID=w1R:p1 HERDR_SESSION=default \
+    FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET=default:w1R:p1 bin/fm-supervise-daemon.sh
+> error: away-mode daemon is running inside 'default:w1R:p1', the same herdr pane it must deliver 
+> into; its own background job keeps that pane reading as busy, so no escalation could ever be 
+> delivered. Launch it through bin/fm-afk-launch.sh start, which gives the daemon its own terminal 
+> and passes the captain pane in as FM_SUPERVISOR_TARGET
+> [exit status 1]
+$ ls -A state/
+> .supervise-daemon.log
+> ==> no daemon lock published: nothing can mistake this refusal for a running daemon

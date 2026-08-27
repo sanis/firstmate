@@ -1,0 +1,39 @@
+=== away mode entered from the captain pane (%0) on tmux ===
+
+$ bin/fm-afk-launch.sh start          # run from inside the captain pane
+> fm-afk-launch: daemon launched in detached tmux session 'fm-afk-daemon-1832726845-25300-19456-1787827196', supervising %0
+
+$ tmux list-sessions              # where did the daemon land?
+> captain
+> fm-afk-daemon-1832726845-25300-19456-1787827196
+
+$ tmux list-panes -t captain      # the captain pane was NOT split or shared
+> %0 zsh
+
+$ cat state/.afk-daemon-terminal  # backend, terminal, host-pane, delivery-target
+> tmux	fm-afk-daemon-1832726845-25300-19456-1787827196		%0
+> ==> daemon terminal: fm-afk-daemon-1832726845-25300-19456-1787827196   delivery target: %0 (the captain pane)
+> ==> the daemon runs in pane %1, NOT in the pane it delivers into (%0)
+
+$ ps -o command= -p <daemon pid>  # the live daemon and the pane it supervises
+> bash /Users/justinasbolys/.no-mistakes/worktrees/bb0d8b8efff4/01M10ZE472YDYSA4ND24F90W27/bin/fm-supervise-daemon.sh
+$ grep supervisor state/.supervise-daemon.log | head -2
+> [2026-08-27T13:39:57+0300] daemon starting (pid 25928); target=%0; target_source=FM_SUPERVISOR_TARGET; backend=tmux; backend_source=FM_SUPERVISOR_BACKEND; afk=on; inject_skip='heartbeat'; stale_escalate=240s; batch=90s
+
+=== firstmate has since restarted in pane %2; the daemon still delivers into %0 ===
+
+$ bin/fm-afk-launch.sh start          # re-entering away mode from the NEW pane
+> fm-afk-launch: away mode is STILL ON from the earlier entry and this command changed nothing, but 
+> the running daemon's delivery path is blocked: the daemon already running delivers into '%0', but 
+> firstmate is now in '%2' - every escalation it sends goes to a pane you have left. Run 
+> 'bin/fm-afk-launch.sh stop' and re-enter with 'bin/fm-afk-launch.sh start', which launches a daemon 
+> targeting this pane.
+> [exit status 1]
+> ==> state/.afk untouched: the refusal changed nothing, away mode is still on
+
+$ bin/fm-afk-launch.sh stop
+> fm-afk-launch: terminal close command failed, but exact absence was confirmed
+> fm-afk-launch: away mode stopped; daemon terminal torn down and .afk cleared
+$ tmux list-sessions
+> captain
+> captain2

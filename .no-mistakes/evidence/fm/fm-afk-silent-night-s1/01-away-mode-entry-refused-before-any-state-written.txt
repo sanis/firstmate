@@ -1,0 +1,28 @@
+=== away-mode entry from inside the pane the daemon must deliver into ===
+
+$ # --- BEFORE-5d3e2f1 ---------------------------------------------
+$ # captain pane = herdr default:w1R:p1, and that is also the delivery target
+$ HERDR_ENV=1 HERDR_PANE_ID=w1R:p1 HERDR_SESSION=default \
+    FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET=default:w1R:p1 bin/fm-afk-start.sh
+> afk: starting supervise daemon in foreground; keep this command as a tracked background session
+> error: supervisor target 'default:w1R:p1' does not resolve to a herdr pane; set FM_SUPERVISOR_TARGET
+> [exit status 1]
+$ ls -A state/    # did away mode become true on disk?
+> .afk
+> .supervise-daemon.log
+> ==> AWAY MODE IS ON (state/.afk present) while nothing can deliver into that pane
+
+$ # --- AFTER-362705c ---------------------------------------------
+$ # captain pane = herdr default:w1R:p1, and that is also the delivery target
+$ HERDR_ENV=1 HERDR_PANE_ID=w1R:p1 HERDR_SESSION=default \
+    FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET=default:w1R:p1 bin/fm-afk-start.sh
+> afk: refusing to host the away daemon inside 'default:w1R:p1', the same herdr pane it must deliver into; its own background job keeps that pane reading as busy for its whole lifetime, so no escalation could ever be delivered. Enter away mode with 'bin/fm-afk-launch.sh start', which runs the daemon in its own non-visible terminal and passes this pane in as the delivery target.
+> [exit status 1]
+$ ls -A state/    # did away mode become true on disk?
+> (empty - no away-mode state was written)
+> ==> away mode was never entered; state/.afk absent
+
+$ # --- CONTROL (AFTER): daemon pane w9Z:p4, delivery target w1R:p1 ---
+> afk: starting supervise daemon in foreground; keep this command as a tracked background session
+> error: supervisor target 'default:w1R:p1' does not resolve to a herdr pane; set FM_SUPERVISOR_TARGET
+> ==> away mode entered normally (state/.afk present)

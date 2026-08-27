@@ -1,0 +1,40 @@
+=== the daemon lock is a readiness signal; a refusing daemon must never publish one ===
+
+$ # --- BEFORE-5d3e2f1 (run 1): daemon started against a delivery pane that does not exist ---
+$ FM_SUPERVISOR_BACKEND=tmux FM_SUPERVISOR_TARGET=%99999 bin/fm-supervise-daemon.sh
+> error: supervisor target '%99999' does not resolve to a tmux pane; set FM_SUPERVISOR_TARGET
+> [exit status 1]
+> ==> a concurrent readiness poll SIGHTED the daemon lock of a daemon that then refused
+>     (fm_afk_launch_wait_ready would report this refusing daemon as ready)
+
+$ # --- BEFORE-5d3e2f1 (run 2): daemon started against a delivery pane that does not exist ---
+$ FM_SUPERVISOR_BACKEND=tmux FM_SUPERVISOR_TARGET=%99999 bin/fm-supervise-daemon.sh
+> error: supervisor target '%99999' does not resolve to a tmux pane; set FM_SUPERVISOR_TARGET
+> [exit status 1]
+> ==> a concurrent readiness poll SIGHTED the daemon lock of a daemon that then refused
+>     (fm_afk_launch_wait_ready would report this refusing daemon as ready)
+
+$ # --- BEFORE-5d3e2f1 (run 3): daemon started against a delivery pane that does not exist ---
+$ FM_SUPERVISOR_BACKEND=tmux FM_SUPERVISOR_TARGET=%99999 bin/fm-supervise-daemon.sh
+> error: supervisor target '%99999' does not resolve to a tmux pane; set FM_SUPERVISOR_TARGET
+> [exit status 1]
+> ==> a concurrent readiness poll SIGHTED the daemon lock of a daemon that then refused
+>     (fm_afk_launch_wait_ready would report this refusing daemon as ready)
+
+$ # --- AFTER-362705c (run 1): daemon started against a delivery pane that does not exist ---
+$ FM_SUPERVISOR_BACKEND=tmux FM_SUPERVISOR_TARGET=%99999 bin/fm-supervise-daemon.sh
+> error: supervisor target '%99999' does not resolve to a tmux pane; set FM_SUPERVISOR_TARGET
+> [exit status 1]
+> ==> a concurrent readiness poll never sighted a lock: the refusal cannot be read as ready
+
+$ # --- AFTER-362705c (run 2): daemon started against a delivery pane that does not exist ---
+$ FM_SUPERVISOR_BACKEND=tmux FM_SUPERVISOR_TARGET=%99999 bin/fm-supervise-daemon.sh
+> error: supervisor target '%99999' does not resolve to a tmux pane; set FM_SUPERVISOR_TARGET
+> [exit status 1]
+> ==> a concurrent readiness poll never sighted a lock: the refusal cannot be read as ready
+
+$ # --- AFTER-362705c (run 3): daemon started against a delivery pane that does not exist ---
+$ FM_SUPERVISOR_BACKEND=tmux FM_SUPERVISOR_TARGET=%99999 bin/fm-supervise-daemon.sh
+> error: supervisor target '%99999' does not resolve to a tmux pane; set FM_SUPERVISOR_TARGET
+> [exit status 1]
+> ==> a concurrent readiness poll never sighted a lock: the refusal cannot be read as ready
