@@ -119,11 +119,17 @@ print_blockers() {  # <file>
   done < "$file"
 }
 
+# Every place that clears the delivery artifacts enumerates the SAME set,
+# including the wedge marker's in-flight publication temps (see
+# fm_afk_clear_stale_artifacts in bin/fm-afk-start.sh and
+# fm_afk_launch_restore_backup in bin/fm-afk-launch.sh). A catch-up that reports
+# a clean state while a partial wedge record survives is a report that is not true.
 clear_delivery_artifacts() {
   rm -f \
     "$STATE/.subsuper-escalations" \
     "$STATE/.subsuper-escalations.since" \
-    "$STATE/.subsuper-inject-wedged"
+    "$STATE/.subsuper-inject-wedged" \
+    "$STATE"/.subsuper-inject-wedged.pending.*
 }
 
 return_guard() {

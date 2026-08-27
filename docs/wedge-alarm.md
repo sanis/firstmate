@@ -4,6 +4,12 @@ The away-mode sub-supervisor (`bin/fm-supervise-daemon.sh`) buffers escalations 
 When injection cannot confirm a submit past `FM_MAX_DEFER_SECS`, `inject_wedge_alarm` raises a loud, rate-limited alarm so the stall never stays invisible.
 The active alert is pane-independent because a tmux status-line flash has no cross-backend equivalent and cannot reach an unattended captain reliably.
 The durable marker and tmux flash remain as additional signals.
+The marker is the primary, backend-independent record, so it is published BEFORE any call that can hang - the pane probe as well as the alert channels - and republished at each later stage: a hung pane read, a channel that hangs for its whole bounded window, or a daemon terminated inside either window can never cost the wedge its record.
+Every publication is atomic (built beside the marker and renamed over it), so a reader sees the previous complete record or the new one, never a partial one.
+Its `Alert accounting:` line is composed from the stage the alarm has actually reached at that publication, so a record frozen on the way into dispatch says dispatch began rather than claiming no alert was attempted.
+Its `Alert accounting:` line always describes the window it belongs to - a window whose alert was suppressed by the re-alarm rate limit says so rather than reprinting an earlier window's dispatch.
+It also counts a channel that was configured but unusable here (an `auto` directive on a platform with no OS channel, or an unrecognized directive) separately from dispatched and refused, so a permanently unreachable alarm cannot read as a healthy `refused: none`.
+The `Supervisor pane:` line reports the block `inject_msg` actually recorded - the composer guard and the pane-exists check both return before a character is typed, and neither is ever described as an unconfirmed submit.
 
 ## Channels
 
@@ -21,7 +27,10 @@ It lists channel directives, one per non-empty, non-comment line, and every list
 An absent `config/wedge-alarm` behaves as `auto`, which is default-on on macOS.
 This is deliberate because the alarm fires only after a genuine max-defer wedge and is rate-limited to at most once per max-defer window.
 
-Each channel is best-effort.
+Each channel is best-effort, and each is fire-and-forget.
+No shipped channel can confirm that the captain received an alert: `osascript` exits 0 whether macOS shows the banner, suppresses it under a Focus mode, or drops it for want of notification permission, and `herdr` and `command:` have the same shape.
+The daemon therefore records dispatch and delivery separately, in its log and in the durable marker, and never lets an exit status stand for delivery.
+Read a dispatched alert as sent, never as seen, and prefer a `command:` channel that reaches the captain off the machine.
 A missing binary or non-zero exit logs a warning and continues to the next channel without crashing the daemon loop.
 Every invocation is process-group bounded by `FM_WEDGE_ALARM_TIMEOUT_SECS`, which defaults to 10 seconds, including `command:`, `osascript`, `herdr`, and the test seam.
 On timeout or daemon shutdown, the notifier process group is terminated and the next configured channel may run.

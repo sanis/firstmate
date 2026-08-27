@@ -76,3 +76,76 @@ discover_supervisor_backend() {
   printf '%s' "$FM_SUPERVISOR_BACKEND_DEFAULT"
   return 1
 }
+
+# Supervisor backends whose NATIVE agent-state source observes the supervisor
+# pane's own in-pane background jobs. Declared once here and consumed by both
+# bin/fm-afk-launch.sh (which refuses to prepare an in-pane daemon on one) and
+# bin/fm-supervise-daemon.sh (which refuses to run blind as a tenant of its own
+# target). Herdr is the only supported supervisor backend with such a source:
+# bin/fm-backend.sh's fm_backend_busy_state returns a real verdict for herdr and
+# 'unknown' for every other backend, so only herdr can classify the daemon's own
+# host process as the supervised agent working.
+FM_SUPERVISOR_NATIVE_BUSY_BACKENDS="herdr"
+
+# Supervisor backends the away daemon knows how to inject into today. zellij,
+# orca, and cmux are real backends elsewhere in firstmate (bin/fm-backend.sh)
+# but the daemon has no verified composer/busy primitives wired up for them yet
+# - see docs/herdr-backend.md and AGENTS.md section 4's harness-verification
+# discipline. Selecting one refuses loudly, at the launcher before a terminal is
+# created and again at daemon startup, instead of silently running tmux
+# primitives against a pane that is not a tmux pane.
+# shellcheck disable=SC2034  # read by bin/fm-supervise-daemon.sh and bin/fm-afk-launch.sh, which source this file
+FM_SUPERVISOR_SUPPORTED_BACKENDS="tmux herdr"
+
+# fm_supervisor_backend_has_native_busy: 0 when <backend>'s native agent-state
+# source can observe the supervisor pane's own in-pane background jobs.
+fm_supervisor_backend_has_native_busy() {  # <backend>
+  local backend=$1 listed
+  [ -n "$backend" ] || return 1
+  for listed in $FM_SUPERVISOR_NATIVE_BUSY_BACKENDS; do
+    [ "$listed" = "$backend" ] && return 0
+  done
+  return 1
+}
+
+# discover_own_pane_target: the pane THIS process is actually running in.
+#
+# Deliberately ignores FM_SUPERVISOR_TARGET, which names the pane to SUPERVISE,
+# not the pane we are in. The two are the same only when the daemon is hosted
+# inside its own target - the condition supervisor_pane_is_self_hosted exists to
+# detect. Returns 1 with no output when this process is in no recognized pane.
+discover_own_pane_target() {
+  if [ -n "${TMUX_PANE:-}" ]; then
+    printf '%s' "$TMUX_PANE"
+    return 0
+  fi
+  if [ "${HERDR_ENV:-}" = "1" ] && [ -n "${HERDR_PANE_ID:-}" ]; then
+    printf '%s:%s' "${HERDR_SESSION:-default}" "$HERDR_PANE_ID"
+    return 0
+  fi
+  return 1
+}
+
+# supervisor_pane_is_self_hosted: 0 when a daemon running in THIS process's pane
+# would be a tenant of the very pane it must deliver into, on a backend whose
+# native agent state observes that tenancy.
+#
+# Why this is a hard refusal and not a warning (2026-08-26 incident): the away
+# daemon launched through a harness's own in-pane background tool keeps a live
+# background job in the captain's pane for its whole lifetime. Herdr's claude
+# agent-detection manifest classifies a pane whose footer carries a background
+# shell count as `working`, pane_is_busy trusts that native verdict first, and
+# the daemon then defers every injection for as long as it runs. The daemon
+# cannot deliver into a pane it is a tenant of, so the correct answer is to run
+# it elsewhere (bin/fm-afk-launch.sh's terminal-backed path), never to weaken the
+# busy guard that protects the captain's composer.
+#
+# Timing-independent by construction: it compares pane identity, never rendered
+# output or turn state, so it is exactly as true at launch as it is at 03:00.
+supervisor_pane_is_self_hosted() {  # <backend> <target>
+  local backend=$1 target=$2 own
+  [ -n "$backend" ] && [ -n "$target" ] || return 1
+  fm_supervisor_backend_has_native_busy "$backend" || return 1
+  own=$(discover_own_pane_target) || return 1
+  [ "$own" = "$target" ]
+}

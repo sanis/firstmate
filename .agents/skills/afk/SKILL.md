@@ -24,9 +24,13 @@ batched digest rather than per-wake injections.
    The flag survives a firstmate restart, so recovery re-enters afk when it is present.
 
 2. **Ensure the sub-supervisor daemon is running as a tracked background process.**
-   Its hosting differs by harness.
+   Its hosting is chosen by BACKEND first, then harness.
    Pick the right path:
-   - **Harness WITH a native in-pane tracked-background tool** (e.g. claude's
+   - **Backend herdr, any harness**: run `bin/fm-afk-launch.sh start`.
+     The harness-native in-pane host is not available here, whatever the harness offers.
+     Herdr's native agent state observes the pane's own background jobs, so a daemon hosted in the captain's pane keeps that pane reading as busy for its whole lifetime and can never deliver into it.
+     `start-native` refuses on herdr for this reason; do not work around the refusal.
+   - **Any other backend, harness WITH a native in-pane tracked-background tool** (e.g. claude's
      background bash, grok's background tool): first run
      `bin/fm-afk-launch.sh start-native`, then run
      `FM_AFK_STATE_PREPARED=1 bin/fm-afk-start.sh` through that native tool.
@@ -44,6 +48,9 @@ batched digest rather than per-wake injections.
      shrinks the captain's pane (docs/herdr-backend.md "Away-mode supervisor
      support").
    Both paths share `bin/fm-afk-start.sh` as the daemon entry.
+   `start` and `start-native` verify the delivery path only when they find a daemon ALREADY alive, which is the one situation a launcher-side check can observe something new: that daemon started earlier, and the pane it delivers into is recorded, so a daemon hosted in the captain's own pane or still injecting into a pane Firstmate has left is refused instead of silently refreshed.
+   A FRESH launch runs no such check and needs none: the daemon validates its own backend and supervisor target at startup and takes the daemon lock only once they pass, so a startup refusal can never be sighted as readiness and fails the launch.
+   `bin/fm-afk-start.sh` refuses the same self-hosting combination itself, before it writes any lifecycle state, so a refused entry never leaves away mode half-entered.
    The native path tells it that the launcher already prepared lifecycle state; the terminal-backed path lets the entry perform its existing state setup inside the new terminal.
    It exits immediately if the identity-backed daemon lock already names a live process, otherwise it execs `bin/fm-supervise-daemon.sh` in the foreground.
    The daemon is **presence-gated**: it injects escalations only while
@@ -108,9 +115,11 @@ If anything stays buffered past `FM_MAX_DEFER_SECS` (default 300), the daemon
 attempts one normal flush, which still requires an idle pane and an affirmatively empty composer.
 The alarm is defense in depth rather than a substitute for keeping every genuinely idle supported composer injectable.
 If that submit cannot be confirmed, it raises a loud, rate-limited wedge alarm:
-an ERROR in the daemon log, a durable
+an ERROR on the daemon's stderr as well as in its log, a durable
 `state/.subsuper-inject-wedged` marker (surface it on the "while you were out"
 catch-up if present), a tmux status-line flash when applicable, and a configurable backend-independent active alert.
+The ERROR and the marker both name which source called the pane busy, and whether the primary harness's own rendered signature corroborates it.
+No shipped alert channel can confirm the captain actually received it, so the marker records what was dispatched separately from what was confirmed; treat a dispatched alert as sent, never as seen.
 `docs/wedge-alarm.md` owns the alert channel setup, and `docs/verification/supervision.md` "Wedge-alarm channels" owns active evidence.
 So a guard false-positive becomes a visible stall, never an unbounded silent no-op.
 
@@ -177,14 +186,9 @@ the operational prefix lets firstmate distinguish it from a real captain message
   `FM_COMPOSER_IDLE_RE` overrides the shared idle-placeholder regex, but a match alone never bypasses the classifier's shape-specific position and ANSI de-emphasis safety gates.
   `FM_BUSY_REGEX` overrides the rendered delivery guards plus Grok's isolated task-state fallback.
   A blank or otherwise unidentified input row carries no positive container proof and defers injection, so a modal dialog or a mid-redraw pane is never an injection target.
-- **Max-defer escape** - the daemon must never silently wedge. If anything stays
-  buffered past `FM_MAX_DEFER_SECS` (default 300s), the daemon attempts one
-  normal flush, which still requires an idle pane and an affirmatively empty composer. If that
-  cannot confirm a submit, it raises a loud, rate-limited wedge alarm: ERROR log,
-  durable `state/.subsuper-inject-wedged` marker, a tmux status-line flash when
-  applicable, and a backend-independent active alert. A
-  composer false-positive surfaces as a visible stall, never an unbounded silent
-  no-op.
+- **Max-defer escape** - the daemon must never silently wedge. "Busy-guard and
+  composer guard" above owns what the alarm raises and what a dispatched alert
+  may and may not be read as.
 - **Verified type-once submit model** - the digest is typed once (`send-keys -l`
   on tmux, `pane send-text` on herdr), then submitted with Enter and verified.
   Enter is retried, Enter only and never a retype, until the backend submit

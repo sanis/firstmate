@@ -1795,6 +1795,684 @@ test_pane_is_busy_defaults_to_tmux_when_backend_omitted() {
   pass "pane_is_busy: omitted backend defaults to tmux for Grok's isolated fallback"
 }
 
+# THE 2026-08-26 COUNTERFACTUAL, as a portable regression.
+#
+# The away daemon is launched through the harness's own background tool on the
+# in-pane path, which leaves a background shell running in the captain's pane for
+# the daemon's whole lifetime. Claude renders that as a background-shell count in
+# its status footer. A pane whose ONLY difference is that footer segment must not,
+# by itself, be classified busy by firstmate's own rendered guard - otherwise the
+# daemon disqualifies its own delivery target by existing.
+#
+# Pinned here with real captures and no harness because this is the classifier's
+# own logic; the vendor-surface half of the same fact (that herdr's native agent
+# state DOES flip on it, which is why the fix moves the daemon out of the pane
+# rather than re-tuning a guard) is a herdr manifest fact firstmate does not own
+# and must not encode as a second, drifting copy.
+FM_TEST_CLAUDE_FOOTER_IDLE='  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents'
+FM_TEST_CLAUDE_FOOTER_BG_SHELL='  ⏵⏵ bypass permissions on · 1 shell · ← for agents'
+
+test_claude_background_shell_footer_is_not_a_busy_signature() {
+  local idle_pane busy_shell_pane real_turn_pane
+  idle_pane=$(printf '%s\n%s\n%s\n' '────────────' '❯' "$FM_TEST_CLAUDE_FOOTER_IDLE")
+  busy_shell_pane=$(printf '%s\n%s\n%s\n' '────────────' '❯' "$FM_TEST_CLAUDE_FOOTER_BG_SHELL")
+  real_turn_pane=$(printf '%s\n%s\n' '✽ Stewing… (9m 5s · ↓ 27.9k tokens)' "$FM_TEST_CLAUDE_FOOTER_BG_SHELL")
+
+  printf '%s' "$idle_pane" | fm_busy_lines_match claude \
+    && fail "an idle claude pane must not match the claude busy signature"
+  printf '%s' "$busy_shell_pane" | fm_busy_lines_match claude \
+    && fail "a background-shell footer alone must not match the claude busy signature - the away daemon would block its own delivery"
+  # Drive the two apart: the SAME footer during a real turn is still busy, so the
+  # assertion above cannot pass vacuously by the signature having stopped working.
+  printf '%s' "$real_turn_pane" | fm_busy_lines_match claude \
+    || fail "a genuine claude turn must still match the busy signature"
+
+  pass "claude busy signature: a background-shell footer alone is not busy, while a real turn carrying the same footer still is"
+}
+
+test_pane_busy_source_names_native_and_rendered() {
+  (
+    fm_backend_busy_state() { printf 'busy'; }
+    fm_backend_capture() { fail "capture must not run once native state is conclusive"; }
+    [ "$(FM_DAEMON_PRIMARY_HARNESS=claude pane_busy_source 'default:w1:p2' herdr)" = native ] \
+      || fail "a native busy verdict should be reported as source 'native'"
+  ) || fail "native busy-source subshell failed"
+  (
+    fm_backend_busy_state() { printf 'idle'; }
+    fm_backend_capture() { printf 'esc to interrupt\n'; }
+    [ "$(FM_DAEMON_PRIMARY_HARNESS=claude pane_busy_source 'default:w1:p2' herdr)" = rendered ] \
+      || fail "a rendered-only busy verdict should be reported as source 'rendered'"
+  ) || fail "rendered busy-source subshell failed"
+  (
+    fm_backend_busy_state() { printf 'idle'; }
+    fm_backend_capture() { printf '%s\n' "$FM_TEST_CLAUDE_FOOTER_BG_SHELL"; }
+    [ -z "$(FM_DAEMON_PRIMARY_HARNESS=claude pane_busy_source 'default:w1:p2' herdr)" ] \
+      || fail "an idle pane carrying only a background-shell footer must report no busy source"
+  ) || fail "not-busy busy-source subshell failed"
+  # The per-tick guard holds delivery back only on a POSITIVE signature, so a
+  # pane it could not read at all is not a busy source. pane_busy_probe reads the
+  # same helper and reports that case as its own outcome instead.
+  (
+    fm_backend_busy_state() { printf 'idle'; }
+    fm_backend_capture() { return 1; }
+    [ -z "$(FM_DAEMON_PRIMARY_HARNESS=claude pane_busy_source 'default:w1:p2' herdr)" ] \
+      || fail "a pane that could not be captured must not be reported as a busy source"
+  ) || fail "unreadable busy-source subshell failed"
+  pass "pane_busy_source: reports which source called the pane busy, or nothing"
+}
+
+# The wedge diagnosis may only report what was actually read. A capture that
+# never returned is NOT corroboration, and it must not be collapsed with one
+# that came back and agreed - "the harness agrees" and "we could not check" send
+# an operator to completely different places.
+test_pane_busy_probe_separates_corroboration_from_an_unreadable_pane() {
+  (
+    fm_backend_busy_state() { printf 'busy'; }
+    # Stub override: the function under test calls it indirectly; nothing in this file calls it.
+    # shellcheck disable=SC2329
+    fm_backend_capture() { printf '%s\n' "$FM_TEST_CLAUDE_FOOTER_BG_SHELL"; }
+    [ "$(FM_DAEMON_PRIMARY_HARNESS=claude pane_busy_probe 'default:w1:p2' herdr)" = 'native uncorroborated' ] \
+      || fail "native busy with no rendered corroboration must report 'native uncorroborated'"
+  ) || fail "uncorroborated probe subshell failed"
+  (
+    fm_backend_busy_state() { printf 'busy'; }
+    # Stub override: the function under test calls it indirectly; nothing in this file calls it.
+    # shellcheck disable=SC2329
+    fm_backend_capture() { printf 'esc to interrupt\n'; }
+    [ "$(FM_DAEMON_PRIMARY_HARNESS=claude pane_busy_probe 'default:w1:p2' herdr)" = 'native corroborated' ] \
+      || fail "native busy the rendered signature agrees with must report 'native corroborated'"
+  ) || fail "corroborated probe subshell failed"
+  (
+    fm_backend_busy_state() { printf 'busy'; }
+    # Stub override: the function under test calls it indirectly; nothing in this file calls it.
+    # shellcheck disable=SC2329
+    fm_backend_capture() { return 1; }
+    [ "$(FM_DAEMON_PRIMARY_HARNESS=claude pane_busy_probe 'default:w1:p2' herdr)" = 'native unreadable' ] \
+      || fail "a capture that failed must report 'unreadable', never corroboration it never observed"
+  ) || fail "unreadable probe subshell failed"
+  (
+    fm_backend_busy_state() { printf 'idle'; }
+    # Stub override: the function under test calls it indirectly; nothing in this file calls it.
+    # shellcheck disable=SC2329
+    fm_backend_capture() { printf 'esc to interrupt\n'; }
+    [ "$(FM_DAEMON_PRIMARY_HARNESS=claude pane_busy_probe 'default:w1:p2' herdr)" = 'rendered n-a' ] \
+      || fail "a rendered-only busy verdict has no native verdict to corroborate"
+  ) || fail "rendered-only probe subshell failed"
+  (
+    fm_backend_busy_state() { printf 'idle'; }
+    # Stub override: the function under test calls it indirectly; nothing in this file calls it.
+    # shellcheck disable=SC2329
+    fm_backend_capture() { printf '%s\n' "$FM_TEST_CLAUDE_FOOTER_BG_SHELL"; }
+    [ "$(FM_DAEMON_PRIMARY_HARNESS=claude pane_busy_probe 'default:w1:p2' herdr)" = 'none n-a' ] \
+      || fail "an idle pane carrying only a background-shell footer has no busy source"
+  ) || fail "idle probe subshell failed"
+  pass "pane_busy_probe: one sample, and an unreadable pane is its own outcome rather than silent corroboration"
+}
+
+# The marker must say plainly when the rendered signature could not be read.
+# Before this it printed the corroborated phrasing for a capture that failed,
+# telling the captain the pane really was mid-turn.
+test_wedge_marker_reports_an_unreadable_rendered_signature_as_unchecked() {
+  local dir state marker body
+  dir=$(make_supercase wedge-marker-unreadable)
+  state="$dir/state"
+  afk_enter "$state"
+  printf 'dev-x.status: needs-decision: pick one\n' > "$state/.subsuper-escalations"
+  marker="$state/.subsuper-inject-wedged"
+  (
+    LOG="$dir/daemon.log"
+    WEDGE_ALARM_LAST_EPOCH=0
+    INJECT_LAST_BLOCK=busy
+    fm_backend_busy_state() { printf 'busy'; }
+    # Stub override: the function under test calls it indirectly; nothing in this file calls it.
+    # shellcheck disable=SC2329
+    fm_backend_capture() { return 1; }
+    FM_WEDGE_ALARM_EXEC=discard \
+      FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2" \
+      FM_DAEMON_PRIMARY_HARNESS=claude \
+      inject_wedge_alarm "$state" 900
+  ) || fail "unreadable-capture wedge subshell failed"
+  body=$(cat "$marker" 2>/dev/null || true)
+  assert_contains "$body" "could not be checked either way" \
+    "an unreadable pane must be reported as unchecked, not as corroboration"
+  assert_not_contains "$body" "corroborated by the claude rendered signature" \
+    "a capture that never returned must never be reported as corroboration"
+  pass "wedge marker: an unreadable pane is reported as unchecked, never as corroboration"
+}
+
+test_inject_deferral_names_the_blocking_source_and_claims_no_cause() {
+  local dir state log out
+  dir=$(make_supercase inject-defer-message)
+  state="$dir/state"
+  afk_enter "$state"
+  log="$dir/daemon.log"
+  (
+    LOG="$log"
+    fm_backend_target_exists() { return 0; }
+    pane_busy_source() { printf 'native'; }
+    fm_backend_composer_state() { fail "composer_state should not be consulted once the busy-guard deferred"; }
+    if FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2" inject_msg "hello" "$state"; then
+      fail "inject_msg should defer while the pane reports busy"
+    fi
+  ) || fail "deferral-message subshell failed"
+  out=$(cat "$log" 2>/dev/null || true)
+  assert_contains "$out" "reported busy by herdr native agent state" "a native verdict must be attributed to the backend"
+  assert_contains "$out" "default:w1:p2" "the deferral must name the pane it could not reach"
+  assert_not_contains "$out" "agent mid-turn" "the deferral must not assert a cause it did not observe"
+  pass "inject deferral names the blocking source and no longer claims the agent is mid-turn"
+}
+
+# The whole point of pane_busy_source is that the two sources are DIFFERENT
+# things. A rendered-signature block is the primary harness's own reading of the
+# pane, not anything the backend reported, so the deferral must not credit it to
+# the backend - the confusion the incident's 2169 identical lines came from.
+test_inject_deferral_attributes_a_rendered_block_to_the_harness() {
+  local dir state log out
+  dir=$(make_supercase inject-defer-rendered)
+  state="$dir/state"
+  afk_enter "$state"
+  log="$dir/daemon.log"
+  (
+    LOG="$log"
+    fm_backend_target_exists() { return 0; }
+    pane_busy_source() { printf 'rendered'; }
+    fm_backend_composer_state() { fail "composer_state should not be consulted once the busy-guard deferred"; }
+    if FM_DAEMON_PRIMARY_HARNESS=claude FM_SUPERVISOR_BACKEND=herdr \
+       FM_SUPERVISOR_TARGET="default:w1:p2" inject_msg "hello" "$state"; then
+      fail "inject_msg should defer while the rendered signature reports busy"
+    fi
+  ) || fail "rendered-deferral subshell failed"
+  out=$(cat "$log" 2>/dev/null || true)
+  assert_contains "$out" "reported busy by the claude rendered busy signature" \
+    "a rendered verdict must be attributed to the primary harness, not the backend"
+  assert_not_contains "$out" "herdr rendered" \
+    "the harness's own rendered signature must never be attributed to the backend"
+  pass "inject deferral attributes a rendered block to the harness, not the backend"
+}
+
+test_log_error_reaches_stderr_as_well_as_the_log() {
+  local dir log err out
+  dir=$(make_supercase daemon-log-error)
+  log="$dir/daemon.log"
+  err=$(LOG="$log" log_error "ERROR: away-mode escalation undelivered 900s" 2>&1 >/dev/null)
+  out=$(cat "$log" 2>/dev/null || true)
+  assert_contains "$out" "undelivered 900s" "log_error must still write the private daemon log"
+  assert_contains "$err" "undelivered 900s" "log_error must also reach stderr, where a human can see it"
+  pass "log_error: an ERROR reaches stderr as well as the private daemon log"
+}
+
+test_wedge_alarm_accounting_separates_dispatch_from_delivery() {
+  local dir log alert_log
+  dir=$(make_supercase wedge-accounting)
+  log="$dir/daemon.log"; alert_log="$dir/alerts.log"
+  (
+    LOG="$log"
+    FM_WEDGE_ALARM_LOG="$alert_log" FM_WEDGE_ALARM_CHANNEL=osascript \
+      wedge_alarm_notify "away-mode escalations WEDGED 900s undelivered - see /s/.marker" "/s/.marker"
+    assert_contains "$WEDGE_ALARM_LAST_ACCOUNTING" "alerts dispatched: osascript" \
+      "a dispatched channel must be recorded as dispatched"
+    assert_contains "$WEDGE_ALARM_LAST_ACCOUNTING" "CONFIRMED by: none" \
+      "no shipped channel confirms delivery, and the accounting must say so"
+  ) || fail "wedge accounting subshell failed"
+  assert_contains "$(cat "$log")" "alerts dispatched: osascript" \
+    "the accounting must be logged, not left as silence-means-success"
+  pass "wedge alarm accounting: records dispatch and delivery separately, never conflating exit 0 with receipt"
+}
+
+test_inject_wedge_alarm_marker_names_blocker_and_alert_accounting() {
+  local dir state marker body
+  dir=$(make_supercase wedge-marker-diagnosis)
+  state="$dir/state"
+  afk_enter "$state"
+  printf 'dev-x.status: needs-decision: pick one\n' > "$state/.subsuper-escalations"
+  marker="$state/.subsuper-inject-wedged"
+  (
+    LOG="$dir/daemon.log"
+    WEDGE_ALARM_LAST_EPOCH=0
+    fm_backend_busy_state() { printf 'busy'; }
+    # Stub override: the function under test calls it indirectly; nothing in this file calls it.
+    # shellcheck disable=SC2329
+    fm_backend_capture() { printf '%s\n' "$FM_TEST_CLAUDE_FOOTER_BG_SHELL"; }
+    FM_WEDGE_ALARM_LOG="$dir/alerts.log" FM_WEDGE_ALARM_CHANNEL=osascript \
+      FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2" \
+      FM_DAEMON_PRIMARY_HARNESS=claude \
+      inject_wedge_alarm "$state" 31205
+  ) || fail "wedge marker subshell failed"
+  body=$(cat "$marker" 2>/dev/null || true)
+  assert_contains "$body" "default:w1:p2" "the marker must name the pane that could not be reached"
+  assert_contains "$body" "does NOT corroborate" \
+    "the marker must say when the native busy verdict is uncorroborated - the 2026-08-26 fingerprint"
+  assert_contains "$body" "Alert accounting:" "the marker must carry what the alert actually established"
+  assert_contains "$body" "needs-decision: pick one" "the marker must still carry the buffered escalations"
+  pass "wedge marker: names the blocking pane, the uncorroborated native verdict, and the alert accounting"
+}
+
+# The durable marker is the PRIMARY, backend-independent record of a wedge, and
+# alert dispatch is synchronous and only per-channel-bounded. If the daemon is
+# SIGTERM'd while a channel hangs (`fm-afk-launch.sh stop` waits 10s), the record
+# must already be on disk. Emulated by a dispatch that never returns.
+test_wedge_marker_is_durable_before_any_channel_is_dispatched() {
+  local dir state marker body
+  dir=$(make_supercase wedge-marker-ordering)
+  state="$dir/state"
+  afk_enter "$state"
+  printf 'dev-x.status: needs-decision: pick one\n' > "$state/.subsuper-escalations"
+  marker="$state/.subsuper-inject-wedged"
+  (
+    LOG="$dir/daemon.log"
+    WEDGE_ALARM_LAST_EPOCH=0
+    fm_backend_busy_state() { printf 'busy'; }
+    # Stub override: the function under test calls it indirectly; nothing in this file calls it.
+    # shellcheck disable=SC2329
+    fm_backend_capture() { printf 'esc to interrupt\n'; }
+    wedge_alarm_notify() { exit 143; }
+    FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2" \
+      FM_DAEMON_PRIMARY_HARNESS=claude inject_wedge_alarm "$state" 900
+  ) || true
+  body=$(cat "$marker" 2>/dev/null || true)
+  assert_contains "$body" "900s undelivered" \
+    "the durable marker must exist before any alert channel is dispatched"
+  assert_contains "$body" "default:w1:p2" "the pre-dispatch marker must already name the blocked pane"
+  assert_contains "$body" "needs-decision: pick one" \
+    "the pre-dispatch marker must already carry the buffered escalations"
+  pass "wedge marker: written durably before dispatch, so a daemon killed mid-alert still leaves the record"
+}
+
+# The durable marker must exist before ANY call that can hang, not just before
+# the alert channels. fm_backend_capture / fm_backend_busy_state are not
+# timeout-bounded, so a herdr server that stops answering `pane read` would
+# otherwise hold inject_wedge_alarm open with nothing on disk, and a SIGTERM in
+# that window (`fm-afk-launch.sh stop` waits 10s) loses the record entirely.
+# Emulated by a pane read that never returns.
+test_wedge_marker_is_durable_before_the_pane_is_read() {
+  local dir state marker body
+  dir=$(make_supercase wedge-marker-before-probe)
+  state="$dir/state"
+  afk_enter "$state"
+  printf 'dev-x.status: needs-decision: pick one\n' > "$state/.subsuper-escalations"
+  marker="$state/.subsuper-inject-wedged"
+  local snapshot snap
+  snapshot="$dir/marker-at-first-backend-call"
+  (
+    LOG="$dir/daemon.log"
+    WEDGE_ALARM_LAST_EPOCH=0
+    INJECT_LAST_BLOCK=busy
+    # Subshell-scoped on purpose: nothing outside this subshell reads these.
+    # shellcheck disable=SC2030,SC2031
+    export FM_TEST_WEDGE_MARKER="$marker" FM_TEST_WEDGE_SNAPSHOT="$snapshot"
+    # Snapshot the marker at the instant of the FIRST backend call - the point a
+    # hung read would freeze the daemon with whatever is on disk right then.
+    _snap() { [ -e "$FM_TEST_WEDGE_SNAPSHOT" ] || cp "$FM_TEST_WEDGE_MARKER" "$FM_TEST_WEDGE_SNAPSHOT" 2>/dev/null || true; }
+    fm_backend_busy_state() { _snap; printf 'busy'; }
+    # Stub override: the function under test calls it indirectly; nothing in this file calls it.
+    # shellcheck disable=SC2329
+    fm_backend_capture() { _snap; printf 'esc to interrupt\n'; }
+    FM_WEDGE_ALARM_EXEC=discard \
+      FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2" \
+      FM_DAEMON_PRIMARY_HARNESS=claude inject_wedge_alarm "$state" 900
+  ) || fail "pre-probe wedge subshell failed"
+  snap=$(cat "$snapshot" 2>/dev/null || true)
+  assert_contains "$snap" "900s undelivered" \
+    "the durable marker must already exist when the first backend read is made"
+  assert_contains "$snap" "default:w1:p2" "the pre-probe marker must already name the blocked pane"
+  assert_contains "$snap" "needs-decision: pick one" \
+    "the pre-probe marker must already carry the buffered escalations"
+  # And it must be honest about what it does not know yet rather than printing a
+  # busy verdict from a read that has not happened.
+  assert_contains "$snap" "has not been read yet" \
+    "the pre-probe marker must say the pane has not been read rather than assert a verdict"
+  # Control: the finished record carries the real verdict, so the placeholder is
+  # a first write and not the end state.
+  body=$(cat "$marker" 2>/dev/null || true)
+  assert_contains "$body" "corroborated by the claude rendered signature" \
+    "the completed marker must carry the probe's real verdict"
+  assert_not_contains "$body" "has not been read yet" \
+    "the completed marker must not still say the pane is unread"
+  pass "wedge marker: written durably before the pane is read, so a hung backend read still leaves the record"
+}
+
+# The marker is published several times per window, so every publication must be
+# atomic: an in-place truncate would let a SIGTERM landing mid-write destroy an
+# already-complete record. A reader sees the previous complete record or the new
+# one, never a partial one. Same contract as the launcher's terminal record
+# ("record publication: failed atomic rename preserves the complete prior record").
+test_wedge_marker_publication_is_atomic() {
+  local dir state marker body
+  dir=$(make_supercase wedge-marker-atomic)
+  state="$dir/state"
+  mkdir -p "$state"
+  printf 'dev-x.status: needs-decision: pick one\n' > "$state/.subsuper-escalations"
+  marker="$state/.subsuper-inject-wedged"
+  wedge_alarm_publish_marker "$marker" "$state" 900 "2026-08-27T00:00:00+0000" \
+    "default:w1:p2" herdr "an earlier verdict" dispatched "alerts dispatched: osascript" \
+    || fail "the first wedge marker publication failed"
+  (
+    mv() { return 1; }
+    if wedge_alarm_publish_marker "$marker" "$state" 1800 "2026-08-27T01:00:00+0000" \
+         "default:w1:p2" herdr "a later verdict" dispatched "a later accounting"; then
+      fail "a publication whose rename failed must report failure, not success"
+    fi
+  ) || fail "atomic-publication subshell failed"
+  body=$(cat "$marker" 2>/dev/null || true)
+  assert_contains "$body" "900s undelivered" \
+    "a failed rename must leave the previous COMPLETE record, not an empty file"
+  assert_contains "$body" "alerts dispatched: osascript" \
+    "the preserved record must keep its own accounting"
+  assert_contains "$body" "needs-decision: pick one" \
+    "the preserved record must keep its buffered escalations"
+  assert_not_contains "$body" "a later accounting" \
+    "a publication that never landed must not be partially visible"
+  if find "$state" -name '.subsuper-inject-wedged.pending.*' -print -quit | grep -q .; then
+    fail "a failed publication left its temp file behind"
+  else
+    pass "wedge marker: a failed atomic rename preserves the complete prior record and leaves no temp"
+  fi
+}
+
+# The record must land whether or not the escalation buffer can be read. A
+# missing or unreadable buffer degrades to a record WITHOUT the buffered items;
+# it may never degrade to no record at all, which is the loss marker-first
+# ordering exists to prevent.
+test_wedge_marker_lands_even_when_the_buffer_cannot_be_read() {
+  local dir state marker body
+  dir=$(make_supercase wedge-marker-no-buffer)
+  state="$dir/state"
+  mkdir -p "$state"
+  rm -f "$state/.subsuper-escalations"
+  marker="$state/.subsuper-inject-wedged"
+  wedge_alarm_publish_marker "$marker" "$state" 900 "2026-08-27T00:00:00+0000" \
+    "default:w1:p2" herdr "a verdict" dispatching \
+    || fail "publication must not fail because the escalation buffer is missing"
+  body=$(cat "$marker" 2>/dev/null || true)
+  assert_contains "$body" "900s undelivered" \
+    "the wedge record must be published even with no readable buffer"
+  assert_contains "$body" "dispatch is starting NOW" \
+    "the record must still carry its stage accounting"
+  pass "wedge marker: an unreadable escalation buffer costs the record its items, never the record"
+}
+
+# Dispatch is synchronous and bounded only PER CHANNEL, so the publication that
+# precedes it is the last one to complete when `fm-afk-launch.sh stop` SIGTERMs
+# the daemon inside a hanging channel. Whatever that freezes on disk has to be
+# true of the moment it was written: it may not say dispatch never started.
+test_wedge_marker_records_that_dispatch_began_when_a_kill_freezes_it() {
+  local dir state marker snapshot snap body
+  dir=$(make_supercase wedge-marker-dispatch-stage)
+  state="$dir/state"
+  afk_enter "$state"
+  printf 'dev-x.status: needs-decision: pick one\n' > "$state/.subsuper-escalations"
+  marker="$state/.subsuper-inject-wedged"
+  snapshot="$dir/marker-at-dispatch"
+  (
+    LOG="$dir/daemon.log"
+    WEDGE_ALARM_LAST_EPOCH=0
+    INJECT_LAST_BLOCK=busy
+    # Subshell-scoped on purpose: nothing outside this subshell reads these.
+    # shellcheck disable=SC2030,SC2031
+    export FM_TEST_WEDGE_MARKER="$marker" FM_TEST_WEDGE_SNAPSHOT="$snapshot"
+    fm_backend_busy_state() { printf 'busy'; }
+    # Stub override: the function under test calls it indirectly; nothing in this file calls it.
+    # shellcheck disable=SC2329
+    fm_backend_capture() { printf 'esc to interrupt\n'; }
+    # Stands in for a channel that hangs and is killed: capture exactly what is
+    # on disk at the instant dispatch begins.
+    wedge_alarm_notify() { cp "$FM_TEST_WEDGE_MARKER" "$FM_TEST_WEDGE_SNAPSHOT" 2>/dev/null || true; }
+    FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2" \
+      FM_DAEMON_PRIMARY_HARNESS=claude inject_wedge_alarm "$state" 900
+  ) || fail "dispatch-stage wedge subshell failed"
+  snap=$(cat "$snapshot" 2>/dev/null || true)
+  assert_contains "$snap" "900s undelivered" \
+    "a complete record must be on disk when dispatch begins"
+  assert_contains "$snap" "dispatch is starting NOW" \
+    "a record frozen at dispatch must say dispatch began"
+  assert_not_contains "$snap" "has not started yet" \
+    "a record frozen at dispatch must not claim no alert was attempted"
+  assert_contains "$snap" "needs-decision: pick one" \
+    "the record frozen at dispatch must still carry the buffered escalations"
+  # Control: once dispatch returns, the record carries its RESULT, not the
+  # in-flight wording, so the assertion above pins a stage and not a constant.
+  body=$(cat "$marker" 2>/dev/null || true)
+  assert_not_contains "$body" "dispatch is starting NOW" \
+    "the completed record must not still say dispatch is in flight"
+  assert_contains "$body" "no channel reported a result" \
+    "the completed record must state what the dispatch established"
+  pass "wedge marker: the record published on the way into dispatch says dispatch began"
+}
+
+# WEDGE_ALARM_LAST_ACCOUNTING is a process global. A window whose alert was
+# suppressed by the re-alarm rate limit must say so, never reprint an earlier
+# window's dispatch as if it belonged to this timestamped record.
+test_wedge_marker_never_inherits_a_previous_windows_alert_accounting() {
+  local dir state marker
+  dir=$(make_supercase wedge-accounting-window)
+  state="$dir/state"
+  afk_enter "$state"
+  printf 'dev-x.status: needs-decision: pick one\n' > "$state/.subsuper-escalations"
+  marker="$state/.subsuper-inject-wedged"
+  (
+    LOG="$dir/daemon.log"
+    WEDGE_ALARM_LAST_EPOCH=0
+    export FM_WEDGE_ALARM_LOG="$dir/alerts.log"
+    export FM_WEDGE_ALARM_CHANNEL=osascript
+    # Subshell-scoped on purpose: nothing outside this subshell reads these.
+    # shellcheck disable=SC2030,SC2031
+    export FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2"
+    # shellcheck disable=SC2030,SC2031
+    export FM_DAEMON_PRIMARY_HARNESS=claude FM_MAX_DEFER_SECS=300
+    fm_backend_busy_state() { printf 'busy'; }
+    # Stub override: the function under test calls it indirectly; nothing in this file calls it.
+    # shellcheck disable=SC2329
+    fm_backend_capture() { printf 'esc to interrupt\n'; }
+    inject_wedge_alarm "$state" 900
+    grep -q 'alerts dispatched: osascript' "$marker" \
+      || fail "the first window must record its own dispatch"
+    # The captain returns and the catch-up clears the marker; a NEW wedge opens
+    # inside the same re-alarm window, so no alert is attempted this time.
+    rm -f "$marker"
+    inject_wedge_alarm "$state" 1200
+    if grep -q 'alerts dispatched: osascript' "$marker"; then
+      fail "a suppressed window inherited the previous window's dispatch accounting"
+    fi
+    grep -q 'no alert attempted in this window' "$marker" \
+      || fail "a suppressed window must state that no alert was attempted"
+    grep -q '1200s undelivered' "$marker" \
+      || fail "the second window must be its own record"
+  ) || fail "wedge accounting-window subshell failed"
+  pass "wedge marker: a suppressed window reports its own silence instead of an earlier window's dispatch"
+}
+
+# inject_msg has exits that never type a character - the composer guard above
+# all - and the alarm is reached from ANY escalate_flush failure. A marker that
+# blames "the submit could not be confirmed" for a composer-guard deferral sends
+# the captain to look at a submit that was never attempted. The diagnosis must
+# come from the block inject_msg actually recorded.
+test_wedge_marker_reports_the_block_inject_msg_actually_hit() {
+  local dir state marker body
+  dir=$(make_supercase wedge-marker-block-reason)
+  state="$dir/state"
+  afk_enter "$state"
+  printf 'dev-x.status: needs-decision: pick one\n' > "$state/.subsuper-escalations"
+  marker="$state/.subsuper-inject-wedged"
+  body=$(
+    LOG="$dir/daemon.log"
+    WEDGE_ALARM_LAST_EPOCH=0
+    INJECT_LAST_BLOCK=
+    # Subshell-scoped on purpose: nothing outside this subshell reads these.
+    # shellcheck disable=SC2030,SC2031
+    export FM_WEDGE_ALARM_EXEC=discard
+    # shellcheck disable=SC2030,SC2031
+    export FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2"
+    # shellcheck disable=SC2030,SC2031
+    export FM_DAEMON_PRIMARY_HARNESS=claude
+    fm_backend_target_exists() { return 0; }
+    fm_backend_busy_state() { printf 'idle'; }
+    fm_backend_capture() { printf '%s\n' "$FM_TEST_CLAUDE_FOOTER_BG_SHELL"; }
+    # The captain left a draft in the composer: the pane is NOT busy, and the
+    # guard returns before any text is typed.
+    fm_backend_composer_state() { printf 'pending'; }
+    if escalate_flush "$state"; then
+      fail "flush must not report success while the composer is not confirmed empty"
+    fi
+    inject_wedge_alarm "$state" 900
+    cat "$marker" 2>/dev/null || true
+  ) || fail "composer-guard wedge subshell failed"
+  assert_contains "$body" "composer guard" \
+    "a composer-guard deferral must be named as such in the durable marker"
+  assert_contains "$body" "no submit was attempted" \
+    "the marker must say plainly that nothing was typed and no submit ran"
+  assert_not_contains "$body" "the submit was never confirmed" \
+    "a composer-guard deferral must not be reported as an unconfirmed submit"
+
+  # Control: a REAL unconfirmed submit still gets the submit phrasing, so the
+  # assertion above cannot pass by that phrasing having simply disappeared.
+  rm -f "$marker"
+  body=$(
+    LOG="$dir/daemon.log"
+    WEDGE_ALARM_LAST_EPOCH=0
+    INJECT_LAST_BLOCK=
+    # Subshell-scoped on purpose: nothing outside this subshell reads these.
+    # shellcheck disable=SC2030,SC2031
+    export FM_WEDGE_ALARM_EXEC=discard
+    # shellcheck disable=SC2030,SC2031
+    export FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2"
+    # shellcheck disable=SC2030,SC2031
+    export FM_DAEMON_PRIMARY_HARNESS=claude FM_INJECT_CONFIRM_RETRIES=1 FM_INJECT_CONFIRM_SLEEP=0
+    fm_backend_target_exists() { return 0; }
+    fm_backend_busy_state() { printf 'idle'; }
+    fm_backend_capture() { printf '%s\n' "$FM_TEST_CLAUDE_FOOTER_BG_SHELL"; }
+    fm_backend_composer_state() { printf 'empty'; }
+    fm_backend_send_text_submit() { printf 'pending'; }
+    if escalate_flush "$state"; then
+      fail "flush must not report success on an unconfirmed submit"
+    fi
+    inject_wedge_alarm "$state" 900
+    cat "$marker" 2>/dev/null || true
+  ) || fail "unconfirmed-submit wedge subshell failed"
+  assert_contains "$body" "the submit was never confirmed" \
+    "a genuine unconfirmed submit must still be reported as one"
+  pass "wedge marker: reports the block inject_msg actually hit, never a submit that was never attempted"
+}
+
+# "refused: none" must not be how a permanently unreachable alarm looks. A
+# configured channel with no usable form on this platform (an `auto` directive on
+# a non-macOS captain) is a third outcome, distinct from no channel at all.
+test_wedge_accounting_names_a_configured_but_unusable_channel() {
+  local dir log
+  dir=$(make_supercase wedge-accounting-unusable)
+  log="$dir/daemon.log"
+  (
+    LOG="$log"
+    # Stub override: the function under test calls it indirectly; nothing in this file calls it.
+    # shellcheck disable=SC2329
+    wedge_alarm_platform_default() { printf ''; }
+    FM_WEDGE_ALARM_CHANNEL=auto wedge_alarm_notify "wedged" "$dir/.marker"
+    assert_contains "$WEDGE_ALARM_LAST_ACCOUNTING" "unusable here: auto=" \
+      "a channel configured but unusable on this platform must be accounted for"
+    assert_contains "$WEDGE_ALARM_LAST_ACCOUNTING" "alerts dispatched: none" \
+      "an unusable channel dispatched nothing"
+  ) || fail "unusable-channel accounting subshell failed"
+  (
+    LOG="$log"
+    FM_WEDGE_ALARM_CHANNEL='nonsense-directive' wedge_alarm_notify "wedged" "$dir/.marker"
+    assert_contains "$WEDGE_ALARM_LAST_ACCOUNTING" "unusable here: unrecognized-directive" \
+      "an unrecognized directive must be accounted for, not silently ignored"
+    assert_not_contains "$WEDGE_ALARM_LAST_ACCOUNTING" "nonsense-directive" \
+      "the directive itself stays redacted - it can carry a command line"
+  ) || fail "unrecognized-directive accounting subshell failed"
+  # Control: a genuinely unconfigured alarm still reads as none/none/none, so
+  # the assertions above are not just matching a constant.
+  (
+    LOG="$log"
+    FM_WEDGE_ALARM_EXEC=discard FM_WEDGE_ALARM_CHANNEL=osascript \
+      wedge_alarm_notify "wedged" "$dir/.marker"
+    assert_contains "$WEDGE_ALARM_LAST_ACCOUNTING" "unusable here: none" \
+      "a usable channel must not be counted as unusable"
+  ) || fail "usable-channel control subshell failed"
+  pass "wedge accounting: a configured-but-unusable channel is stated, never hidden behind 'refused: none'"
+}
+
+# The launcher's readiness wait treats a live daemon lock as "the daemon is up"
+# and returns on the FIRST sighting, so the lock must not exist until the
+# startup validations have PASSED. Held-then-refused was the looks-armed-is-not
+# shape one level below the incident: a poll landing inside that window reported
+# the launch successful for a daemon that was about to exit.
+#
+# Observed at the validation itself rather than after the fact - "no lock
+# afterwards" is equally true of acquire-then-release and proves nothing.
+test_daemon_takes_the_lock_only_after_its_startup_validations_pass() {
+  local dir state lock snapshot out
+  dir=$(make_supercase daemon-lock-after-validation)
+  state="$dir/state"
+  mkdir -p "$state"
+  lock="$state/.supervise-daemon.lock"
+  snapshot="$dir/lock-at-target-probe"
+  (
+    # Subshell-scoped on purpose: nothing outside this subshell reads these.
+    # shellcheck disable=SC2030,SC2031
+    export FM_STATE_OVERRIDE="$state"
+    export FM_TEST_LOCK="$lock" FM_TEST_LOCK_SNAPSHOT="$snapshot"
+    fm_backend_target_exists() {
+      if [ -e "$FM_TEST_LOCK" ] || [ -L "$FM_TEST_LOCK" ]; then
+        printf 'held' > "$FM_TEST_LOCK_SNAPSHOT"
+      else
+        printf 'free' > "$FM_TEST_LOCK_SNAPSHOT"
+      fi
+      return 1
+    }
+    FM_SUPERVISOR_BACKEND=tmux FM_SUPERVISOR_TARGET='%99' fm_super_main
+  ) >/dev/null 2>&1
+  case "$(cat "$snapshot" 2>/dev/null || true)" in
+    free) pass "daemon startup: the lock is not held while the target is still being validated" ;;
+    held) fail "daemon startup: the lock was already observable as held before validation finished" ;;
+    *) fail "daemon startup: the target validation never ran" ;;
+  esac
+  if [ ! -e "$lock" ] && [ ! -L "$lock" ] && [ ! -e "$state/.supervise-daemon.pid" ]; then
+    pass "daemon startup: a refused daemon leaves no lock or pidfile to unwind"
+  else
+    fail "daemon startup: a refused daemon left lifecycle artifacts behind"
+  fi
+  # Control: the singleton gate still refuses a second daemon, so moving the
+  # acquisition did not trade the race for a lost guarantee.
+  mkdir -p "$lock"
+  printf '%s' "$$" > "$lock/pid"
+  out=$(
+    # Subshell-scoped on purpose: nothing outside this subshell reads these.
+    # shellcheck disable=SC2030,SC2031
+    export FM_STATE_OVERRIDE="$state"
+    fm_backend_target_exists() { return 0; }
+    FM_SUPERVISOR_BACKEND=tmux FM_SUPERVISOR_TARGET='%99' fm_super_main 2>&1
+  )
+  assert_contains "$out" "already running" \
+    "a second daemon must still be refused by the singleton lock"
+  pass "daemon startup: validations run before the lock, and the singleton gate still holds"
+}
+
+test_supervisor_pane_is_self_hosted_scopes_to_native_busy_backends() {
+  (
+    unset TMUX_PANE
+    HERDR_ENV=1 HERDR_PANE_ID=w1R:p1 HERDR_SESSION=default \
+      supervisor_pane_is_self_hosted herdr "default:w1R:p1" \
+      || fail "a daemon in the very pane it supervises on herdr must be reported self-hosted"
+    if HERDR_ENV=1 HERDR_PANE_ID=w9Z:p1 HERDR_SESSION=default \
+         supervisor_pane_is_self_hosted herdr "default:w1R:p1"; then
+      fail "a daemon in its own separate herdr pane must not be reported self-hosted"
+    fi
+  ) || fail "herdr self-hosting subshell failed"
+  (
+    unset HERDR_ENV HERDR_PANE_ID
+    if TMUX_PANE='%7' supervisor_pane_is_self_hosted tmux '%7'; then
+      fail "tmux has no native agent-state source, so in-pane hosting there is not self-blocking"
+    fi
+  ) || fail "tmux self-hosting subshell failed"
+  (
+    unset TMUX_PANE HERDR_ENV HERDR_PANE_ID
+    if supervisor_pane_is_self_hosted herdr "default:w1R:p1"; then
+      fail "a daemon in no recognizable pane cannot be a tenant of the target"
+    fi
+  ) || fail "no-pane self-hosting subshell failed"
+  pass "supervisor_pane_is_self_hosted: only a native-busy backend hosting the daemon in its own target"
+}
+
 test_pane_input_pending_herdr_dispatch() {
   (
     fm_backend_composer_state() { [ "$1" = herdr ] && [ "$2" = "default:w1:p2" ] || fail "unexpected composer_state args: $1 $2"; printf 'pending'; }
@@ -1821,7 +2499,7 @@ test_inject_msg_herdr_busy_guard_defers() {
   afk_enter "$state"
   (
     fm_backend_target_exists() { [ "$1" = herdr ] && [ "$2" = "default:w1:p2" ] || fail "unexpected target_exists args: $1 $2"; return 0; }
-    pane_is_busy() { return 0; }
+    pane_busy_source() { printf 'native'; }
     fm_backend_composer_state() { fail "composer_state should not be consulted once the busy-guard already deferred"; }
     fm_backend_send_text_submit() { fail "send_text_submit should not run when the busy-guard defers"; }
     if FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2" inject_msg "hello" "$state"; then
@@ -1838,7 +2516,7 @@ test_inject_msg_herdr_composer_guard_defers() {
   afk_enter "$state"
   (
     fm_backend_target_exists() { return 0; }
-    pane_is_busy() { return 1; }
+    pane_busy_source() { :; }
     fm_backend_composer_state() { [ "$1" = herdr ] && [ "$2" = "default:w1:p2" ] || fail "unexpected composer_state args: $1 $2"; printf 'pending'; }
     fm_backend_send_text_submit() { fail "send_text_submit should not run when the composer-guard defers"; }
     if FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2" inject_msg "hello" "$state"; then
@@ -1855,7 +2533,7 @@ test_inject_msg_herdr_pane_gone_defers() {
   afk_enter "$state"
   (
     fm_backend_target_exists() { return 1; }
-    pane_is_busy() { fail "busy guard should not be consulted once the pane-exists check already failed"; }
+    pane_busy_source() { fail "busy guard should not be consulted once the pane-exists check already failed"; }
     fm_backend_send_text_submit() { fail "send_text_submit should not run when the pane does not exist"; }
     if FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:gone" inject_msg "hello" "$state"; then
       fail "inject_msg should defer when the herdr target does not exist"
@@ -1871,7 +2549,7 @@ test_inject_msg_herdr_submits_through_backend_dispatch() {
   afk_enter "$state"
   (
     fm_backend_target_exists() { return 0; }
-    pane_is_busy() { return 1; }
+    pane_busy_source() { :; }
     fm_backend_composer_state() { printf 'empty'; }
     fm_backend_send_text_submit() {
       [ "$1" = herdr ] && [ "$2" = "default:w1:p2" ] || fail "unexpected send_text_submit args: $1 $2"
@@ -1896,7 +2574,7 @@ test_inject_msg_defers_on_dead_shell_unknown() {
   afk_enter "$state"
   (
     fm_backend_target_exists() { return 0; }
-    pane_is_busy() { return 1; }
+    pane_busy_source() { :; }
     fm_backend_composer_state() { printf 'unknown'; }
     fm_backend_send_text_submit() { fail "send_text_submit must NOT run when the composer is a dead shell (unknown)"; }
     if FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2" inject_msg "hello" "$state"; then
@@ -1913,7 +2591,7 @@ test_inject_msg_defers_on_unrecognized_composer_state() {
   afk_enter "$state"
   (
     fm_backend_target_exists() { return 0; }
-    pane_is_busy() { return 1; }
+    pane_busy_source() { :; }
     fm_backend_composer_state() { printf 'future-state'; }
     fm_backend_send_text_submit() { fail "send_text_submit must not run for an unrecognized composer state"; }
     if FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2" inject_msg "hello" "$state"; then
@@ -2019,6 +2697,25 @@ test_discover_supervisor_target_herdr
 test_pane_is_busy_herdr_native_busy_state
 test_primary_busy_guard_is_harness_scoped
 test_pane_is_busy_defaults_to_tmux_when_backend_omitted
+test_claude_background_shell_footer_is_not_a_busy_signature
+test_pane_busy_source_names_native_and_rendered
+test_pane_busy_probe_separates_corroboration_from_an_unreadable_pane
+test_wedge_marker_reports_an_unreadable_rendered_signature_as_unchecked
+test_inject_deferral_names_the_blocking_source_and_claims_no_cause
+test_inject_deferral_attributes_a_rendered_block_to_the_harness
+test_log_error_reaches_stderr_as_well_as_the_log
+test_wedge_alarm_accounting_separates_dispatch_from_delivery
+test_inject_wedge_alarm_marker_names_blocker_and_alert_accounting
+test_wedge_marker_is_durable_before_any_channel_is_dispatched
+test_wedge_marker_is_durable_before_the_pane_is_read
+test_wedge_marker_publication_is_atomic
+test_wedge_marker_lands_even_when_the_buffer_cannot_be_read
+test_wedge_marker_records_that_dispatch_began_when_a_kill_freezes_it
+test_wedge_marker_never_inherits_a_previous_windows_alert_accounting
+test_wedge_marker_reports_the_block_inject_msg_actually_hit
+test_wedge_accounting_names_a_configured_but_unusable_channel
+test_daemon_takes_the_lock_only_after_its_startup_validations_pass
+test_supervisor_pane_is_self_hosted_scopes_to_native_busy_backends
 test_pane_input_pending_herdr_dispatch
 test_inject_msg_herdr_busy_guard_defers
 test_inject_msg_herdr_composer_guard_defers

@@ -291,9 +291,16 @@ It refuses Zellij, Orca, and cmux as supervisor backends rather than applying th
 For Herdr, target existence, native state, capture, composer state, and verified submit all route through the shared backend dispatcher and the explicit named-session CLI owner.
 The pane-independent max-defer alert is configured in [`wedge-alarm.md`](wedge-alarm.md).
 
-Harnesses with native tracked background execution can run the daemon in their terminal.
-Pi has no such mechanism.
-`bin/fm-afk-launch.sh` therefore creates a dedicated unfocused Herdr workspace, runs the daemon there with an explicit supervisor target and backend, records the exact daemon pane, and closes only that pane on stop.
+Under Herdr the away daemon always runs in its own terminal, whatever the harness offers.
+A harness-native in-pane background job is not usable here: Herdr's native agent state observes the pane's own background jobs, so a daemon hosted in the captain's pane keeps that pane reporting `working` for its whole lifetime, and the daemon's busy guard then defers every injection into it.
+That is a self-referential deadlock rather than a tuning problem, so `bin/fm-afk-launch.sh start-native` refuses on Herdr, `bin/fm-afk-start.sh` refuses before it writes any lifecycle state, and the daemon refuses again at startup if it finds itself a tenant of its own supervisor target.
+`bin/fm-afk-launch.sh` creates a dedicated unfocused Herdr workspace, runs the daemon there with an explicit supervisor target and backend, records the exact daemon pane, and closes only that pane on stop.
+The record also carries the pane the daemon was launched to deliver into, which is otherwise recoverable only from that daemon's own environment.
+A fresh launch performs no separate delivery-path verification: the daemon validates its own backend and supervisor target at startup and takes the daemon lock only once they pass, so a startup refusal can never be sighted as readiness by the launcher's wait and the launch fails.
+Verification runs on both entries (`start` and `start-native`) when a daemon is ALREADY alive, which is the only place a pre-existing in-pane daemon can be caught, since such a daemon is never re-created.
+There it compares the recorded delivery pane against the pane Firstmate occupies now and probes the recorded one, so a daemon still injecting into a pane the captain has left is refused instead of reported healthy; a record predating that field reads as unknown and never refuses.
+Those checks are deliberately identity-based, never a busy sample: Firstmate is mid-turn running the launcher, so the captain pane is legitimately busy at entry.
+A refusal there leaves away mode exactly as it found it - still on - and says so, because the running daemon keeps buffering until it is stopped and re-entered.
 It never splits the captain's active tab and never uses shell `&`.
 Recovery reconciles only the recorded exact id.
 

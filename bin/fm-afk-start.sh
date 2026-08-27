@@ -18,10 +18,20 @@
 # restore them explicitly.
 #
 # This is the COMMON daemon entry for every backend. HOW it becomes a tracked
-# background process differs by harness/backend and is owned elsewhere:
-#   - Harnesses with a native in-pane tracked-background tool (e.g. claude, grok)
-#     run this directly via that tool, so the daemon inherits the captain pane's
-#     env and auto-discovers it.
+# background process is chosen by BACKEND FIRST, then harness, and is owned
+# elsewhere (.agents/skills/afk/SKILL.md, docs/herdr-backend.md):
+#   - Backend whose NATIVE agent state observes the pane's own background jobs
+#     (herdr - see FM_SUPERVISOR_NATIVE_BUSY_BACKENDS in
+#     bin/fm-supervisor-target-lib.sh): the harness-native in-pane host is NOT
+#     available, whatever the harness offers. A daemon hosted in the captain's
+#     pane keeps that pane reading as busy for its whole lifetime and can never
+#     deliver into it (2026-08-26: 2169 consecutive deferrals over 8.7h). Run
+#     bin/fm-afk-launch.sh start. This file REFUSES that combination below
+#     rather than trusting the instruction to be read.
+#   - Any other backend, harness WITH a native in-pane tracked-background tool
+#     (e.g. claude, grok): run this directly via that tool after
+#     bin/fm-afk-launch.sh start-native has prepared lifecycle state, so the
+#     daemon inherits the captain pane's env and auto-discovers it.
 #   - Harnesses with NO native background mechanism (e.g. pi) run this THROUGH
 #     bin/fm-afk-launch.sh, which creates a non-visible tracked terminal per
 #     backend (herdr tab/workspace, tmux detached session) and passes the
@@ -41,6 +51,8 @@ FM_AFK_DAEMON="$FM_AFK_START_DIR/fm-supervise-daemon.sh"
 
 # shellcheck source=bin/fm-wake-lib.sh
 . "$FM_AFK_START_DIR/fm-wake-lib.sh"
+# shellcheck source=bin/fm-supervisor-target-lib.sh
+. "$FM_AFK_START_DIR/fm-supervisor-target-lib.sh"
 
 fm_afk_start_usage() {
   sed -n '2,14p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
@@ -63,7 +75,8 @@ fm_afk_clear_stale_artifacts() {  # <state-dir>
   local state=$1
   rm -f "$state/.subsuper-escalations" \
         "$state/.subsuper-escalations.since" \
-        "$state/.subsuper-inject-wedged" 2>/dev/null
+        "$state/.subsuper-inject-wedged" \
+        "$state"/.subsuper-inject-wedged.pending.* 2>/dev/null
 }
 
 daemon_lock_owner() {
@@ -136,6 +149,20 @@ fm_afk_start_main() {
     -h|--help) fm_afk_start_usage; return 0 ;;
     * ) echo "usage: $(basename "${BASH_SOURCE[1]:-fm-afk-start.sh}")" >&2; return 2 ;;
   esac
+
+  # Refuse BEFORE any lifecycle state is written. This entry is where away mode
+  # actually becomes true (fm_afk_flag_write below), so a refusal that lands
+  # after it would leave away mode half-entered: state/.afk present, the watcher
+  # queueing to state/.wake-queue, and no supervisor to drain it. The daemon
+  # keeps its own identical check as a fail-closed backstop for any other way it
+  # is started; this one exists so the refusal costs nothing.
+  local self_target self_backend
+  self_target=$(discover_supervisor_target) || true
+  self_backend=$(discover_supervisor_backend) || true
+  if supervisor_pane_is_self_hosted "$self_backend" "$self_target"; then
+    echo "afk: refusing to host the away daemon inside '$self_target', the same $self_backend pane it must deliver into; its own background job keeps that pane reading as busy for its whole lifetime, so no escalation could ever be delivered. Enter away mode with 'bin/fm-afk-launch.sh start', which runs the daemon in its own non-visible terminal and passes this pane in as the delivery target." >&2
+    return 1
+  fi
 
   mkdir -p "$FM_AFK_STATE"
   if [ "${FM_AFK_STATE_PREPARED:-0}" = 1 ]; then
