@@ -662,6 +662,12 @@ unit_verify_delivery_path_refuses_and_rolls_back() {
       pass "refused start names the unreachable delivery target" ;;
     *) fail "refused start did not name the unreachable delivery target: $out" ;;
   esac
+  # The fresh path really does roll the entry back, so "not entered" is true here
+  # and must not drift into the refresh path's wording.
+  case "$out" in
+    *"STILL ON"*) fail "a rolled-back fresh entry claimed away mode is still on: $out" ;;
+    *) pass "refused fresh start does not claim a live away mode" ;;
+  esac
   case "$(cat "$killed" 2>/dev/null || true)" in
     fm-afk-daemon-*) pass "refused start tore the created daemon terminal down by its exact id" ;;
     *) fail "refused start did not close the daemon terminal it had created" ;;
@@ -735,6 +741,23 @@ unit_refresh_refuses_a_pre_existing_self_hosted_daemon() {
   case "$out" in
     *"'bin/fm-afk-launch.sh stop'"*) pass "refresh refusal names the remedy that actually clears the block" ;;
     *) fail "refresh refusal did not tell the captain to stop the pre-existing daemon: $out" ;;
+  esac
+  # The refusal returns before the flag refresh WITHOUT clearing anything, so
+  # away mode is still on and the daemon is still buffering. A captain who reads
+  # "not entered" here walks away believing nothing is running - the mirror image
+  # of the incident this change exists to make visible.
+  if [ -e "$st/state/.afk" ]; then
+    pass "refresh refusal leaves away mode exactly as it found it - still on"
+  else
+    fail "refresh refusal cleared the away-mode flag it does not own"
+  fi
+  case "$out" in
+    *"away mode is STILL ON"*) pass "refresh refusal tells the captain away mode is still active" ;;
+    *) fail "refresh refusal did not say away mode is still on: $out" ;;
+  esac
+  case "$out" in
+    *"away mode not entered"*) fail "refresh refusal reported a live away mode as not entered: $out" ;;
+    *) pass "refresh refusal does not claim away mode was never entered" ;;
   esac
   # An in-pane record that names a DIFFERENT pane delivers fine and must refresh.
   printf 'none\t-\tnative:default:w9Z:p4\n' > "$st/state/.afk-daemon-terminal"

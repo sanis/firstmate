@@ -499,14 +499,29 @@ fm_afk_launch_create_tmux() {  # <captain-target> <captain-backend>
 # is NOT one of them: firstmate is mid-turn running this very launcher, so the
 # captain pane is legitimately busy at entry and a busy sample would refuse every
 # healthy launch. Do not "improve" this into a busy probe.
-fm_afk_launch_verify_delivery_path() {  # <captain-target> <captain-backend>
-  local captain_target=$1 captain_backend=$2
+#
+# The caller passes which entry it is, because the two paths leave the captain in
+# genuinely different states and the refusal must say which one they are in:
+#   fresh   - the caller rolls the entry back, so away mode really is not entered.
+#   refresh - state/.afk is already present, the daemon holds the lock, and this
+#             returns before fm_afk_launch_flag_write without clearing any of it.
+#             Away mode stays ON, undeliverable. Reporting "not entered" there
+#             would be this change's own defect pointed the other way: a live
+#             away mode that reads as not-armed, the watcher still in
+#             daemon-owned one-shot mode, and the daemon still buffering
+#             escalations the captain has been told do not exist.
+fm_afk_launch_verify_delivery_path() {  # <captain-target> <captain-backend> <fresh|refresh>
+  local captain_target=$1 captain_backend=$2 entry_mode=${3:-fresh} lead
+  case "$entry_mode" in
+    refresh) lead="away mode is STILL ON from the earlier entry and this command changed nothing, but the running daemon's delivery path is blocked" ;;
+    *) lead="away mode not entered" ;;
+  esac
   if ! fm_backend_list_contains "$FM_SUPERVISOR_SUPPORTED_BACKENDS" "$captain_backend"; then
-    fm_afk_launch_log "away mode not entered: the away daemon cannot supervise a '$captain_backend' pane (supported: $FM_SUPERVISOR_SUPPORTED_BACKENDS)"
+    fm_afk_launch_log "$lead: the away daemon cannot supervise a '$captain_backend' pane (supported: $FM_SUPERVISOR_SUPPORTED_BACKENDS)"
     return 1
   fi
   if ! fm_backend_target_exists "$captain_backend" "$captain_target"; then
-    fm_afk_launch_log "away mode not entered: escalations would be delivered to '$captain_target', which is not a live $captain_backend pane"
+    fm_afk_launch_log "$lead: escalations would be delivered to '$captain_target', which is not a live $captain_backend pane"
     return 1
   fi
   # The daemon must be running SOMEWHERE OTHER than the pane it delivers into.
@@ -534,7 +549,7 @@ fm_afk_launch_verify_delivery_path() {  # <captain-target> <captain-backend>
       # so the captain reading it has just run start; telling them to run start
       # again would take the same branch and refuse again, forever. Name the
       # state they are actually in: the in-pane daemon has to go first.
-      fm_afk_launch_log "away mode not entered: the daemon already running is hosted in '$FM_AFK_REC_HOST', the same pane it must deliver into, and on $captain_backend its own background job keeps that pane reading as busy - so no escalation could ever be delivered. Stop it first with 'bin/fm-afk-launch.sh stop', then re-enter with 'bin/fm-afk-launch.sh start', which places the daemon in its own non-visible terminal and passes this pane in as the delivery target."
+      fm_afk_launch_log "$lead: the daemon already running is hosted in '$FM_AFK_REC_HOST', the same pane it must deliver into, and on $captain_backend its own background job keeps that pane reading as busy - so no escalation could ever be delivered. Stop it first with 'bin/fm-afk-launch.sh stop', then re-enter with 'bin/fm-afk-launch.sh start', which places the daemon in its own non-visible terminal and passes this pane in as the delivery target."
       return 1
     fi
   fi
@@ -598,7 +613,7 @@ fm_afk_launch_start() {
     # hosted in the captain's own pane from before this routing rule existed.
     # Verified BEFORE the flag refresh, so a refusal leaves lifecycle state
     # exactly as it found it and nothing has to be rolled back.
-    fm_afk_launch_verify_delivery_path "$captain_target" "$captain_backend" || return 1
+    fm_afk_launch_verify_delivery_path "$captain_target" "$captain_backend" refresh || return 1
     if ! fm_afk_launch_flag_write; then
       fm_afk_launch_log "failed to refresh away-mode flag"
       return 1
@@ -644,7 +659,7 @@ fm_afk_launch_start() {
         ;;
     esac
   fi
-  if [ "$result" -eq 0 ] && ! fm_afk_launch_verify_delivery_path "$captain_target" "$captain_backend"; then
+  if [ "$result" -eq 0 ] && ! fm_afk_launch_verify_delivery_path "$captain_target" "$captain_backend" fresh; then
     fm_afk_launch_teardown_after_failed_verify
     result=1
   fi
