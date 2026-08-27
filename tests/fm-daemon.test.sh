@@ -1868,30 +1868,40 @@ test_pane_busy_source_names_native_and_rendered() {
 test_pane_busy_probe_separates_corroboration_from_an_unreadable_pane() {
   (
     fm_backend_busy_state() { printf 'busy'; }
+    # Stub override: the function under test calls it indirectly; nothing in this file calls it.
+    # shellcheck disable=SC2329
     fm_backend_capture() { printf '%s\n' "$FM_TEST_CLAUDE_FOOTER_BG_SHELL"; }
     [ "$(FM_DAEMON_PRIMARY_HARNESS=claude pane_busy_probe 'default:w1:p2' herdr)" = 'native uncorroborated' ] \
       || fail "native busy with no rendered corroboration must report 'native uncorroborated'"
   ) || fail "uncorroborated probe subshell failed"
   (
     fm_backend_busy_state() { printf 'busy'; }
+    # Stub override: the function under test calls it indirectly; nothing in this file calls it.
+    # shellcheck disable=SC2329
     fm_backend_capture() { printf 'esc to interrupt\n'; }
     [ "$(FM_DAEMON_PRIMARY_HARNESS=claude pane_busy_probe 'default:w1:p2' herdr)" = 'native corroborated' ] \
       || fail "native busy the rendered signature agrees with must report 'native corroborated'"
   ) || fail "corroborated probe subshell failed"
   (
     fm_backend_busy_state() { printf 'busy'; }
+    # Stub override: the function under test calls it indirectly; nothing in this file calls it.
+    # shellcheck disable=SC2329
     fm_backend_capture() { return 1; }
     [ "$(FM_DAEMON_PRIMARY_HARNESS=claude pane_busy_probe 'default:w1:p2' herdr)" = 'native unreadable' ] \
       || fail "a capture that failed must report 'unreadable', never corroboration it never observed"
   ) || fail "unreadable probe subshell failed"
   (
     fm_backend_busy_state() { printf 'idle'; }
+    # Stub override: the function under test calls it indirectly; nothing in this file calls it.
+    # shellcheck disable=SC2329
     fm_backend_capture() { printf 'esc to interrupt\n'; }
     [ "$(FM_DAEMON_PRIMARY_HARNESS=claude pane_busy_probe 'default:w1:p2' herdr)" = 'rendered n-a' ] \
       || fail "a rendered-only busy verdict has no native verdict to corroborate"
   ) || fail "rendered-only probe subshell failed"
   (
     fm_backend_busy_state() { printf 'idle'; }
+    # Stub override: the function under test calls it indirectly; nothing in this file calls it.
+    # shellcheck disable=SC2329
     fm_backend_capture() { printf '%s\n' "$FM_TEST_CLAUDE_FOOTER_BG_SHELL"; }
     [ "$(FM_DAEMON_PRIMARY_HARNESS=claude pane_busy_probe 'default:w1:p2' herdr)" = 'none n-a' ] \
       || fail "an idle pane carrying only a background-shell footer has no busy source"
@@ -1914,6 +1924,8 @@ test_wedge_marker_reports_an_unreadable_rendered_signature_as_unchecked() {
     WEDGE_ALARM_LAST_EPOCH=0
     INJECT_LAST_BLOCK=busy
     fm_backend_busy_state() { printf 'busy'; }
+    # Stub override: the function under test calls it indirectly; nothing in this file calls it.
+    # shellcheck disable=SC2329
     fm_backend_capture() { return 1; }
     FM_WEDGE_ALARM_EXEC=discard \
       FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2" \
@@ -2018,6 +2030,8 @@ test_inject_wedge_alarm_marker_names_blocker_and_alert_accounting() {
     LOG="$dir/daemon.log"
     WEDGE_ALARM_LAST_EPOCH=0
     fm_backend_busy_state() { printf 'busy'; }
+    # Stub override: the function under test calls it indirectly; nothing in this file calls it.
+    # shellcheck disable=SC2329
     fm_backend_capture() { printf '%s\n' "$FM_TEST_CLAUDE_FOOTER_BG_SHELL"; }
     FM_WEDGE_ALARM_LOG="$dir/alerts.log" FM_WEDGE_ALARM_CHANNEL=osascript \
       FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2" \
@@ -2048,6 +2062,8 @@ test_wedge_marker_is_durable_before_any_channel_is_dispatched() {
     LOG="$dir/daemon.log"
     WEDGE_ALARM_LAST_EPOCH=0
     fm_backend_busy_state() { printf 'busy'; }
+    # Stub override: the function under test calls it indirectly; nothing in this file calls it.
+    # shellcheck disable=SC2329
     fm_backend_capture() { printf 'esc to interrupt\n'; }
     wedge_alarm_notify() { exit 143; }
     FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2" \
@@ -2081,11 +2097,15 @@ test_wedge_marker_is_durable_before_the_pane_is_read() {
     LOG="$dir/daemon.log"
     WEDGE_ALARM_LAST_EPOCH=0
     INJECT_LAST_BLOCK=busy
+    # Subshell-scoped on purpose: nothing outside this subshell reads these.
+    # shellcheck disable=SC2030,SC2031
     export FM_TEST_WEDGE_MARKER="$marker" FM_TEST_WEDGE_SNAPSHOT="$snapshot"
     # Snapshot the marker at the instant of the FIRST backend call - the point a
     # hung read would freeze the daemon with whatever is on disk right then.
     _snap() { [ -e "$FM_TEST_WEDGE_SNAPSHOT" ] || cp "$FM_TEST_WEDGE_MARKER" "$FM_TEST_WEDGE_SNAPSHOT" 2>/dev/null || true; }
     fm_backend_busy_state() { _snap; printf 'busy'; }
+    # Stub override: the function under test calls it indirectly; nothing in this file calls it.
+    # shellcheck disable=SC2329
     fm_backend_capture() { _snap; printf 'esc to interrupt\n'; }
     FM_WEDGE_ALARM_EXEC=discard \
       FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2" \
@@ -2187,8 +2207,12 @@ test_wedge_marker_records_that_dispatch_began_when_a_kill_freezes_it() {
     LOG="$dir/daemon.log"
     WEDGE_ALARM_LAST_EPOCH=0
     INJECT_LAST_BLOCK=busy
+    # Subshell-scoped on purpose: nothing outside this subshell reads these.
+    # shellcheck disable=SC2030,SC2031
     export FM_TEST_WEDGE_MARKER="$marker" FM_TEST_WEDGE_SNAPSHOT="$snapshot"
     fm_backend_busy_state() { printf 'busy'; }
+    # Stub override: the function under test calls it indirectly; nothing in this file calls it.
+    # shellcheck disable=SC2329
     fm_backend_capture() { printf 'esc to interrupt\n'; }
     # Stands in for a channel that hangs and is killed: capture exactly what is
     # on disk at the instant dispatch begins.
@@ -2230,9 +2254,14 @@ test_wedge_marker_never_inherits_a_previous_windows_alert_accounting() {
     WEDGE_ALARM_LAST_EPOCH=0
     export FM_WEDGE_ALARM_LOG="$dir/alerts.log"
     export FM_WEDGE_ALARM_CHANNEL=osascript
+    # Subshell-scoped on purpose: nothing outside this subshell reads these.
+    # shellcheck disable=SC2030,SC2031
     export FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2"
+    # shellcheck disable=SC2030,SC2031
     export FM_DAEMON_PRIMARY_HARNESS=claude FM_MAX_DEFER_SECS=300
     fm_backend_busy_state() { printf 'busy'; }
+    # Stub override: the function under test calls it indirectly; nothing in this file calls it.
+    # shellcheck disable=SC2329
     fm_backend_capture() { printf 'esc to interrupt\n'; }
     inject_wedge_alarm "$state" 900
     grep -q 'alerts dispatched: osascript' "$marker" \
@@ -2268,8 +2297,12 @@ test_wedge_marker_reports_the_block_inject_msg_actually_hit() {
     LOG="$dir/daemon.log"
     WEDGE_ALARM_LAST_EPOCH=0
     INJECT_LAST_BLOCK=
+    # Subshell-scoped on purpose: nothing outside this subshell reads these.
+    # shellcheck disable=SC2030,SC2031
     export FM_WEDGE_ALARM_EXEC=discard
+    # shellcheck disable=SC2030,SC2031
     export FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2"
+    # shellcheck disable=SC2030,SC2031
     export FM_DAEMON_PRIMARY_HARNESS=claude
     fm_backend_target_exists() { return 0; }
     fm_backend_busy_state() { printf 'idle'; }
@@ -2297,8 +2330,12 @@ test_wedge_marker_reports_the_block_inject_msg_actually_hit() {
     LOG="$dir/daemon.log"
     WEDGE_ALARM_LAST_EPOCH=0
     INJECT_LAST_BLOCK=
+    # Subshell-scoped on purpose: nothing outside this subshell reads these.
+    # shellcheck disable=SC2030,SC2031
     export FM_WEDGE_ALARM_EXEC=discard
+    # shellcheck disable=SC2030,SC2031
     export FM_SUPERVISOR_BACKEND=herdr FM_SUPERVISOR_TARGET="default:w1:p2"
+    # shellcheck disable=SC2030,SC2031
     export FM_DAEMON_PRIMARY_HARNESS=claude FM_INJECT_CONFIRM_RETRIES=1 FM_INJECT_CONFIRM_SLEEP=0
     fm_backend_target_exists() { return 0; }
     fm_backend_busy_state() { printf 'idle'; }
@@ -2325,6 +2362,8 @@ test_wedge_accounting_names_a_configured_but_unusable_channel() {
   log="$dir/daemon.log"
   (
     LOG="$log"
+    # Stub override: the function under test calls it indirectly; nothing in this file calls it.
+    # shellcheck disable=SC2329
     wedge_alarm_platform_default() { printf ''; }
     FM_WEDGE_ALARM_CHANNEL=auto wedge_alarm_notify "wedged" "$dir/.marker"
     assert_contains "$WEDGE_ALARM_LAST_ACCOUNTING" "unusable here: auto=" \
@@ -2368,6 +2407,8 @@ test_daemon_takes_the_lock_only_after_its_startup_validations_pass() {
   lock="$state/.supervise-daemon.lock"
   snapshot="$dir/lock-at-target-probe"
   (
+    # Subshell-scoped on purpose: nothing outside this subshell reads these.
+    # shellcheck disable=SC2030,SC2031
     export FM_STATE_OVERRIDE="$state"
     export FM_TEST_LOCK="$lock" FM_TEST_LOCK_SNAPSHOT="$snapshot"
     fm_backend_target_exists() {
@@ -2395,6 +2436,8 @@ test_daemon_takes_the_lock_only_after_its_startup_validations_pass() {
   mkdir -p "$lock"
   printf '%s' "$$" > "$lock/pid"
   out=$(
+    # Subshell-scoped on purpose: nothing outside this subshell reads these.
+    # shellcheck disable=SC2030,SC2031
     export FM_STATE_OVERRIDE="$state"
     fm_backend_target_exists() { return 0; }
     FM_SUPERVISOR_BACKEND=tmux FM_SUPERVISOR_TARGET='%99' fm_super_main 2>&1

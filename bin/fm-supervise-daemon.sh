@@ -1379,13 +1379,13 @@ inject_msg() {  # <message> [state]
   # (1) Presence-gate: inject ONLY when afk is active. When afk is off, the
   # daemon self-handles and stays quiet; firstmate drives the normal always-on
   # watcher triage. Escalations buffer and survive for the next catch-up flush.
-  afk_active "$state" || { INJECT_LAST_BLOCK=afk-inactive; log "inject deferred: afk inactive"; return 1; }
+  afk_active "$state" || { INJECT_LAST_BLOCK='afk-inactive'; log "inject deferred: afk inactive"; return 1; }
   # (2) Single-line digest: collapse any embedded newlines so submission via
   # send-keys + Enter is unambiguous regardless of how the TUI composer treats
   # them. Then use the canonical typed envelope so downstream consumers retain
   # the exact away-supervisor kind without interpreting this payload's prose.
   msg=$(_collapse_newlines "$msg")
-  fm_operational_input_encode away-supervisor "$msg" encoded || { INJECT_LAST_BLOCK=encode-failed; return 1; }
+  fm_operational_input_encode away-supervisor "$msg" encoded || { INJECT_LAST_BLOCK='encode-failed'; return 1; }
   msg=$encoded
   target="${FM_SUPERVISOR_TARGET:-$FM_SUPERVISOR_TARGET_DEFAULT}"
   # BACKEND-AWARE (previously a raw `tmux display-message` pane-exists probe):
@@ -1394,7 +1394,7 @@ inject_msg() {  # <message> [state]
   # when unset (sourced/test contexts that never ran fm_super_main's startup
   # discovery), matching this function's pre-existing default assumption.
   backend="${FM_SUPERVISOR_BACKEND:-tmux}"
-  fm_backend_target_exists "$backend" "$target" || { INJECT_LAST_BLOCK=target-missing; return 1; }
+  fm_backend_target_exists "$backend" "$target" || { INJECT_LAST_BLOCK='target-missing'; return 1; }
   # (3) Busy-guard: never inject into an in-use supervisor pane.
   busy_source=$(pane_busy_source "$target" "$backend")
   if [ -n "$busy_source" ]; then
@@ -1441,7 +1441,7 @@ inject_msg() {  # <message> [state]
     return 0  # Backend confirmed the submit.
   fi
   log "inject failed: submit unconfirmed after $retries retries (verdict=$verdict, text may be in composer)"
-  INJECT_LAST_BLOCK=submit-unconfirmed
+  INJECT_LAST_BLOCK='submit-unconfirmed'
   return 1
 }
 
