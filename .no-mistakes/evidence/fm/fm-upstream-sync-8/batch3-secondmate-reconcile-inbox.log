@@ -1,0 +1,84 @@
+FM_TEST_BEGIN 2026-08-27T19:21:53Z tests/fm-send-remote-delivery.test.sh family=unclassified expected_gate_skip=none
+ok - fm-send remote: a text steer lands as a durable remote inbox record and exits 0 at enqueue
+ok - fm-send remote: the printed correlation-reusing resend deduplicates onto the same record
+ok - fm-send remote: a failed retry cannot erase an earlier ambiguous delivery
+ok - fm-send remote: fire-and-forget delivery is idempotent without reply recovery
+ok - remote control: send revalidates endpoint ownership under the metadata lock
+ok - fm-send remote: enqueue revalidates the parent route under its metadata lock
+ok - fm-send remote: expected host is enforced by final route validation
+ok - fm-send remote: a --resolve-key answer closes its decision at enqueue
+ok - fm-send remote: every remote text, harness-native included, rides the inbox
+ok - fm-send remote: a real remote failure still fails loudly with the remote diagnostics
+ok - fm-send remote: exit 3 from the remote leg is a failure, never a delivery claim
+ok - fm-send remote: ssh 255 fails with resend-safe guidance and preserves the expectation
+ok - fm-send local: an unconfirmed submit exits 3 with an honest non-error report
+ok - fm-send local: an unconfirmed submit still never closes a --resolve-key decision
+ok - fm-send local: an unconfirmed secondmate send keeps its reply expectation armed
+all fm-send-remote-delivery tests passed
+FM_TEST_END 2026-08-27T19:22:26Z tests/fm-send-remote-delivery.test.sh exit=0 duration_ms=32979 gate_skip=false
+FM_TEST_BEGIN 2026-08-27T19:22:26Z tests/fm-secondmate-liveness.test.sh family=secondmate expected_gate_skip=none
+ok - fm_backend_tmux_agent_state: separates live, dead, missing, ambiguous, and unreadable
+ok - fm_backend_tmux_agent_state: rejects malformed targets before probing tmux
+ok - fm_backend_herdr_agent_state: preserves missing/no-agent/live/unknown husk behavior
+ok - fm_backend_agent_state: routes tmux/Herdr and keeps Zellij unverified
+ok - sweep: a confirmed-dead secondmate endpoint is killed and respawned
+ok - sweep: an already-live secondmate is untouched and distinguishable in verbose diagnostics
+ok - sweep: an authoritatively missing Pi secondmate window is relaunched
+ok - sweep: an authoritatively missing pi-signed secondmate window is relaunched
+ok - sweep: an existing ambiguous Pi process prevents duplicate recovery
+ok - sweep: transient target unreadability never licenses recovery
+ok - sweep: failed relaunch diagnostics distinguish a confidently missing endpoint
+ok - sweep: an unverified harness blocks recovery with a concrete diagnostic
+ok - sweep: idempotent by construction - a live secondmate is never re-touched on a later run
+ok - sweep: skipped entirely under FM_BOOTSTRAP_DETECT_ONLY=1, exactly like the other mutating sweeps
+ok - sweep: a silent no-op with no kind=secondmate meta present (a secondmate home's own natural scoping)
+# all fm-secondmate-liveness tests passed
+FM_TEST_END 2026-08-27T19:23:27Z tests/fm-secondmate-liveness.test.sh exit=0 duration_ms=61453 gate_skip=false
+FM_TEST_BEGIN 2026-08-27T19:23:27Z tests/fm-secondmate-sync.test.sh family=secondmate expected_gate_skip=none
+ok - T1 updated: a behind home fast-forwards to the primary's local HEAD
+ok - T2 current: an already-current home is a no-op and reports no instruction change
+ok - T3 dirty: an uncommitted home is skipped, its edit preserved
+ok - scratchpad2/ does not mark a secondmate home dirty for the sync guard
+ok - T4 diverged: a home that is not an ancestor of the primary's HEAD is skipped
+ok - T5 in-flight: a home on a feature branch is skipped, its work preserved
+ok - T6 no fetch: the local-HEAD sync never invokes git fetch
+ok - T7 sweep nudges on a real instruction change only, but still fast-forwards
+ok - T8 bootstrap sweeps live homes and sends exactly one marked nudge for the instruction change
+ok - T8a bootstrap nudge send respects FM_STATE_OVERRIDE
+ok - T8f bootstrap nudge retry rejects malformed marker ids
+ok - T8c failed bootstrap nudge is surfaced and recorded for retry
+ok - T8d bootstrap nudge retry is idempotent after success
+ok - T8e bootstrap nudge retry refuses a changed home instead of guessing
+ok - T8b a stale herdr endpoint cannot lose a durably enqueued nudge, and fm-<id> resolves through post-respawn metadata
+ok - T9 bootstrap surfaces a skipped dirty live secondmate home
+ok - T10 spawn fast-forwards a secondmate worktree to the primary's local HEAD before launch
+ok - T11 spawn warns when pre-launch sync is skipped
+ok - T12 gitignored marker: a freshly seeded home reads clean to fleet-sync and the ff sweep
+ok - T13 gitignored marker: an existing marker-only-dirty home converges, then reads clean
+ok - T14 marker tolerance does not mask a genuinely dirty home
+# all fm-secondmate-sync tests passed
+FM_TEST_END 2026-08-27T19:24:35Z tests/fm-secondmate-sync.test.sh exit=0 duration_ms=67738 gate_skip=false
+FM_TEST_BEGIN 2026-08-27T19:24:35Z tests/fm-task-inbox.test.sh family=watcher-wake-lock expected_gate_skip=none
+ok - inbox: a steer is written durably and round-trips byte-exact with a self-describing doorbell
+ok - inbox: the idempotent enqueue dedups an exact re-run onto the same record, handled or not
+ok - inbox: idempotent enqueue follows a record concurrently moved to handled
+ok - inbox: the handled mv is the idempotent ack and sequences are never reissued
+ok - inbox: concurrent writers serialize on the sequence lock and lose nothing
+ok - inbox: ladder bookkeeping ignores a concurrently removed inbox
+ok - inbox: fire-and-forget records stay durable and outside the ladder
+ok - inbox: the re-ring ladder paces by grace, escalates once, and resets on ack
+ok - watcher: an unhandled aged message on an idle pane re-rings without waking firstmate, and the ack silences it
+ok - watcher: a busy pane just waits - the record is durable and no doorbell is typed
+ok - watcher: a healthy or empty inbox stays completely silent
+ok - watcher: acknowledgement silences an unwritable ladder without a stale wake
+ok - watcher: unwritable ladder bookkeeping surfaces a stale wake after the doorbell
+ok - watcher: a spent ring budget emits exactly one ordinary stale wake for recovery
+FM_TEST_END 2026-08-27T19:25:16Z tests/fm-task-inbox.test.sh exit=0 duration_ms=40894 gate_skip=false
+FM_TEST_SUMMARY total=4 failed=0 skipped_gate=0 duration_ms=203286
+FM_TEST_SUMMARY_FAMILY family=secondmate count=2 duration_ms=129191 failed=0
+FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=32979 failed=0
+FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=1 duration_ms=40894 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-secondmate-sync.test.sh duration_ms=67738
+FM_TEST_SLOWEST rank=2 script=tests/fm-secondmate-liveness.test.sh duration_ms=61453
+FM_TEST_SLOWEST rank=3 script=tests/fm-task-inbox.test.sh duration_ms=40894
+FM_TEST_SLOWEST rank=4 script=tests/fm-send-remote-delivery.test.sh duration_ms=32979

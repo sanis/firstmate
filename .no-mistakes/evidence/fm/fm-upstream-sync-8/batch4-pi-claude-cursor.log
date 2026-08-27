@@ -1,0 +1,197 @@
+FM_TEST_BEGIN 2026-08-27T19:25:25Z tests/fm-operational-input.test.sh family=pure-contract-unit expected_gate_skip=none
+ok - operational input: every current generic envelope retains its exact structured kind
+ok - operational input: the established from-firstmate carrier remains structurally typed and byte-compatible
+ok - operational input: untyped landed FIRSTMATE_OP transcripts are explicit legacy-operational input
+ok - operational input: historical prose compatibility is isolated from current parsing
+ok - operational input: quoted, ASCII-only, arbitrary-U+2063, altered-legacy, and label-only near misses stay genuine
+ok - operational input: the OpenCode adapter constructs through the canonical owner
+ok - operational input: current construction rejects legacy kinds and empty bodies
+FM_TEST_END 2026-08-27T19:25:26Z tests/fm-operational-input.test.sh exit=0 duration_ms=1176 gate_skip=false
+FM_TEST_BEGIN 2026-08-27T19:25:26Z tests/fm-pi-primary-types.test.sh family=pure-contract-unit expected_gate_skip=none
+skip: installed @earendil-works/pi-coding-agent package not found
+FM_TEST_END 2026-08-27T19:25:27Z tests/fm-pi-primary-types.test.sh exit=0 duration_ms=185 gate_skip=true
+FM_TEST_BEGIN 2026-08-27T19:25:27Z tests/fm-pi-branch-extension.test.sh family=unclassified expected_gate_skip=none
+skip: installed @earendil-works/pi-coding-agent package not found
+skip: installed @earendil-works/pi-coding-agent package not found
+ok - branch owns accepted wakes with a stable prefix contract and verdict-driven merge delivery
+ok - a captain outcome reaches main's model as typed, self-describing input while routine notes stay plain
+ok - a broken operational encoder still delivers one invisible instructed captain outcome as a follow-up
+ok - scopeForUnreadWake excludes every main-only class without vetoing eligible task-local rows, and writes the eligible snapshot
+ok - branch prompt_cache_key is stable per home across sessions and distinct between homes
+ok - branch default-on eligibility (task-scoped, heartbeat, afk) binds and a broken branch falls back to main
+ok - a heartbeat review survives a check row arriving before its drain
+ok - pre-drain eligibility re-check excludes a newly main-owned row without deferring eligible work
+ok - a settled branch turn releases an unacknowledged grant for main replay
+ok - a stale main claim cannot silently suppress later wake delivery
+ok - pre-drain eligibility re-check no-ops an already-drained wake
+ok - dialog mirror filters tool and operational traffic, lands before wakes, and keeps a durable cursor
+ok - branch session persists across process restarts through the recorded pointer
+ok - the current pin state binds every branch create and reopen, and clearing it returns the branch to main's model
+ok - unpinned branches follow main model changes live while pinned branches stay fixed
+ok - supervision-model command persists the captain's pick and rebinds the live branch
+ok - supervision-model opens a bounded searchable list, follow main first, and pins the branch alone
+ok - branch model picker keeps follow main first and filters the eligible catalog
+ok - the effort pin binds every branch create and reopen, and clearing it returns the branch to main's effort
+ok - unpinned branches follow main effort changes live while pinned branches stay fixed
+ok - supervision-model runs an effort picker after the model picker and persists both independently
+ok - an unusable model pin falls back to main and an unparseable one is treated as no pin
+ok - replacement activation cleans old branch leases and retries failed cleanup
+ok - branch activates on a cold start once the lock is acquired, never before
+ok - queued wakes and mirrors stop mutating branch state after lock ownership is lost
+ok - stale reports, shells, mirrors, cursors, leases, and prompts perform no side effects
+ok - a Pi session that does not own the lock accepts nothing and mutates no branch state
+ok - an extension rebind re-mirrors undelivered dialog instead of dropping it
+FM_TEST_END 2026-08-27T19:26:25Z tests/fm-pi-branch-extension.test.sh exit=0 duration_ms=58332 gate_skip=true
+FM_TEST_BEGIN 2026-08-27T19:26:25Z tests/fm-claude-stop-autoarm.test.sh family=unclassified expected_gate_skip=none
+ok - auto-arm: inert in a linked child worktree even when in-flight
+ok - auto-arm: inert with no session lock
+ok - auto-arm: a demonstrably dead recorded session owner is reclaimed through fm-lock.sh before arming
+ok - auto-arm: inert without arm, rewake, or lock replacement when another live harness owns the home
+ok - auto-arm: inert while AFK owns supervision
+ok - auto-arm: stale-owner recovery leaves the AFK and supervision-need gates unchanged
+ok - auto-arm: resolves the outermost pid of a nested contiguous claude ancestry (bg-spare chain)
+ok - auto-arm: inert with nothing in flight and no X-mode need
+ok - auto-arm: actionable close translates to exactly one exit-2 rewake with reason
+ok - auto-arm: actionable close survives a healthy successor without duplicate delivery
+ok - auto-arm: bounded failure verification emits one automatic-mechanism alarm
+ok - auto-arm: consecutive failures keep Stop-owned retry without repeating notice
+ok - auto-arm: marker-write refusal defers delivery until one successor commits the notice
+ok - auto-arm: unverified clean close exhausts retries and fails closed
+ok - auto-arm: post-alarm actionable outcomes cannot continue or reset failure state
+ok - auto-arm: benign cycle end with a live watcher and fresh beacon stays silent across the next cycle
+ok - auto-arm: budget contention preserves the episode and forces a reset retry
+ok - auto-arm: owner-mutex contention preserves successor episode state
+ok - auto-arm: X-mode poll need arms the cycle even with no tasks in flight
+ok - auto-arm: concurrent firings admit one owner and one rewake translation
+ok - auto-arm: an abandoned owner claim is reclaimed so a lapsed cycle re-arms
+ok - auto-arm: a legacy owner still arming is never reclaimed while its watcher keeps beating
+ok - auto-arm: a fresh legacy arming claim is never reclaimed while its startup window is still open
+ok - auto-arm: a live claim the ledger does not name is never reclaimed
+ok - auto-arm: a claim whose pid was reused is reclaimed even while its ledger entry still reads arming
+ok - auto-arm: a reused-pid claim is reclaimed even with no ledger entry to prove it
+ok - auto-arm: an identity-matched owner still arming is never reclaimed
+ok - auto-arm: the guard's terminal-check claim is never reclaimed
+ok - auto-arm: a stuck live legacy owner is retired via TERM and its lock reclaimed
+ok - auto-arm: a SIGSTOPped legacy owner is reclaimed with TERM pending and dies on continue
+ok - auto-arm: a live open generation claim defers concurrent firings with no lock held
+ok - auto-arm: a hung generation owner with no watcher beat is superseded so re-arming self-heals
+ok - auto-arm: an identityless arming ledger never defers the gate (reused-pid loophole closed)
+ok - auto-arm: a superseded owner never re-invokes the arm and leaves its successor's claim untouched
+ok - auto-arm: a superseded owner goes silent - one supersession episode, one translation, no held mutex
+ok - auto-arm: need vanishing mid-cycle closes without a rewake
+ok - auto-arm: mid-cycle AFK hands triage to the daemon with no rewake
+ok - auto-arm: active in a marked secondmate home
+ok - fm-lock: shared session-lock lib preserves the status path
+FM_TEST_END 2026-08-27T19:27:36Z tests/fm-claude-stop-autoarm.test.sh exit=0 duration_ms=71112 gate_skip=false
+FM_TEST_BEGIN 2026-08-27T19:27:36Z tests/fm-turnend-guard.test.sh family=watcher-wake-lock expected_gate_skip=none
+ok - fm_supervision_unhealthy: false with no state/*.meta at all
+ok - fm_supervision_unhealthy: true with in-flight task and no beacon ever
+ok - fm_supervision_unhealthy: true with in-flight task and a beacon far outside the grace window
+ok - fm_supervision_unhealthy: false with in-flight task and a fresh beacon
+ok - fm_supervision_status: FM_SUP_QUEUE_PENDING tracks state/.wake-queue
+ok - fm_supervision_needed: X-mode relay poll needs supervision
+ok - fm_supervision_unhealthy: source-only home needs supervision
+ok - fm-turnend-guard: silent no-op with nothing in flight
+ok - fm-turnend-guard: blocks when a fresh beacon has no live watcher lock
+ok - fm-turnend-guard: non-Claude path blocks a source-only home
+ok - fm-turnend-guard: blocks on a dead watcher lock even when the beacon is fresh
+ok - fm-turnend-guard: silent no-op with a live watcher lock and fresh beacon
+ok - fm-turnend-guard: healthy non-Claude harness paths ignore Claude episode contention
+ok - fm-turnend-guard: blocks on a live watcher lock with an ancient beacon
+ok - fm-turnend-guard: blocks with the exact required reason in the primary when unhealthy
+ok - fm-turnend-guard: blocks from active FM_HOME state, not only repo-root state
+ok - fm-turnend-guard: X-mode repair reason sources the cadence config
+ok - fm-turnend-guard: X-mode-only supervision remains guarded in default mode
+ok - fm-turnend-guard: ignores stale repo-root state when FM_HOME is set
+ok - fm-turnend-guard: uses FM_STATE_OVERRIDE ahead of FM_HOME/state
+ok - fm-turnend-guard: stop_hook_active=true always allows the stop (never blocks twice in one turn)
+ok - fm-turnend-guard: blocks a blind turn end in a secondmate's own home (.fm-secondmate-home no longer excludes it)
+ok - fm-turnend-guard: idle-by-default - silent in a secondmate home with nothing in flight
+ok - fm-turnend-guard: stop_hook_active=true allows the stop in a secondmate home (never blocks twice in one turn)
+ok - fm-turnend-guard: secondmate deferred-death recovery - silent while watched, forces re-arm once the watcher exits
+ok - fm-turnend-guard: inert in a secondmate's own child worktree (linked git worktree) even when unhealthy
+ok - fm-turnend-guard: blocks a blind turn end in a treehouse-leased LINKED secondmate home (marker force-include)
+ok - fm-turnend-guard: an invalid (empty) marker cannot spoof inclusion; linked worktree stays exempt
+ok - fm-turnend-guard: a non-ASCII marker cannot spoof inclusion; linked worktree stays exempt
+ok - fm-turnend-guard: inert in a crewmate/scout task worktree (linked git worktree) even when unhealthy
+ok - fm-turnend-guard: fails open (never blocks) when jq is missing
+ok - fm-turnend-guard: silent no-op on empty stdin
+ok - fm-turnend-guard: runs well under the generous timing margin (1s)
+ok - fm-turnend-guard-grok: forces one explicitly marked same-session resume when the shared predicate blocks
+ok - fm-turnend-guard-grok: legacy environment loop guard prevents a nested resume loop
+ok - fm-turnend-guard-grok: native false delegates blocking feedback with zero resume processes
+ok - fm-turnend-guard-grok: native true remains bounded and starts no resume process
+ok - fm-turnend-guard-grok: both spellings are typed and camelCase has deterministic precedence
+ok - fm-turnend-guard-grok: malformed, invalidly typed, and missing-prerequisite payloads start neither path
+ok - fm-turnend-guard-grok: missing jq and no-supervision-needed stops stay silent and bounded
+ok - tracked .claude/settings.json entries: 5 inert under grok, the documented subagent exception still armed, all live under Claude
+ok - .codex/hooks.json: Stop hook uses hook process root when payload cwd is outside
+ok - .codex/hooks.json: Stop hook ignores nested git root guard scripts
+ok - .opencode primary plugin: guard path is anchored to worktree, not directory
+ok - .pi primary extension: no-tool and multi-tool runs each inject exactly one guard follow-up
+ok - .pi primary extension: delivery failure resets the logical-run latch
+ok - fm-turnend-guard --claude: re-blocks a loop-guarded stop while unhealthy and unclaimed (incident regression)
+ok - fm-turnend-guard --claude: X-mode-only homes re-block when auto-arm recovery is absent
+ok - fm-turnend-guard --claude: a live arming epoch advances once and repeated observation is idempotent
+ok - fm-turnend-guard --claude: repeated failed-to-arming races make bounded monotonic progress
+ok - fm-turnend-guard --claude: terminal owner boundary excludes a concurrent start without deadlock
+ok - fm-turnend-guard --claude: fresh rewake epoch prevents a duplicate continuation for the same event
+ok - fm-turnend-guard --claude: an abandoned auto-arm claim no longer allows a blind stop (incident regression)
+ok - fm-turnend-guard --claude: a claim whose pid was reused stops counting as recovery even while its entry reads arming
+ok - fm-turnend-guard --claude: a hung owner frozen at arming with no watcher beat no longer allows a blind stop
+ok - fm-turnend-guard --claude: a live open generation claim owns recovery with no lock held
+ok - fm-turnend-guard --claude: a stuck generation claim no longer allows a blind stop
+ok - fm-turnend-guard --claude: the terminal path clears an abandoned claim instead of stepping aside silently
+ok - fm-turnend-guard --claude: fresh failed epochs preserve and advance monotonic fail-open progression
+ok - fm-turnend-guard --claude: integrated fresh failures reach one bounded fail-open, stop continuation, and reset on recovery
+ok - fm-turnend-guard --claude: reset contention preserves all episode state until retry
+ok - fm-turnend-guard --claude: concurrent auto-arm and guard resets are idempotent and deadlock-free
+ok - fm-turnend-guard --claude: stale rewake epoch does not allow a blind stop
+ok - fm-turnend-guard --claude: budget exhaustion alone cannot permit a blind stop
+ok - fm-turnend-guard --claude: verified fail-open is loud, bounded, attended, and non-repeating
+ok - fm-turnend-guard --claude: fail-open requires both exhausted retries and consumed notice
+ok - fm-turnend-guard --claude: away ownership excludes the Stop-autoarm fail-open
+ok - fm-turnend-guard --claude: positive watcher recovery resets failure episode state
+ok - fm-turnend-guard --claude: bounded claim wait avoids a token-consuming forced continuation
+ok - fm-turnend-guard --claude: secondmate home re-blocks unclaimed and allows auto-arm-claimed stops
+FM_TEST_END 2026-08-27T19:29:25Z tests/fm-turnend-guard.test.sh exit=0 duration_ms=108545 gate_skip=false
+FM_TEST_BEGIN 2026-08-27T19:29:25Z tests/fm-cursor-primary.test.sh family=watcher-wake-lock expected_gate_skip=none
+ok - fm-turnend-guard: Cursor payload is inert without --cursor and blocks with it
+ok - fm-turnend-guard: a non-Cursor payload keeps blocking
+ok - fm-claude-stop-autoarm: inert on a Cursor-delivered payload
+ok - fm-sessionstart-run: inert on a Cursor payload, unchanged otherwise
+ok - fm-arm-pretool-check: Cursor duplicate allows, --cursor denies in Cursor's own shape
+ok - fm-cd-pretool-check: Cursor duplicate allows, --cursor denies in Cursor's own shape
+ok - cursor park: silent no-op when no supervision is needed
+ok - cursor park: an actionable close is delivered as one watcher-kind follow-up
+ok - cursor park: always exits 0, even when supervision is genuinely down
+ok - cursor park: the repair nag is bounded and then goes quiet
+ok - cursor park: a repair nag is emitted only after its budget persists
+ok - cursor park: a delivered wake resets the bounded repair budget
+ok - cursor park: the loop_count ceiling warns exactly once, then stops the loop
+ok - cursor park: an older park stands down after a newer stop claim
+ok - cursor park: the newest stop exclusively owns a concurrent commit
+ok - cursor park: a superseded park cannot consume repair budget
+ok - cursor park: inert while away mode is active
+ok - cursor park: inert when PI_CODING_AGENT marks a Pi host session
+ok - cursor park: parks when PI_CODING_AGENT leaks alongside Cursor identity
+ok - cursor park: an away-mode transition wins before follow-up commit
+ok - cursor park: inert when this session does not hold the home lock
+ok - cursor park: session takeover stops polling without output or state mutation
+ok - cursor park: inert inside a child crewmate worktree
+ok - cursor park: malformed payloads fail open without arming
+ok - fm-sessionstart-cursor: sessionStart injects context
+ok - fm-sessionstart-cursor: silent inside a child crewmate worktree
+ok - cursor registration: covers every primary event with a bounded stop loop
+ok - cursor bounds nest: firstmate's default ceiling stops the loop before Cursor's loop_limit does
+FM_TEST_END 2026-08-27T19:31:14Z tests/fm-cursor-primary.test.sh exit=0 duration_ms=109444 gate_skip=false
+FM_TEST_SUMMARY total=6 failed=0 skipped_gate=2 duration_ms=349162
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=2 duration_ms=1361 failed=0
+FM_TEST_SUMMARY_FAMILY family=unclassified count=2 duration_ms=129444 failed=0
+FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=2 duration_ms=217989 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-cursor-primary.test.sh duration_ms=109444
+FM_TEST_SLOWEST rank=2 script=tests/fm-turnend-guard.test.sh duration_ms=108545
+FM_TEST_SLOWEST rank=3 script=tests/fm-claude-stop-autoarm.test.sh duration_ms=71112
+FM_TEST_SLOWEST rank=4 script=tests/fm-pi-branch-extension.test.sh duration_ms=58332
+FM_TEST_SLOWEST rank=5 script=tests/fm-operational-input.test.sh duration_ms=1176
+FM_TEST_SLOWEST rank=6 script=tests/fm-pi-primary-types.test.sh duration_ms=185

@@ -1,0 +1,19 @@
+summary: "13 passed, 1 failed, 14 total"
+checks[14]{name,conclusion}:
+  PR must be raised via no-mistakes,fail
+  Lint,pass
+  Test coverage guard,pass
+  Behavior portable parallel 1,pass
+  Behavior portable parallel 2,pass
+  Behavior portable serial 1,pass
+  Behavior portable serial 2,pass
+  Behavior portable serial 3,pass
+  Behavior portable serial 4,pass
+  Behavior tests (Herdr),pass
+  Stock macOS Bash snapshot compatibility,pass
+  Repo invariants,pass
+  Behavior timing aggregate,pass
+  CodeRabbit,pass
+help[2]:
+  Run `gh-axi pr view 17 -R sanis/firstmate` to see PR details
+  Run `gh-axi pr merge 17 -R sanis/firstmate` to merge when ready

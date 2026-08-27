@@ -1,0 +1,85 @@
+FM_TEST_BEGIN 2026-08-27T19:19:04Z tests/fm-documentation-audiences.test.sh family=documentation-audiences expected_gate_skip=none
+ok - documentation inventory classifies every maintained prose surface exactly once
+ok - the set of links hidden by code awareness is exactly the pinned samples
+ok - classification, setup routing, and maintained-prose scope fail safely
+ok - required documentation owner pointers cannot silently disappear
+ok - local links resolve while dates, versions, commands, and incident prose remain semantically reviewed
+ok - code targets are ignored while an indented list continuation stays validated
+FM_TEST_END 2026-08-27T19:19:06Z tests/fm-documentation-audiences.test.sh exit=0 duration_ms=2078 gate_skip=false
+FM_TEST_BEGIN 2026-08-27T19:19:06Z tests/fm-brief.test.sh family=pure-contract-unit expected_gate_skip=none
+ok - fm-brief.sh: bash -n succeeds
+/var/folders/b8/p7dyhngn7l591759f0_ngqr40000gn/T//fm-brief.BnPgcC/heredoc-in-substitution.sh:2
+ok - fm-brief.sh: no heredoc is nested inside a command substitution (Bash 3.2 parse-safe)
+ok - fm-brief.sh: --help renders the complete header
+ok - fm-brief.sh: no-mistakes/direct-PR/local-only briefs generate cleanly
+ok - fm-brief.sh: ship --mode is required and closed-set validated
+ok - fm-brief.sh: the explicit ship mode wins over the registered posture
+ok - fm-brief.sh: --yolo and scout/secondmate --mode are refused, never silently dropped
+ok - fm-brief.sh: faster paths use configured authority without stacked review
+ok - fm-brief.sh: no-mistakes DOD keeps its apostrophe prose, now parse-safe
+ok - fm-brief.sh: ship project-memory wording carries the AGENTS.md authoring bar
+ok - fm-brief.sh: --herdr-lab emits the complete hard safety contract
+ok - fm-brief.sh: --herdr-lab uses its quoted Firstmate-owned helper path
+ok - fm-brief.sh: ship and scout scaffolds make omitted Herdr intent fail-visible
+ok - fm-brief.sh: the documented {TASK} fill cannot corrupt the Herdr safety gate
+ok - fm-brief.sh: Herdr lab contract covers scouts and rejects secondmate misuse
+ok - fm-brief.sh: --no-projects scaffolds a project-less charter and guards misuse
+ok - fm-brief.sh: marked requests avoid generic acknowledgements and preserve material reporting
+ok - fm-brief.sh: relative directory inputs ignore CDPATH, render stable absolute charter paths, or fail loudly
+ok - fm-brief.sh: custom pause verb renders in every scaffold
+ok - fm-brief.sh: investigation and visual-review completions load the shared decision policy
+ok - fm-brief: scout and secondmate code paths still scaffold well-formed briefs
+FM_TEST_END 2026-08-27T19:19:10Z tests/fm-brief.test.sh exit=0 duration_ms=3867 gate_skip=false
+FM_TEST_BEGIN 2026-08-27T19:19:10Z tests/fm-bearings-board-render.test.sh family=snapshot-bearings expected_gate_skip=optional-binary
+ok - a warning row badges needs repair while queued work keeps waiting
+ok - the charted next count counts queued work only, and still renders warnings
+ok - a warning-only board reports nothing queued and still shows the warning
+ok - omitted warnings remain separate from omitted queued work
+ok - an omitted kind renders exactly as queued work always did
+FM_TEST_END 2026-08-27T19:19:16Z tests/fm-bearings-board-render.test.sh exit=0 duration_ms=6330 gate_skip=false
+FM_TEST_BEGIN 2026-08-27T19:19:16Z tests/fm-bearings-board.test.sh family=pure-contract-unit expected_gate_skip=none
+ok - path prints the stable home-scoped board location
+ok - build refuses malformed payloads before touching the board
+ok - charted kind is optional and accepts queued and warning
+ok - build injects the payload, binds any-origin, then arms the source
+not-autohandled: lavish-30935a4a1f3b8cf9 (left for the handler; still unacknowledged)
+ok - registration can consume answers only after any-origin binding exists
+ok - build establishes the Lavish session before binding and arming
+ok - rebuild refreshes the board in place without double-arming
+ok - build refuses a template without exactly one data slot
+FM_TEST_END 2026-08-27T19:19:29Z tests/fm-bearings-board.test.sh exit=0 duration_ms=12166 gate_skip=false
+FM_TEST_BEGIN 2026-08-27T19:19:29Z tests/fm-pr-description-guard.test.sh family=pr-forge expected_gate_skip=none
+ok - !1333: seven screenshot paths refused, its relative shots/ index untouched
+ok - !1325: three YAML/JSON evidence paths refused, fenced or not
+ok - !1331: JSON transcript and PHP capture script both refused
+ok - !1328: a clean description and correct /uploads/ links pass
+ok - !703: quoted CI install commands under /tmp pass
+ok - a shared scratch root refuses only when stamped or delivered
+ok - attribute-shaped bytes deliver only inside an open tag
+ok - a user home or file:// URL is refused with no second signal
+ok - a root named in prose is not a delivery, a path under it still is
+ok - a /home or /tmp segment inside a URL is not a local path
+ok - a /private twin decides as its canonical root, and nothing else does
+ok - a refused twin path is named exactly as the description wrote it
+ok - a refusal names every path, points at the recipes, and changes nothing
+ok - both forges are checked, each with its own wording
+ok - the GitLab fetch addresses the task's own instance, not glab's default
+ok - the GitHub fetch addresses the task's own URL, not gh's default instance
+ok - a rejected --jq attempt contributes nothing to the measured description
+ok - the plain view's header is dropped, its description is not
+ok - an absent glab is reported once, as the missing CLI
+ok - a clean description arms exactly as before
+ok - an unreadable description degrades to a warning and the report proceeds
+ok - a forge that never answers times out to a warning and the report arms
+ok - the merge path records metadata without re-litigating the description
+FM_TEST_END 2026-08-27T19:19:51Z tests/fm-pr-description-guard.test.sh exit=0 duration_ms=22179 gate_skip=false
+FM_TEST_SUMMARY total=5 failed=0 skipped_gate=0 duration_ms=46939
+FM_TEST_SUMMARY_FAMILY family=documentation-audiences count=1 duration_ms=2078 failed=0
+FM_TEST_SUMMARY_FAMILY family=pr-forge count=1 duration_ms=22179 failed=0
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=2 duration_ms=16033 failed=0
+FM_TEST_SUMMARY_FAMILY family=snapshot-bearings count=1 duration_ms=6330 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-pr-description-guard.test.sh duration_ms=22179
+FM_TEST_SLOWEST rank=2 script=tests/fm-bearings-board.test.sh duration_ms=12166
+FM_TEST_SLOWEST rank=3 script=tests/fm-bearings-board-render.test.sh duration_ms=6330
+FM_TEST_SLOWEST rank=4 script=tests/fm-brief.test.sh duration_ms=3867
+FM_TEST_SLOWEST rank=5 script=tests/fm-documentation-audiences.test.sh duration_ms=2078

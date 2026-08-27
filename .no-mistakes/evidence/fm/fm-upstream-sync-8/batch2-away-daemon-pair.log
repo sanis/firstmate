@@ -1,0 +1,264 @@
+FM_TEST_BEGIN 2026-08-27T19:19:58Z tests/fm-daemon.test.sh family=watcher-wake-lock expected_gate_skip=none
+ok - fm-afk-start.sh fails before daemon startup when the afk flag cannot be written
+ok - fm-afk-start.sh ignores stale pidfile-only live pids
+ok - fm-afk-start.sh reclaims stale daemon locks whose live pid identity no longer matches
+ok - supervise daemon state root is scoped by FM_HOME
+ok - routine signal self-handles
+ok - captain-relevant status verbs escalate
+ok - check + unknown escalate; heartbeat self-handles
+ok - transient stale self-handles and records a persistence marker
+ok - enriched stale wedges bypass status absorption except under a declared wait, without disturbing busy workers
+ok - an enriched wedge under a declared wait uses the pause cadence and restores wedge detection on resume
+ok - stale + terminal status escalates immediately
+ok - paused reasons with captain phrases remain pause-classified
+ok - a captain-held transfer classifies as pause, not as a wedge candidate
+ok - handle_wake on a paused stale records a pause marker, drops the wedge marker, and does not escalate
+ok - handle_wake records a declared pause from a routine signal for long-cadence rechecks
+ok - a terminal signal clears pause and stale tracking across both supervisors
+ok - housekeeping migrates a normal-watcher's declared pause into daemon tracking
+ok - housekeeping clears an already-resumed watcher pause across both supervisors
+ok - housekeeping seeds pause tracking from status without a watcher marker
+ok - persistent stale escalates after threshold and clears its marker
+ok - resumed (busy) stale clears its marker without escalating
+ok - housekeeping re-surfaces a stale declared pause on the long cadence and resets its window
+ok - housekeeping re-surfaces a forgotten captain hold on the long cadence and resets its window
+ok - a busy pane cannot gate the pause clear once its crew's status no longer declares the wait
+ok - housekeeping matures a busy pane's declared-wait window into exactly one recheck per window
+ok - housekeeping clears a paused marker once the crew is no longer declaring the pause
+ok - housekeeping clears the pause marker once a captain hold is answered
+ok - housekeeping moves an existing stale marker to pause before wedge escalation
+ok - housekeeping moves a captain hold's existing stale marker to pause before wedge escalation
+ok - housekeeping clears tracking when a crew leaves pause
+ok - persistent herdr stale resolves the target from metadata and escalates
+ok - herdr idle busy-footer stale clears through capture corroboration
+ok - resumed herdr stale clears through backend-aware busy state
+ok - persistent Orca stale resolves the terminal from metadata
+ok - multiple escalations flush as a single batched digest
+ok - batch flush measures max-delay from the first append, not the last
+ok - catch-all scan escalates a missed terminal once, not twice
+ok - handle_wake routes routine->self and captain->escalate
+ok - INJECT_SKIP forces self-handle, bypassing captain-relevant classification
+ok - is_wake_reason distinguishes watcher wake reasons from singleton-status stdout
+ok - terminal-stale escalate removes its marker so housekeeping does not re-escalate
+ok - captain signal escalate marks seen so the catch-all scan does not re-fire
+ok - _collapse_newlines replaces newlines with literal separator
+ok - afk flag absent: daemon does not inject, buffer preserved
+ok - busy-guard defers injection when supervisor pane is busy
+ok - marker detection: marker -> stay afk, no marker -> exit afk
+ok - /afk invocation is exempt from afk exit (no self-cancel)
+ok - should_exit_afk returns false when afk is not active
+ok - strip_injection_marker removes the sentinel marker cleanly
+ok - pane_input_pending detects partial input on the cursor line
+ok - pane_input_pending: a blank unidentified cursor row defers (strict container-proof rule)
+ok - pane_input_pending: only proven empty agent prompts pass
+ok - fm_tmux_composer_state: a bare shell prompt ($/%/#/>) reads unknown, never empty (dead-shell injection safety)
+ok - fm_tmux_composer_state: a bordered composer box and bare agent glyphs (❯/›) still read empty
+ok - fm_tmux_composer_state: only matching edge borders form a composer box
+ok - pane_input_pending preserves bright placeholder-like drafts in styled captures
+ok - classify_signal dedupes against the catch-all scan seen marker
+ok - classify_stale dedupes against the signal path seen marker
+ok - AFK nonterminal working:+merged keeps wedge aging and re-escalates at bound
+ok - genuine done: and merge-check events still escalate
+ok - pane_input_pending: an idle bordered composer is NOT pending (afk-invx-i5)
+ok - pane_input_pending: text inside a bordered composer is still pending
+ok - submit-ACK confirms a submit when the composer returns to a bordered-empty box
+ok - submit-ACK reports pending on a persistently swallowed Enter (type-once)
+fm-supervise-daemon: ERROR: away-mode escalation undelivered 600s into firstmate:0; the digest was typed and Enter was sent, but the submit was never confirmed - the text may still be sitting in the composer (neither tmux native agent state nor the claude rendered signature reports the pane busy right now). Buffer + wake-queue preserved; alarm marker written.
+ok - max-defer on an empty stuck pane types once, alarms, and preserves the buffer
+ok - max-defer flushes and clears the buffer on an empty bordered pane
+ok - max-defer on a pending composer alarms without typing
+ok - normal flush clears a stale wedge marker
+ok - below MAX_DEFER: no inject, no alarm, buffer preserved
+ok - max-defer does not flush or alarm while afk is inactive
+ok - library mode: sourcing the daemon defaults FM_WEDGE_ALARM_EXEC to discard (no test can fire a real notification)
+ok - wake helpers replace inherited notifier overrides with the safe recorder
+ok - the discard seam suppresses every notifier, including command: (fires nothing)
+ok - direct notifier helpers honor the discard seam, including command:
+ok - osascript channel routes through the notifier seam with the summary (never a real notification)
+ok - herdr channel routes through the notifier seam with the summary (never a real notification)
+ok - command channel runs the captain command with the summary on $1 and on stdin
+ok - command channel failures redact configured commands while logging their exit status
+ok - unknown channel directives are redacted while the alarm keeps running
+ok - off disables every active alert regardless of directive position (marker and tmux flash are unaffected)
+ok - auto resolves to the macOS osascript notifier on Darwin (default-on)
+ok - auto on a non-macOS platform selects no built-in OS channel (the marker or a configured command carries it)
+ok - config/wedge-alarm selects every configured channel and skips comment and blank lines
+ok - a failing channel logs and falls back to the next channel, never crashing the alarm
+ok - a hung notifier is bounded, logged, and falls through to the next channel
+ok - a backgrounded command notifier remains bounded until its process group is reaped
+ok - a hung notifier override is bounded, logged, and proceeds to the next channel
+ok - daemon shutdown stops and reaps the active notifier process group
+fm-supervise-daemon: ERROR: away-mode escalation undelivered 30600s into firstmate:0; no delivery attempt has recorded a block in this daemon process; herdr does not report the pane busy and the pane could not be read, so the claude rendered signature could not be checked either way. Buffer + wake-queue preserved; alarm marker written.
+ok - inject_wedge_alarm writes the marker AND emits the active alert even with no tmux status-line (herdr backend)
+fm-supervise-daemon: ERROR: away-mode escalation undelivered 30600s into firstmate:0; no delivery attempt has recorded a block in this daemon process; herdr does not report the pane busy and the pane could not be read, so the claude rendered signature could not be checked either way. Buffer + wake-queue preserved; alarm marker written.
+ok - in-process wedge throttle prevents alert spam when the marker cannot persist
+ok - fm-send returns 3 with a non-error no-resend warning when confirmation stays pending
+ok - fm-send exits non-zero when initial text send fails
+ok - fm-send exits non-zero unless delivery is proven empty
+ok - discover_supervisor_backend: override > TMUX_PANE > HERDR_ENV+HERDR_PANE_ID > tmux fallback
+ok - discover_supervisor_target: override > TMUX_PANE > herdr '<session>:<pane-id>' composition > firstmate:0 fallback
+ok - pane_is_busy: herdr native busy_state='busy' short-circuits without a capture fallback
+ok - primary busy guard isolates rendered signatures by detected harness
+ok - pane_is_busy: omitted backend defaults to tmux for Grok's isolated fallback
+ok - claude busy signature: a background-shell footer alone is not busy, while a real turn carrying the same footer still is
+ok - pane_busy_source: reports which source called the pane busy, or nothing
+ok - pane_busy_probe: one sample, and an unreadable pane is its own outcome rather than silent corroboration
+fm-supervise-daemon: ERROR: away-mode escalation undelivered 900s into default:w1:p2; delivery was blocked by the busy guard: the pane reports busy through herdr native agent state; the pane could not be read, so the claude rendered signature could not be checked either way. Buffer + wake-queue preserved; alarm marker written.
+ok - wedge marker: an unreadable pane is reported as unchecked, never as corroboration
+ok - inject deferral names the blocking source and no longer claims the agent is mid-turn
+ok - inject deferral attributes a rendered block to the harness, not the backend
+ok - log_error: an ERROR reaches stderr as well as the private daemon log
+ok - wedge alarm accounting: records dispatch and delivery separately, never conflating exit 0 with receipt
+fm-supervise-daemon: ERROR: away-mode escalation undelivered 31205s into default:w1:p2; no delivery attempt has recorded a block in this daemon process; the pane reports busy through herdr native agent state, which the claude rendered signature does NOT corroborate - the native state is tracking something other than a turn in that pane. Buffer + wake-queue preserved; alarm marker written.
+ok - wedge marker: names the blocking pane, the uncorroborated native verdict, and the alert accounting
+fm-supervise-daemon: ERROR: away-mode escalation undelivered 900s into default:w1:p2; no delivery attempt has recorded a block in this daemon process; the pane reports busy through herdr native agent state, corroborated by the claude rendered signature. Buffer + wake-queue preserved; alarm marker written.
+ok - wedge marker: written durably before dispatch, so a daemon killed mid-alert still leaves the record
+fm-supervise-daemon: ERROR: away-mode escalation undelivered 900s into default:w1:p2; delivery was blocked by the busy guard: the pane reports busy through herdr native agent state, corroborated by the claude rendered signature. Buffer + wake-queue preserved; alarm marker written.
+ok - wedge marker: written durably before the pane is read, so a hung backend read still leaves the record
+ok - wedge marker: a failed atomic rename preserves the complete prior record and leaves no temp
+ok - wedge marker: an unreadable escalation buffer costs the record its items, never the record
+fm-supervise-daemon: ERROR: away-mode escalation undelivered 900s into default:w1:p2; delivery was blocked by the busy guard: the pane reports busy through herdr native agent state, corroborated by the claude rendered signature. Buffer + wake-queue preserved; alarm marker written.
+ok - wedge marker: the record published on the way into dispatch says dispatch began
+fm-supervise-daemon: ERROR: away-mode escalation undelivered 900s into default:w1:p2; no delivery attempt has recorded a block in this daemon process; the pane reports busy through herdr native agent state, corroborated by the claude rendered signature. Buffer + wake-queue preserved; alarm marker written.
+ok - wedge marker: a suppressed window reports its own silence instead of an earlier window's dispatch
+fm-supervise-daemon: ERROR: away-mode escalation undelivered 900s into default:w1:p2; delivery stopped at the composer guard - the supervisor composer was not confirmed empty, so nothing was typed and no submit was attempted (neither herdr native agent state nor the claude rendered signature reports the pane busy right now). Buffer + wake-queue preserved; alarm marker written.
+fm-supervise-daemon: ERROR: away-mode escalation undelivered 900s into default:w1:p2; the digest was typed and Enter was sent, but the submit was never confirmed - the text may still be sitting in the composer (neither herdr native agent state nor the claude rendered signature reports the pane busy right now). Buffer + wake-queue preserved; alarm marker written.
+ok - wedge marker: reports the block inject_msg actually hit, never a submit that was never attempted
+ok - wedge accounting: a configured-but-unusable channel is stated, never hidden behind 'refused: none'
+ok - daemon startup: the lock is not held while the target is still being validated
+ok - daemon startup: a refused daemon leaves no lock or pidfile to unwind
+ok - daemon startup: validations run before the lock, and the singleton gate still holds
+ok - supervisor_pane_is_self_hosted: only a native-busy backend hosting the daemon in its own target
+ok - pane_input_pending: dispatches through fm_backend_composer_state for backend=herdr
+ok - inject_msg: herdr busy-guard defers before ever attempting a submit
+ok - inject_msg: herdr composer-guard defers before ever attempting a submit
+ok - inject_msg: herdr pane-gone check defers before any busy/composer/submit call
+ok - inject_msg: dispatches busy-guard/composer-guard/submit through the herdr backend and succeeds on a confirmed empty composer
+ok - inject_msg: defers on a dead-shell/unreadable composer (unknown), never typing the escalation into a shell
+ok - inject_msg: unrecognized composer states defer by default
+FM_TEST_END 2026-08-27T19:20:59Z tests/fm-daemon.test.sh exit=0 duration_ms=60384 gate_skip=false
+FM_TEST_BEGIN 2026-08-27T19:20:59Z tests/fm-afk-launch.test.sh family=real-herdr-gated expected_gate_skip=herdr
+ok - clear-stale: removes escalations buffer, sidecar, and wedge marker
+ok - clear-stale: leaves the durable wake-queue intact (no pending work dropped)
+ok - launcher paths: relative home and state ignore CDPATH before daemon command construction
+ok - launcher paths: absolute symlink spellings are preserved
+ok - launcher paths: unresolved relative FM_HOME fails loudly
+ok - launcher paths: unresolved relative FM_STATE_OVERRIDE fails loudly
+ok - refresh: the already-running branch is the one that ran
+ok - refresh: daemon already alive - stale artifacts preserved (current session's buffer kept)
+ok - stop-ordering: daemon SIGTERM'd while .afk still present (flush is not a no-op)
+ok - stop-ordering: .afk cleared last
+ok - stop-ordering: daemon-terminal record removed
+ok - stop identity: stale lock cannot signal an unrelated live process
+ok - failed start: away flag and delivery artifacts roll back
+ok - concurrent start: one serialized daemon terminal remains tracked
+ok - launcher lock: incomplete publication receives initialization grace
+ok - launcher signal: TERM exits and releases the lifecycle lock
+fm-afk-launch: daemon launched in non-visible herdr workspace ws-partial (pane lab:pane-exact), supervising lab:captain
+ok - herdr create: malformed response recovers durable exact ownership
+fm-afk-launch: herdr create failed after returning exact ids; closing lab:pane-exact
+fm-afk-launch: recorded terminal teardown is unconfirmed; preserving exact id
+ok - herdr create error: unconfirmed exact id is persisted for reconciliation
+fm-afk-launch: failed to run daemon in herdr pane lab:pane-exact; closing it
+fm-afk-launch: recorded terminal teardown is unconfirmed; preserving exact id
+ok - herdr run failure: unconfirmed exact id remains reconcilable
+fm-afk-launch: failed to persist daemon terminal record; closing tmux:exact-session
+ok - record failure: newly created terminal is closed by exact id
+fm-afk-launch: daemon did not become ready; closing tmux:exact-session
+ok - readiness failure: exact terminal and durable record roll back
+fm-afk-launch: daemon did not become ready; closing tmux:exact-session
+fm-afk-launch: recorded terminal teardown is unconfirmed; preserving exact id
+ok - readiness failure: unconfirmed terminal retains its reconciliation id
+ok - tmux absence: clean missing differs from transport probe failure
+ok - native lifecycle: launcher owns state with no terminal
+ok - native lifecycle: uniform stop clears state without closing a terminal
+ok - start-native refuses the in-pane daemon on a native-busy backend
+ok - start-native refusal says what is blocked and why
+ok - start-native refusal names the path to use instead
+ok - refused start-native wrote no lifecycle state at all
+ok - start-native still proceeds when the daemon pane is not the delivery target
+ok - recorded target: a refresh into the daemon's own delivery pane proceeds
+ok - recorded target: a daemon delivering into a pane firstmate has left is refused
+ok - recorded target: the refusal names both the daemon's pane and the current one
+ok - recorded target: the refusal says away mode is still on
+ok - recorded target: the refused refresh left away mode exactly as it found it
+ok - recorded target: a record with no delivery pane is not refused on an unobserved guess
+ok - recorded target: an unrecorded delivery pane is reported as unchecked
+ok - start-native refresh: a daemon still delivering into this pane refreshes
+ok - start-native refresh: an orphaned daemon delivering into a pane firstmate left is refused
+ok - start-native refusal names both the daemon's pane and the current one
+ok - start-native refusal says away mode is still on
+ok - start-native refusal left away mode exactly as it found it
+ok - fresh entry: a captain-pane probe hiccup after startup does not refuse the entry
+ok - fresh entry: away mode and the terminal record survive the probe hiccup
+ok - fresh entry: the daemon terminal that just came up was not torn down
+ok - refresh: a delivery target that is no longer a live pane is refused
+ok - refresh refusal names the dead delivery target
+ok - refresh: a live delivery target still refreshes the away-mode flag
+ok - refresh: a pre-existing in-pane daemon is refused instead of silently refreshed
+ok - refresh refusal names what is blocked
+ok - refresh refusal names the remedy that actually clears the block
+ok - refresh refusal leaves away mode exactly as it found it - still on
+ok - refresh refusal tells the captain away mode is still active
+ok - refresh refusal does not claim away mode was never entered
+ok - refresh: an in-pane daemon living outside the delivery target still refreshes
+ok - refresh: a legacy record with no host pane is not refused on an unobserved guess
+ok - refresh says plainly that the host pane is unknown
+ok - refresh names the unverified residual and an action that resolves it
+ok - refresh: a daemon in its own terminal still refreshes the away-mode flag
+ok - fm-afk-start.sh refuses to host the daemon in its own delivery target
+ok - the entry refusal says what is blocked
+ok - the entry refusal names the path to use instead
+ok - the refused entry left no away-mode flag behind
+ok - a daemon entry outside its delivery target still enters away mode (afk: daemon already running pid=64474)
+ok - native entry: the prepared-state path ran through to daemon startup
+ok - native entry: launcher-prepared lifecycle state is not rewritten
+fm-afk-launch: reconciling leaked daemon terminal tmux:exact-session
+fm-afk-launch: recorded terminal teardown is unconfirmed; preserving exact id
+ok - teardown failure: exact terminal record is preserved
+ok - record publication: failed atomic rename preserves the complete prior record
+fm-afk-launch: daemon terminal record is malformed; refusing to act on it
+ok - record read: malformed record fails closed without acting on a partial id
+fm-afk-launch: daemon terminal record is malformed; refusing to act on it
+fm-afk-launch: malformed daemon terminal record; refusing to stop away mode
+ok - stop: malformed terminal record preserves away state and fails closed
+fm-afk-launch: failed to create detached tmux daemon session 'fm-afk-daemon-2257588514-72270-30377-1787858500'
+ok - tmux launch: planned exact target is recorded before creation and removed on failure
+fm-afk-launch: failed to create detached tmux daemon session 'fm-afk-daemon-3380316293-72303-5984-1787858500'
+ok - tmux launch: unique names eliminate collision teardown
+ok - stop validation: malformed record causes no daemon or state side effects
+ok - launcher lock: incomplete metadata fails acquisition and releases lock
+fm-afk-launch: failed to clear away-mode flag
+fm-afk-launch: away mode stopped; terminal teardown remains recorded for retry
+ok - stop state: away-flag removal failure is surfaced
+fm-afk-launch: away-mode daemon did not exit after SIGTERM; preserving lifecycle state
+ok - stop liveness: captured live daemon preserves lifecycle state after lock release
+fm-afk-launch: daemon terminal record is malformed; refusing to act on it
+fm-afk-launch: daemon terminal record is malformed; refusing to act on it
+ok - refresh record: malformed terminal identity fails closed
+fm-afk-launch: failed to clear stale away-mode artifacts
+ok - clear failure: native entry aborts and restores prior state
+fm-afk-launch: reconciling leaked daemon terminal tmux:exact-session
+fm-afk-launch: terminal close command failed, but exact absence was confirmed
+ok - confirmed absence: cleanup succeeds and removes the stale record
+fm-afk-launch: rollback restoration incomplete; backup retained at /var/folders/b8/p7dyhngn7l591759f0_ngqr40000gn/T//fm-afk-restore-fail.BTmxBI/state/.afk-launch-backup.ItyCzD
+ok - rollback restore: incomplete restoration retains its recovery backup
+ok - flag failure: lifecycle aborts without active state
+ok - herdr e2e: captain tab pane count unchanged after start (no split)
+ok - herdr e2e: daemon launched in a separate non-visible workspace
+ok - herdr e2e: daemon pane is NOT in the captain's tab
+ok - herdr e2e: daemon terminal scoped to the lab session
+ok - herdr e2e: captain tab pane count restored after stop
+ok - herdr e2e: daemon workspace removed by exact id on stop
+ok - herdr e2e: record + .afk cleared on stop
+ok - tmux e2e: captain window pane count unchanged after start (no split-window)
+ok - tmux e2e: daemon launched in a separate detached session
+ok - tmux e2e: captain window pane count unchanged after stop
+ok - tmux e2e: daemon session killed by exact id on stop
+ok - tmux e2e: record + .afk cleared on stop
+FM_TEST_END 2026-08-27T19:21:44Z tests/fm-afk-launch.test.sh exit=0 duration_ms=45141 gate_skip=false
+FM_TEST_SUMMARY total=2 failed=0 skipped_gate=0 duration_ms=105676
+FM_TEST_SUMMARY_FAMILY family=real-herdr-gated count=1 duration_ms=45141 failed=0
+FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=1 duration_ms=60384 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-daemon.test.sh duration_ms=60384
+FM_TEST_SLOWEST rank=2 script=tests/fm-afk-launch.test.sh duration_ms=45141
