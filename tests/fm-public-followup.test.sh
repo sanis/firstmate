@@ -116,15 +116,28 @@ tasks_in() {  # <home> <tasks-axi args...>
 # Simulates the intake half that already works today: the relay mention arrives,
 # the typed obligation is created with its opaque thread binding, the work is
 # bound, and the private request context is retained.
+#
+# The retained thread window is anchored to the clock at seed time for the same
+# reason seed_repro_commitment is: a literal date turns every fixture built here
+# into an expired thread the day it passes, so pending escalates an unreachable
+# window and rechain refuses, both for a reason unrelated to the code under test.
+# SEED_COMMITMENT_EXPIRES_AT/_EPOCH publish the window so a test that must sit on
+# either side of it can pin FMX_NOW_OVERRIDE against it.
 seed_commitment() {
   local home=$1 obligation=$2 request=$3 platform=$4 work_home=$5 work_id=$6
+  local received_at
+  SEED_COMMITMENT_RECEIVED_EPOCH=$(date -u +%s)
+  SEED_COMMITMENT_EXPIRES_EPOCH=$((SEED_COMMITMENT_RECEIVED_EPOCH + 7 * 86400))
+  received_at=$(iso_utc_at "$SEED_COMMITMENT_RECEIVED_EPOCH")
+  SEED_COMMITMENT_EXPIRES_AT=$(iso_utc_at "$SEED_COMMITMENT_EXPIRES_EPOCH")
   jq -n --arg r "$request" --arg p "$platform" \
+    --arg recv "$received_at" --arg exp "$SEED_COMMITMENT_EXPIRES_AT" \
     '{request_id:$r, platform:$p,
       context_binding:{version:"ctx1", value:("ctx1_" + $r)},
       public_safe_summary:"fix worker placement when two spaces share a name",
-      received_at:"2026-07-30T10:00:00Z",
-      followup_expires_at:"2026-08-06T10:00:00Z",
-      reservation_expires_at:"2026-08-06T10:00:00Z"}' > "$home/request.json"
+      received_at:$recv,
+      followup_expires_at:$exp,
+      reservation_expires_at:$exp}' > "$home/request.json"
   jq -n '{type:"pr-merged", project:"firstmate",
           required_deliverables:["pr_url"], completion_policy:"all-required"}' \
     > "$home/expected.json"
