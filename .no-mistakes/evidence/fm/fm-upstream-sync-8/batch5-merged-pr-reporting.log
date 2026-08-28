@@ -1,0 +1,69 @@
+FM_TEST_BEGIN 2026-08-28T03:37:45Z tests/fm-pr-merge.test.sh family=pr-forge expected_gate_skip=none
+ok - fm-pr-merge records pr= and pr_head= before invoking gh-axi pr merge
+ok - fm-pr-merge propagates a real merge failure without silently succeeding
+ok - fm-pr-merge forwards extra flags to gh-axi pr merge after the -- separator
+ok - fm-pr-merge refuses before merging when task meta is missing
+ok - fm-pr-merge refuses malformed PR URLs before calling gh-axi
+ok - fm-pr-merge refuses unsafe PR URL segments before recording state
+ok - fm-pr-merge refuses repo override args before recording state
+ok - fm-pr-merge refuses a bundled short-option repo override and forwards other short flags
+ok - fm-pr-merge does not add default --squash when the caller passes an explicit merge method
+ok - fm-pr-merge respects --method=<value> as an explicit merge method
+ok - fm-pr-merge parses a GitHub PR URL into gh-axi number and --repo arguments
+ok - fm-pr-merge leaves GitHub extra-arg handling unchanged, including --sha
+ok - fm-pr-merge merges a GitLab merge request through glab instead of refusing it
+ok - fm-pr-merge takes the GitLab instance from the URL rather than assuming one
+ok - fm-pr-merge imposes no merge method on GitLab, leaving the project's own one
+ok - fm-pr-merge forwards extra flags to glab mr merge after the -- separator
+ok - fm-pr-merge propagates a real glab merge failure without silently succeeding
+ok - fm-pr-merge refuses on each GitLab pre-merge condition independently
+ok - fm-pr-merge reports every failing GitLab condition, not only the first
+ok - fm-pr-merge reports a stale recorded head and verifies the live one
+ok - fm-pr-merge refuses an unreadable GitLab merge request state rather than merging blind
+ok - fm-pr-merge refuses a GitLab head commit it cannot validate
+ok - fm-pr-merge refuses before recording anything when glab or jq is absent
+ok - fm-pr-merge refuses a GitLab head override before recording state
+ok - a merge a secondmate home performs itself is reported upward exactly once
+ok - a locally routed secondmate home reports the landed PR into its parent's own channel
+ok - a landed GitLab merge request is reported upward on the same channel
+ok - a queued GitLab merge stays silent and leaves confirmation to the armed poll
+ok - a refused or failed merge reports no outcome
+ok - a GitLab merge refused before the forge call reports no outcome
+ok - a merge a main home performs itself leaves one durable wake naming the PR
+ok - a queued GitHub merge stays silent and leaves confirmation to the armed poll
+ok - distinct merged PRs for one task retain distinct captain-facing wakes
+ok - an uncommitted marker retry preserves at least one durable outcome
+ok - a secondmate home that cannot report upward says so instead of merging in silence
+FM_TEST_END 2026-08-28T03:39:46Z tests/fm-pr-merge.test.sh exit=0 duration_ms=121425 gate_skip=false
+FM_TEST_BEGIN 2026-08-28T03:39:46Z tests/fm-inactive-reconcile.test.sh family=watcher-wake-lock expected_gate_skip=none
+actionable: inactive terminal outcome awaiting captain presentation: child=child state=done pr=https://example.test/owner/repo/pull/1
+ok - main direct terminal presentation has a durable receipt
+ok - secondmate reports its own inactive terminal child
+actionable: inactive terminal outcome needs parent report: child=child state=failed (missing or unreadable parent binding .fm-secondmate-parent)
+ok - relative local parent homes fail closed
+ok - invalid secondmate markers block routing and surface the obligation
+ok - remote parent-replies mirror input is durable and idempotent
+ok - reused task ids retain per-incarnation terminal receipts
+ok - legacy metadata rewrites preserve terminal receipt identity
+ok - relaunch cannot replace metadata during terminal snapshot
+actionable: inactive terminal outcome awaiting captain presentation: child=child state=done pr=https://example.test/owner/repo/pull/1
+ok - terminal reconciliation ignores heartbeat backoff state
+actionable: inactive terminal outcome awaiting captain presentation: child=child state=done pr=https://example.test/owner/repo/pull/1
+ok - scan marker replaces a symlink without overwriting its target
+ok - nonterminal and captain-held workers remain outside inactive terminal reporting
+ok - watcher hook wakes for terminal loss and preserves idle secondmate exemption
+actionable: inactive terminal outcome awaiting captain presentation: child=b state=done pr=https://example.test/owner/repo/pull/1
+ok - stalled state reads are bounded without starving later children
+ok - aggregate scan budget includes durable wake operations
+actionable: inactive terminal outcome needs parent report: child=child state=failed (missing or unreadable parent binding .fm-secondmate-parent)
+ok - notice recovery remains idempotent across queue acknowledgement
+ok - a secondmate home with no parent binding names the missing binding instead of failing quietly
+actionable: inactive terminal outcome awaiting captain presentation: child=child state=done pr=https://example.test/owner/repo/pull/1
+ok - reconciliation makes zero forge or PR API calls
+all inactive reconciliation tests passed
+FM_TEST_END 2026-08-28T03:40:45Z tests/fm-inactive-reconcile.test.sh exit=0 duration_ms=59057 gate_skip=false
+FM_TEST_SUMMARY total=2 failed=0 skipped_gate=0 duration_ms=180639
+FM_TEST_SUMMARY_FAMILY family=pr-forge count=1 duration_ms=121425 failed=0
+FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=1 duration_ms=59057 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-pr-merge.test.sh duration_ms=121425
+FM_TEST_SLOWEST rank=2 script=tests/fm-inactive-reconcile.test.sh duration_ms=59057

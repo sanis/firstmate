@@ -1,14 +1,14 @@
-FM_TEST_BEGIN 2026-08-27T19:19:04Z tests/fm-documentation-audiences.test.sh family=documentation-audiences expected_gate_skip=none
+FM_TEST_BEGIN 2026-08-28T03:26:09Z tests/fm-documentation-audiences.test.sh family=documentation-audiences expected_gate_skip=none
 ok - documentation inventory classifies every maintained prose surface exactly once
 ok - the set of links hidden by code awareness is exactly the pinned samples
 ok - classification, setup routing, and maintained-prose scope fail safely
 ok - required documentation owner pointers cannot silently disappear
 ok - local links resolve while dates, versions, commands, and incident prose remain semantically reviewed
 ok - code targets are ignored while an indented list continuation stays validated
-FM_TEST_END 2026-08-27T19:19:06Z tests/fm-documentation-audiences.test.sh exit=0 duration_ms=2078 gate_skip=false
-FM_TEST_BEGIN 2026-08-27T19:19:06Z tests/fm-brief.test.sh family=pure-contract-unit expected_gate_skip=none
+FM_TEST_END 2026-08-28T03:26:11Z tests/fm-documentation-audiences.test.sh exit=0 duration_ms=2840 gate_skip=false
+FM_TEST_BEGIN 2026-08-28T03:26:11Z tests/fm-brief.test.sh family=pure-contract-unit expected_gate_skip=none
 ok - fm-brief.sh: bash -n succeeds
-/var/folders/b8/p7dyhngn7l591759f0_ngqr40000gn/T//fm-brief.BnPgcC/heredoc-in-substitution.sh:2
+/var/folders/b8/p7dyhngn7l591759f0_ngqr40000gn/T//fm-brief.mao6lM/heredoc-in-substitution.sh:2
 ok - fm-brief.sh: no heredoc is nested inside a command substitution (Bash 3.2 parse-safe)
 ok - fm-brief.sh: --help renders the complete header
 ok - fm-brief.sh: no-mistakes/direct-PR/local-only briefs generate cleanly
@@ -29,26 +29,26 @@ ok - fm-brief.sh: relative directory inputs ignore CDPATH, render stable absolut
 ok - fm-brief.sh: custom pause verb renders in every scaffold
 ok - fm-brief.sh: investigation and visual-review completions load the shared decision policy
 ok - fm-brief: scout and secondmate code paths still scaffold well-formed briefs
-FM_TEST_END 2026-08-27T19:19:10Z tests/fm-brief.test.sh exit=0 duration_ms=3867 gate_skip=false
-FM_TEST_BEGIN 2026-08-27T19:19:10Z tests/fm-bearings-board-render.test.sh family=snapshot-bearings expected_gate_skip=optional-binary
+FM_TEST_END 2026-08-28T03:26:16Z tests/fm-brief.test.sh exit=0 duration_ms=4668 gate_skip=false
+FM_TEST_BEGIN 2026-08-28T03:26:16Z tests/fm-bearings-board-render.test.sh family=snapshot-bearings expected_gate_skip=optional-binary
 ok - a warning row badges needs repair while queued work keeps waiting
 ok - the charted next count counts queued work only, and still renders warnings
 ok - a warning-only board reports nothing queued and still shows the warning
 ok - omitted warnings remain separate from omitted queued work
 ok - an omitted kind renders exactly as queued work always did
-FM_TEST_END 2026-08-27T19:19:16Z tests/fm-bearings-board-render.test.sh exit=0 duration_ms=6330 gate_skip=false
-FM_TEST_BEGIN 2026-08-27T19:19:16Z tests/fm-bearings-board.test.sh family=pure-contract-unit expected_gate_skip=none
+FM_TEST_END 2026-08-28T03:26:23Z tests/fm-bearings-board-render.test.sh exit=0 duration_ms=6714 gate_skip=false
+FM_TEST_BEGIN 2026-08-28T03:26:23Z tests/fm-bearings-board.test.sh family=pure-contract-unit expected_gate_skip=none
 ok - path prints the stable home-scoped board location
 ok - build refuses malformed payloads before touching the board
 ok - charted kind is optional and accepts queued and warning
 ok - build injects the payload, binds any-origin, then arms the source
-not-autohandled: lavish-30935a4a1f3b8cf9 (left for the handler; still unacknowledged)
+not-autohandled: lavish-dc844b9d41d30f88 (left for the handler; still unacknowledged)
 ok - registration can consume answers only after any-origin binding exists
 ok - build establishes the Lavish session before binding and arming
 ok - rebuild refreshes the board in place without double-arming
 ok - build refuses a template without exactly one data slot
-FM_TEST_END 2026-08-27T19:19:29Z tests/fm-bearings-board.test.sh exit=0 duration_ms=12166 gate_skip=false
-FM_TEST_BEGIN 2026-08-27T19:19:29Z tests/fm-pr-description-guard.test.sh family=pr-forge expected_gate_skip=none
+FM_TEST_END 2026-08-28T03:26:34Z tests/fm-bearings-board.test.sh exit=0 duration_ms=11105 gate_skip=false
+FM_TEST_BEGIN 2026-08-28T03:26:34Z tests/fm-pr-description-guard.test.sh family=pr-forge expected_gate_skip=none
 ok - !1333: seven screenshot paths refused, its relative shots/ index untouched
 ok - !1325: three YAML/JSON evidence paths refused, fenced or not
 ok - !1331: JSON transcript and PHP capture script both refused
@@ -72,14 +72,14 @@ ok - a clean description arms exactly as before
 ok - an unreadable description degrades to a warning and the report proceeds
 ok - a forge that never answers times out to a warning and the report arms
 ok - the merge path records metadata without re-litigating the description
-FM_TEST_END 2026-08-27T19:19:51Z tests/fm-pr-description-guard.test.sh exit=0 duration_ms=22179 gate_skip=false
-FM_TEST_SUMMARY total=5 failed=0 skipped_gate=0 duration_ms=46939
-FM_TEST_SUMMARY_FAMILY family=documentation-audiences count=1 duration_ms=2078 failed=0
-FM_TEST_SUMMARY_FAMILY family=pr-forge count=1 duration_ms=22179 failed=0
-FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=2 duration_ms=16033 failed=0
-FM_TEST_SUMMARY_FAMILY family=snapshot-bearings count=1 duration_ms=6330 failed=0
-FM_TEST_SLOWEST rank=1 script=tests/fm-pr-description-guard.test.sh duration_ms=22179
-FM_TEST_SLOWEST rank=2 script=tests/fm-bearings-board.test.sh duration_ms=12166
-FM_TEST_SLOWEST rank=3 script=tests/fm-bearings-board-render.test.sh duration_ms=6330
-FM_TEST_SLOWEST rank=4 script=tests/fm-brief.test.sh duration_ms=3867
-FM_TEST_SLOWEST rank=5 script=tests/fm-documentation-audiences.test.sh duration_ms=2078
+FM_TEST_END 2026-08-28T03:26:57Z tests/fm-pr-description-guard.test.sh exit=0 duration_ms=22831 gate_skip=false
+FM_TEST_SUMMARY total=5 failed=0 skipped_gate=0 duration_ms=48473
+FM_TEST_SUMMARY_FAMILY family=documentation-audiences count=1 duration_ms=2840 failed=0
+FM_TEST_SUMMARY_FAMILY family=pr-forge count=1 duration_ms=22831 failed=0
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=2 duration_ms=15773 failed=0
+FM_TEST_SUMMARY_FAMILY family=snapshot-bearings count=1 duration_ms=6714 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-pr-description-guard.test.sh duration_ms=22831
+FM_TEST_SLOWEST rank=2 script=tests/fm-bearings-board.test.sh duration_ms=11105
+FM_TEST_SLOWEST rank=3 script=tests/fm-bearings-board-render.test.sh duration_ms=6714
+FM_TEST_SLOWEST rank=4 script=tests/fm-brief.test.sh duration_ms=4668
+FM_TEST_SLOWEST rank=5 script=tests/fm-documentation-audiences.test.sh duration_ms=2840

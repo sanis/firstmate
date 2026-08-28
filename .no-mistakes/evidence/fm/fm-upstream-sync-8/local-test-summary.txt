@@ -1,0 +1,46 @@
+Bounded, intent-targeted local Test step - 21 suites over the merge's touched seams
+
+--- batch1-shared-prose-brief-board ---
+  tests/fm-documentation-audiences.test.sh exit=0  2840
+  tests/fm-brief.test.sh exit=0  4668
+  tests/fm-bearings-board-render.test.sh exit=0  6714
+  tests/fm-bearings-board.test.sh exit=0  11105
+  tests/fm-pr-description-guard.test.sh exit=0  22831
+  FM_TEST_SUMMARY total=5 failed=0 skipped_gate=0 duration_ms=48473
+
+--- batch2-away-daemon-pair ---
+  tests/fm-daemon.test.sh exit=0  62400
+  tests/fm-afk-launch.test.sh exit=0  46103
+  FM_TEST_SUMMARY total=2 failed=0 skipped_gate=0 duration_ms=108645
+
+--- batch3-secondmate-remote-inbox ---
+  tests/fm-send-remote-delivery.test.sh exit=0  30994
+  tests/fm-secondmate-liveness.test.sh exit=0  56132
+  tests/fm-secondmate-sync.test.sh exit=0  66597
+  tests/fm-task-inbox.test.sh exit=0  38413
+  FM_TEST_SUMMARY total=4 failed=0 skipped_gate=0 duration_ms=192404
+
+--- batch4-pi-autoarm-cursor ---
+  tests/fm-operational-input.test.sh exit=0  1021
+  tests/fm-pi-primary-types.test.sh exit=0  203
+  tests/fm-pi-branch-extension.test.sh exit=0  49702
+  tests/fm-claude-stop-autoarm.test.sh exit=0  67415
+  tests/fm-turnend-guard.test.sh exit=0  98744
+  tests/fm-cursor-primary.test.sh exit=0  103409
+  FM_TEST_SUMMARY total=6 failed=0 skipped_gate=2 duration_ms=320861
+
+--- batch5-merged-pr-reporting ---
+  tests/fm-pr-merge.test.sh exit=0  121425
+  tests/fm-inactive-reconcile.test.sh exit=0  59057
+  FM_TEST_SUMMARY total=2 failed=0 skipped_gate=0 duration_ms=180639
+
+--- batch6-pooled-slot-testrun ---
+  tests/fm-spawn-pool-base-freshen.test.sh exit=0  65449
+  tests/fm-test-run.test.sh exit=0  56968
+  FM_TEST_SUMMARY total=2 failed=0 skipped_gate=0 duration_ms=122594
+
+--- gate skips (optional backends absent; expected, not failures) ---
+  skip: installed @earendil-works/pi-coding-agent package not found
+
+--- totals ---
+  21 scripts, 0 failed, 2 gate-skipped, 16.2 minutes of test time

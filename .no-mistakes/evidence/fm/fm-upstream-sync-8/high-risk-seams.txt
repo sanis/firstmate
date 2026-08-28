@@ -1,0 +1,32 @@
+The highest-risk seam: this fork's away-daemon hosting fix and upstream's declared-pause work, green in the same run
+
+[this fork] the daemon does not host itself in the pane it delivers into:
+  ok - supervisor_pane_is_self_hosted: only a native-busy backend hosting the daemon in its own target
+  ok - start-native refuses the in-pane daemon on a native-busy backend
+  ok - herdr e2e: captain tab pane count unchanged after start (no split)
+  ok - herdr e2e: daemon launched in a separate non-visible workspace
+  ok - herdr e2e: daemon pane is NOT in the captain's tab
+  ok - tmux e2e: captain window pane count unchanged after start (no split-window)
+  ok - tmux e2e: daemon launched in a separate detached session
+  ok - tmux e2e: captain window pane count unchanged after stop
+
+[upstream 5953e9b5] a declared wait keeps the pause cadence under a busy pane or an enriched wedge:
+  ok - enriched stale wedges bypass status absorption except under a declared wait, without disturbing busy workers
+  ok - an enriched wedge under a declared wait uses the pause cadence and restores wedge detection on resume
+  ok - a busy pane cannot gate the pause clear once its crew's status no longer declares the wait
+  ok - housekeeping matures a busy pane's declared-wait window into exactly one recheck per window
+
+[upstream 99c1a0dc] a busy declared pause reaches the away-mode daemon once, undecorated:
+  ok - handle_wake records a declared pause from a routine signal for long-cadence rechecks
+  ok - housekeeping migrates a normal-watcher's declared pause into daemon tracking
+  ok - housekeeping re-surfaces a stale declared pause on the long cadence and resets its window
+  ok - housekeeping matures a busy pane's declared-wait window into exactly one recheck per window
+
+[upstream 662a8c7d] a merged PR is reported durably rather than assumed:
+  ok - fm-pr-merge records pr= and pr_head= before invoking gh-axi pr merge
+  ok - fm-pr-merge propagates a real merge failure without silently succeeding
+  ok - fm-pr-merge propagates a real glab merge failure without silently succeeding
+  ok - fm-pr-merge reports a stale recorded head and verifies the live one
+  ok - a refused or failed merge reports no outcome
+  ok - a GitLab merge refused before the forge call reports no outcome
+  ok - an uncommitted marker retry preserves at least one durable outcome

@@ -1,0 +1,8 @@
+== coverage guard on current head ==
+FM_TEST_COVERAGE ok total=169 parallel=24 serial=133 serial_shards=4 herdr=12
+
+== the rebalance moved scripts between shards but changed no script's membership in the serial lane ==
+identical: the serial lane covers exactly the same 133 scripts before and after
+
+== scripts that actually moved shard ==
+101 of 133 scripts were reassigned to a different shard

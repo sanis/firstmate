@@ -1,4 +1,4 @@
-FM_TEST_BEGIN 2026-08-27T19:19:58Z tests/fm-daemon.test.sh family=watcher-wake-lock expected_gate_skip=none
+FM_TEST_BEGIN 2026-08-28T03:27:02Z tests/fm-daemon.test.sh family=watcher-wake-lock expected_gate_skip=none
 ok - fm-afk-start.sh fails before daemon startup when the afk flag cannot be written
 ok - fm-afk-start.sh ignores stale pidfile-only live pids
 ok - fm-afk-start.sh reclaims stale daemon locks whose live pid identity no longer matches
@@ -136,8 +136,8 @@ ok - inject_msg: herdr pane-gone check defers before any busy/composer/submit ca
 ok - inject_msg: dispatches busy-guard/composer-guard/submit through the herdr backend and succeeds on a confirmed empty composer
 ok - inject_msg: defers on a dead-shell/unreadable composer (unknown), never typing the escalation into a shell
 ok - inject_msg: unrecognized composer states defer by default
-FM_TEST_END 2026-08-27T19:20:59Z tests/fm-daemon.test.sh exit=0 duration_ms=60384 gate_skip=false
-FM_TEST_BEGIN 2026-08-27T19:20:59Z tests/fm-afk-launch.test.sh family=real-herdr-gated expected_gate_skip=herdr
+FM_TEST_END 2026-08-28T03:28:05Z tests/fm-daemon.test.sh exit=0 duration_ms=62400 gate_skip=false
+FM_TEST_BEGIN 2026-08-28T03:28:05Z tests/fm-afk-launch.test.sh family=real-herdr-gated expected_gate_skip=herdr
 ok - clear-stale: removes escalations buffer, sidecar, and wedge marker
 ok - clear-stale: leaves the durable wake-queue intact (no pending work dropped)
 ok - launcher paths: relative home and state ignore CDPATH before daemon command construction
@@ -210,7 +210,7 @@ ok - fm-afk-start.sh refuses to host the daemon in its own delivery target
 ok - the entry refusal says what is blocked
 ok - the entry refusal names the path to use instead
 ok - the refused entry left no away-mode flag behind
-ok - a daemon entry outside its delivery target still enters away mode (afk: daemon already running pid=64474)
+ok - a daemon entry outside its delivery target still enters away mode (afk: daemon already running pid=84646)
 ok - native entry: the prepared-state path ran through to daemon startup
 ok - native entry: launcher-prepared lifecycle state is not rewritten
 fm-afk-launch: reconciling leaked daemon terminal tmux:exact-session
@@ -222,9 +222,9 @@ ok - record read: malformed record fails closed without acting on a partial id
 fm-afk-launch: daemon terminal record is malformed; refusing to act on it
 fm-afk-launch: malformed daemon terminal record; refusing to stop away mode
 ok - stop: malformed terminal record preserves away state and fails closed
-fm-afk-launch: failed to create detached tmux daemon session 'fm-afk-daemon-2257588514-72270-30377-1787858500'
+fm-afk-launch: failed to create detached tmux daemon session 'fm-afk-daemon-4004444982-92556-29630-1787887726'
 ok - tmux launch: planned exact target is recorded before creation and removed on failure
-fm-afk-launch: failed to create detached tmux daemon session 'fm-afk-daemon-3380316293-72303-5984-1787858500'
+fm-afk-launch: failed to create detached tmux daemon session 'fm-afk-daemon-1634343191-92588-9820-1787887726'
 ok - tmux launch: unique names eliminate collision teardown
 ok - stop validation: malformed record causes no daemon or state side effects
 ok - launcher lock: incomplete metadata fails acquisition and releases lock
@@ -241,7 +241,7 @@ ok - clear failure: native entry aborts and restores prior state
 fm-afk-launch: reconciling leaked daemon terminal tmux:exact-session
 fm-afk-launch: terminal close command failed, but exact absence was confirmed
 ok - confirmed absence: cleanup succeeds and removes the stale record
-fm-afk-launch: rollback restoration incomplete; backup retained at /var/folders/b8/p7dyhngn7l591759f0_ngqr40000gn/T//fm-afk-restore-fail.BTmxBI/state/.afk-launch-backup.ItyCzD
+fm-afk-launch: rollback restoration incomplete; backup retained at /var/folders/b8/p7dyhngn7l591759f0_ngqr40000gn/T//fm-afk-restore-fail.Mc52D1/state/.afk-launch-backup.0paV66
 ok - rollback restore: incomplete restoration retains its recovery backup
 ok - flag failure: lifecycle aborts without active state
 ok - herdr e2e: captain tab pane count unchanged after start (no split)
@@ -256,9 +256,9 @@ ok - tmux e2e: daemon launched in a separate detached session
 ok - tmux e2e: captain window pane count unchanged after stop
 ok - tmux e2e: daemon session killed by exact id on stop
 ok - tmux e2e: record + .afk cleared on stop
-FM_TEST_END 2026-08-27T19:21:44Z tests/fm-afk-launch.test.sh exit=0 duration_ms=45141 gate_skip=false
-FM_TEST_SUMMARY total=2 failed=0 skipped_gate=0 duration_ms=105676
-FM_TEST_SUMMARY_FAMILY family=real-herdr-gated count=1 duration_ms=45141 failed=0
-FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=1 duration_ms=60384 failed=0
-FM_TEST_SLOWEST rank=1 script=tests/fm-daemon.test.sh duration_ms=60384
-FM_TEST_SLOWEST rank=2 script=tests/fm-afk-launch.test.sh duration_ms=45141
+FM_TEST_END 2026-08-28T03:28:51Z tests/fm-afk-launch.test.sh exit=0 duration_ms=46103 gate_skip=false
+FM_TEST_SUMMARY total=2 failed=0 skipped_gate=0 duration_ms=108645
+FM_TEST_SUMMARY_FAMILY family=real-herdr-gated count=1 duration_ms=46103 failed=0
+FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=1 duration_ms=62400 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-daemon.test.sh duration_ms=62400
+FM_TEST_SLOWEST rank=2 script=tests/fm-afk-launch.test.sh duration_ms=46103

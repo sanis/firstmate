@@ -1,0 +1,24 @@
+Portable-serial shard balance, scored with the MEASURED weights this change introduces
+(the 20-minute CI job cap per shard = 1200.0s)
+
+1. As the merge landed (fbe8cb6) - what the stale hint table PROJECTED:
+  shard 1 of 4:    715.5s  32 scripts  4 unmeasured
+  shard 2 of 4:    715.5s  33 scripts  3 unmeasured
+  shard 3 of 4:    715.6s  34 scripts  4 unmeasured
+  shard 4 of 4:    715.5s  34 scripts  4 unmeasured
+  heaviest-to-lightest spread: 17 ms
+
+2. As the merge landed (fbe8cb6) - what that same assignment ACTUALLY costs:
+  shard 1 of 4:    773.0s  32 scripts  0 unmeasured
+  shard 2 of 4:    716.0s  33 scripts  0 unmeasured
+  shard 3 of 4:   1093.9s  34 scripts  0 unmeasured
+  shard 4 of 4:    657.3s  34 scripts  0 unmeasured
+  heaviest-to-lightest spread: 436551 ms
+
+3. After the rebalance (4a39aa0, current head) - projected and actual now agree:
+  shard 1 of 4:    810.0s  33 scripts  0 unmeasured
+  shard 2 of 4:    810.1s  34 scripts  0 unmeasured
+  shard 3 of 4:    810.0s  33 scripts  0 unmeasured
+  shard 4 of 4:    810.1s  33 scripts  0 unmeasured
+  heaviest-to-lightest spread: 14 ms
+
