@@ -92,6 +92,12 @@ EOF
   printf '%s\n' "$home"
 }
 
+# ISO-8601 UTC spelling of an epoch second, portable across BSD and GNU date.
+iso_utc_at() {  # <epoch-seconds>
+  date -u -r "$1" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
+    || date -u -d "@$1" +%Y-%m-%dT%H:%M:%SZ
+}
+
 run_pf() {  # <home> <args...>
   local home=$1
   shift
@@ -110,15 +116,28 @@ tasks_in() {  # <home> <tasks-axi args...>
 # Simulates the intake half that already works today: the relay mention arrives,
 # the typed obligation is created with its opaque thread binding, the work is
 # bound, and the private request context is retained.
+#
+# The retained thread window is anchored to the clock at seed time for the same
+# reason seed_repro_commitment is: a literal date turns every fixture built here
+# into an expired thread the day it passes, so pending escalates an unreachable
+# window and rechain refuses, both for a reason unrelated to the code under test.
+# SEED_COMMITMENT_EXPIRES_AT/_EPOCH publish the window so a test that must sit on
+# either side of it can pin FMX_NOW_OVERRIDE against it.
 seed_commitment() {
   local home=$1 obligation=$2 request=$3 platform=$4 work_home=$5 work_id=$6
+  local received_at
+  SEED_COMMITMENT_RECEIVED_EPOCH=$(date -u +%s)
+  SEED_COMMITMENT_EXPIRES_EPOCH=$((SEED_COMMITMENT_RECEIVED_EPOCH + 7 * 86400))
+  received_at=$(iso_utc_at "$SEED_COMMITMENT_RECEIVED_EPOCH")
+  SEED_COMMITMENT_EXPIRES_AT=$(iso_utc_at "$SEED_COMMITMENT_EXPIRES_EPOCH")
   jq -n --arg r "$request" --arg p "$platform" \
+    --arg recv "$received_at" --arg exp "$SEED_COMMITMENT_EXPIRES_AT" \
     '{request_id:$r, platform:$p,
       context_binding:{version:"ctx1", value:("ctx1_" + $r)},
       public_safe_summary:"fix worker placement when two spaces share a name",
-      received_at:"2026-07-30T10:00:00Z",
-      followup_expires_at:"2026-08-06T10:00:00Z",
-      reservation_expires_at:"2026-08-06T10:00:00Z"}' > "$home/request.json"
+      received_at:$recv,
+      followup_expires_at:$exp,
+      reservation_expires_at:$exp}' > "$home/request.json"
   jq -n '{type:"pr-merged", project:"firstmate",
           required_deliverables:["pr_url"], completion_policy:"all-required"}' \
     > "$home/expected.json"
@@ -152,15 +171,28 @@ seed_commitment() {
 }
 
 # The pi-rearm shape: a report-ready promised-final bound to a secondmate.
+#
+# The retained thread window is anchored to the clock at seed time rather than
+# written as a literal date. rechain refuses once followup_expires_at is in the
+# past, so a fixed future timestamp is a time bomb: every rechain test passes
+# until the named day arrives and then fails for a reason that has nothing to do
+# with the code under test. SEED_REPRO_EXPIRES_AT/_EPOCH publish the window so a
+# test that must sit on either side of it can pin FMX_NOW_OVERRIDE against it.
 seed_repro_commitment() {   # <home> <obligation> <request> <work-home> <work-id>
   local home=$1 obligation=$2 request=$3 work_home=$4 work_id=$5
-  jq -n --arg r "$request" \
+  local received_at obligation_expires_at
+  SEED_REPRO_RECEIVED_EPOCH=$(date -u +%s)
+  SEED_REPRO_EXPIRES_EPOCH=$((SEED_REPRO_RECEIVED_EPOCH + 7 * 86400))
+  received_at=$(iso_utc_at "$SEED_REPRO_RECEIVED_EPOCH")
+  SEED_REPRO_EXPIRES_AT=$(iso_utc_at "$SEED_REPRO_EXPIRES_EPOCH")
+  obligation_expires_at=$(iso_utc_at $((SEED_REPRO_RECEIVED_EPOCH + 41 * 86400)))
+  jq -n --arg r "$request" --arg recv "$received_at" --arg exp "$SEED_REPRO_EXPIRES_AT" \
     '{request_id:$r, platform:"discord",
       context_binding:{version:"ctx1", value:("ctx1_" + $r)},
       public_safe_summary:"reproduce a Pi recovery notification loop",
-      received_at:"2026-08-21T01:12:00Z",
-      followup_expires_at:"2026-08-28T01:12:00Z",
-      reservation_expires_at:"2026-08-28T01:12:00Z"}' > "$home/request.json"
+      received_at:$recv,
+      followup_expires_at:$exp,
+      reservation_expires_at:$exp}' > "$home/request.json"
   jq -n '{type:"report-ready", project:"firstmate",
           required_deliverables:["report_path"], completion_policy:"all-required"}' \
     > "$home/expected.json"
@@ -169,7 +201,7 @@ seed_repro_commitment() {   # <home> <obligation> <request> <work-home> <work-id
       role:"fulfills", required:true, generation:1}' > "$home/relation.json"
   tasks_in "$home" public-followup add "$obligation" --request-context-file "$home/request.json" \
     --purpose promised-final --expected-final-file "$home/expected.json" \
-    --expires-at 2026-10-01T00:00:00Z >/dev/null || fail "add failed"
+    --expires-at "$obligation_expires_at" >/dev/null || fail "add failed"
   tasks_in "$home" public-followup bind-work "$obligation" --relation-file "$home/relation.json" >/dev/null \
     || fail "bind-work failed"
   FM_HOME="$home" bash -c \
@@ -1552,10 +1584,13 @@ SH
 }
 
 test_rechain_claims_delivered_source_once() {
-  local home log pid_b pid_c rc_b=0 rc_c=0 registry_count
+  local home log pid_b pid_c rc_b=0 rc_c=0 registry_count now_inside
   home=$(make_home rechain-claim)
   log="$home/curl.log"; : > "$log"
   seed_repro_commitment "$home" public-final-claim-a req-claim main scout-claim
+  # A fixed instant inside the seeded thread window, so both racers see the same
+  # clock and neither is refused for an expiry this test is not about.
+  now_inside=$((SEED_REPRO_EXPIRES_EPOCH - 3600))
   "$EMIT" --home "$home" --obligation public-final-claim-a --relation rel-code \
     --source-home main --work-id scout-claim --generation 1 \
     --outcome report-ready --deliverable report_path=data/scout-claim/report.md \
@@ -1563,11 +1598,11 @@ test_rechain_claims_delivered_source_once() {
   FAKE_CURL_LOG="$log" run_pf "$home" consume >/dev/null || fail "consume failed"
   FAKE_CURL_LOG="$log" run_pf "$home" deliver public-final-claim-a >/dev/null || fail "deliver failed"
 
-  FMX_NOW_OVERRIDE=1787539200 run_pf "$home" rechain public-final-claim-b \
+  FMX_NOW_OVERRIDE="$now_inside" run_pf "$home" rechain public-final-claim-b \
     --from public-final-claim-a --work-home main --work-id ship-claim-b \
     --expected pr-merged > "$home/rechain-b.out" 2>&1 &
   pid_b=$!
-  FMX_NOW_OVERRIDE=1787539200 run_pf "$home" rechain public-final-claim-c \
+  FMX_NOW_OVERRIDE="$now_inside" run_pf "$home" rechain public-final-claim-c \
     --from public-final-claim-a --work-home main --work-id ship-claim-c \
     --expected pr-merged > "$home/rechain-c.out" 2>&1 &
   pid_c=$!
@@ -1832,7 +1867,7 @@ test_rechain_refuses_unclaimed_existing_destination() {
   tasks_in "$home" public-followup add public-final-existing-b \
     --request-context-file "$home/request.json" --purpose promised-final \
     --expected-final-file "$home/collision-expected.json" \
-    --expires-at 2026-08-28T01:12:00Z >/dev/null || fail "could not seed destination collision"
+    --expires-at "$SEED_REPRO_EXPIRES_AT" >/dev/null || fail "could not seed destination collision"
 
   expect_failure "a first rechain must not adopt an unrelated existing obligation" \
     run_pf "$home" rechain public-final-existing-b --from public-final-existing-a \
@@ -2010,8 +2045,7 @@ test_expiry_escalation_uses_now_override() {
   local home out exp now_closing now_expired registry tmp
   home=$(make_home expiry-window)
   seed_repro_commitment "$home" pf-exp req-exp main work-exp
-  exp=$(date -u -j -f '%Y-%m-%dT%H:%M:%SZ' '2026-08-28T01:12:00Z' +%s 2>/dev/null) \
-    || exp=$(date -u -d '2026-08-28T01:12:00Z' +%s)
+  exp=$SEED_REPRO_EXPIRES_EPOCH
   now_closing=$((exp - 3600))
   now_expired=$((exp + 60))
   out=$(FMX_NOW_OVERRIDE="$now_expired" run_pf "$home" pending)
