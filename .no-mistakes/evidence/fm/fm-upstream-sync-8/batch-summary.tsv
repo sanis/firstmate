@@ -1,0 +1,7 @@
+0-public-followup	rc=0	elapsed=162s
+1-prose-brief-board-prguard	rc=0	elapsed=41s
+2-away-daemon-pair	rc=0	elapsed=99s
+3-secondmate-and-inbox	rc=0	elapsed=172s	scripts=4	failed=0	gate_skips=0
+4-pi-autoarm-cursor	rc=0	elapsed=284s	scripts=6	failed=0	gate_skips=2
+5-pr-merge-inactive-reconcile	rc=0	elapsed=180s	scripts=2	failed=0	gate_skips=0
+6-spawn-pool-test-run	rc=0	elapsed=112s	scripts=2	failed=0	gate_skips=0

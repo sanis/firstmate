@@ -1,0 +1,9 @@
+Real CLI: bin/fm-public-followup.sh pending  (the session-start surface an operator reads)
+Wall clock now: 2026-08-28T05:39:54Z
+
+--- A) fixture seeded the PRE-FIX way: followup_expires_at = 2026-08-06T10:00:00Z (hardcoded literal) ---
+unresolved pf-evidence state=pending-work platform=x request=req-evidence summary=fix worker placement when two spaces share a name
+  DEADLINE: thread can no longer be reached (window closed 2026-08-06T10:00:00Z); this needs a captain decision
+
+--- B) fixture seeded at HEAD (9b15dcf): followup_expires_at = 2026-09-04T05:39:54Z (clock-anchored, now + 7d) ---
+unresolved pf-evidence state=pending-work platform=x request=req-evidence summary=fix worker placement when two spaces share a name

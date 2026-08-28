@@ -1,0 +1,3 @@
+wall clock now                 : 2026-08-28T05:38:36Z
+pre-fix  followup_expires_at   : 2026-08-06T10:00:00Z -> fm_pf_followup_window_class = expired
+at-HEAD  followup_expires_at   : 2026-09-04T05:38:36Z -> fm_pf_followup_window_class = ok
