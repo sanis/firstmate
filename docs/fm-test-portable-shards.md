@@ -5,35 +5,8 @@
 
 ## Verification inputs
 
-The current candidate timings came from the 2026-08-20 concurrent proof recorded in [fm-test-isolation-proof.md](fm-test-isolation-proof.md).
-The proof ran 24 candidates with four workers and no failures.
-
-| duration_ms | script |
-|---:|---|
-| 45356 | `tests/fm-backend-herdr.test.sh` |
-| 35415 | `tests/fm-x-mode.test.sh` |
-| 35095 | `tests/fm-captain-hold-lifecycle.test.sh` |
-| 27529 | `tests/fm-arm-pretool-check.test.sh` |
-| 20922 | `tests/fm-test-run.test.sh` |
-| 17558 | `tests/fm-crew-state.test.sh` |
-| 16582 | `tests/fm-cd-pretool-check.test.sh` |
-| 9766 | `tests/fm-lint.test.sh` |
-| 9562 | `tests/fm-herdr-lab.test.sh` |
-| 6768 | `tests/fm-grok-harness.test.sh` |
-| 6290 | `tests/fm-pr-merge.test.sh` |
-| 5569 | `tests/fm-composer-ghost.test.sh` |
-| 4563 | `tests/fm-send-popup-settle.test.sh` |
-| 4021 | `tests/fm-tmux-submit-busy.test.sh` |
-| 3544 | `tests/fm-composer-lib.test.sh` |
-| 3025 | `tests/fm-send-strict.test.sh` |
-| 2753 | `tests/fm-send-settle.test.sh` |
-| 2166 | `tests/fm-review-diff.test.sh` |
-| 1315 | `tests/fm-brief.test.sh` |
-| 975 | `tests/fm-spawn-batch.test.sh` |
-| 598 | `tests/fm-pi-primary-types.test.sh` |
-| 513 | `tests/fm-ensure-agents-md.test.sh` |
-| 331 | `tests/fm-supervision-instructions.test.sh` |
-| 99 | `tests/fm-transition-lib.test.sh` |
+The parallel assignment's per-script inputs are the durations of the 2026-08-20 concurrent proof, which ran 24 candidates with four workers and no failures.
+[fm-test-isolation-proof.md](fm-test-isolation-proof.md) owns that record and lists every duration; refreshing the inputs means re-running `bin/fm-test-isolation-proof.sh`, so they are kept there rather than copied here.
 
 ## Parallel lanes
 
@@ -46,6 +19,9 @@ The two parallel lanes use longest-processing-time assignment from those measure
 | imbalance | | 8275 ms |
 
 `bin/fm-test-run.sh` contains the exact ordered memberships in `list_portable_parallel_1` and `list_portable_parallel_2`.
+
+Those estimates are the assignment's inputs rather than current runtimes: green CI run [33100473041](https://github.com/sanis/firstmate/actions/runs/33100473041) measured the lanes at 141202 ms and 139195 ms, an imbalance of 2007 ms, with the renewal-grown `tests/fm-pr-merge.test.sh` alone at 50184 ms against the 6290 ms the proof recorded for it.
+Both lanes stay far inside the 10-minute cap, so refreshing the partition is balance work needing a fresh isolation proof, not a capacity risk.
 
 ## Portable serial remainder
 
