@@ -336,11 +336,15 @@ SH
   chmod 0755 "$dir/no-mistakes-fixture"
   write_config "$home" '{"tools":[{"name":"no-mistakes","command":"no-mistakes-fixture","version_args":["--version"],"announce_args":["--help"],"announce_pattern":"A new version of no-mistakes is available: [^ ]+ -> [^ ]+"}]}'
   out="$home/out.txt"
-  # The budget is spent by the version probe, which is bound to whatever the
-  # budget has left, so the sweep provably reaches the announcement phase with
-  # nothing left to ask with. A 1s budget cannot state that: both clocks count
-  # whole seconds, so a sweep starting late in a second saw its own budget gone
-  # before the first copy was even asked and reported that earlier phase.
+  # The deadline is whole-second granular (real_epoch is `date +%s`), so a
+  # budget of 1 leaves headroom anywhere in (0, 1] seconds: when the sweep
+  # starts near the end of a second the very first budget check already reads
+  # as exhausted and the sweep reports "before every copy answered" instead of
+  # reaching the announcement step this case is about. A budget of 3 guarantees
+  # more than two full seconds of headroom for the millisecond-scale work before
+  # the copy loop, and pinning the probe to the same 3 seconds keeps the version
+  # probe below (bounded, then sleeping 30) spending exactly what the budget has
+  # left, so it still exhausts the budget before the announcement check.
   run_check "$home" "$(fixture_path "$dir")" "$out" \
     FM_TOOL_UPDATE_BUDGET_SECS=3 FM_TOOL_UPDATE_PROBE_SECS=3
   report=$(cat "$out")
