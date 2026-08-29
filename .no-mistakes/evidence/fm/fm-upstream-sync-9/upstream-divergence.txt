@@ -1,0 +1,43 @@
+# Divergence from upstream tip f66be0f8 for the hand-resolved files
+
+$ git diff f66be0f8...HEAD --stat -- <hand-resolved files>
+ AGENTS.md                             |   5 +
+ CONTRIBUTING.md                       |  10 +-
+ bin/fm-pr-merge.sh                    |   5 +-
+ bin/fm-remote-job-worker.sh           |  19 +++
+ bin/fm-test-run.sh                    | 277 +++++++++++++++++++---------------
+ docs/architecture.md                  |   7 +-
+ docs/configuration.md                 |   1 +
+ docs/fm-test-portable-shards.md       |  59 +++-----
+ docs/gitlab-merge-watch.md            |  27 +++-
+ docs/scripts.md                       |   2 +
+ docs/verification/runtime-backends.md |  44 ++++++
+ tests/fm-public-followup.test.sh      |  73 +++++++--
+ tests/fm-remote-job.test.sh           |  22 +++
+ tests/fm-test-run.test.sh             |  52 ++++++-
+ tests/fm-tool-update-check.test.sh    |  12 +-
+ 15 files changed, 424 insertions(+), 191 deletions(-)
+
+## bin/fm-pr-merge.sh - the only divergence is the fork's authorized-merge flag
+diff --git a/bin/fm-pr-merge.sh b/bin/fm-pr-merge.sh
+index 3e61b33..efb0ded 100755
+--- a/bin/fm-pr-merge.sh
++++ b/bin/fm-pr-merge.sh
+@@ -492,8 +492,11 @@ METHODS
+   fi
+ }
+ 
++# Records canonical PR metadata only. The description's local-path guard belongs
++# to the ready report, so refusing here would block a merge the captain has
++# already authorized.
+ record_pr_metadata() {
+-  if ! "$SCRIPT_DIR/fm-pr-check.sh" "$ID" "$URL"; then
++  if ! "$SCRIPT_DIR/fm-pr-check.sh" --no-description-check "$ID" "$URL"; then
+     return 1
+   fi
+   grep -qxF "pr=$URL" "$META" || {
+
+## bin/fm-test-run.sh - upstream's file plus the fork's serial weight table
+ bin/fm-test-run.sh | 277 ++++++++++++++++++++++++++++++-----------------------
+ 1 file changed, 156 insertions(+), 121 deletions(-)
+portable_serial_weight_hints() vs 4a39aa0f: byte-for-byte identical (137 lines)

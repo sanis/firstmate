@@ -1,0 +1,32 @@
+# Shard rebalance sanity after the renewal
+
+$ bin/fm-test-run.sh --check-coverage
+FM_TEST_COVERAGE ok total=171 parallel=24 serial=135 serial_shards=4 herdr=12
+
+Shard sizes and the first three scripts each shard schedules (longest hint first):
+
+$ bin/fm-test-run.sh --list-scheduled --lane portable-serial-1of4   # 34 scripts
+tests/fm-pr-check-security.test.sh
+tests/fm-remote-reply.test.sh
+tests/fm-watch-arm.test.sh
+
+$ bin/fm-test-run.sh --list-scheduled --lane portable-serial-2of4   # 34 scripts
+tests/fm-public-followup.test.sh
+tests/fm-teardown.test.sh
+tests/fm-remote-backlog-handoff.test.sh
+
+$ bin/fm-test-run.sh --list-scheduled --lane portable-serial-3of4   # 34 scripts
+tests/fm-remote-secondmate-lifecycle-e2e.test.sh
+tests/fm-secondmate-harness.test.sh
+tests/fm-watcher-lock.test.sh
+
+$ bin/fm-test-run.sh --list-scheduled --lane portable-serial-4of4   # 33 scripts
+tests/fm-watch-triage.test.sh
+tests/fm-session-start.test.sh
+tests/fm-daemon.test.sh
+
+docs/fm-test-portable-shards.md records 34/34/34/33 - the tool schedules 34/34/34/33.
+Shard 1 opens with tests/fm-pr-check-security.test.sh, the 233979 ms script the
+doc names as the floor for any shard count, and shard 2 with the 180863 ms
+tests/fm-public-followup.test.sh: the fork's measured hints, not the default
+weight, are what the bin packer is reading.

@@ -1,0 +1,42 @@
+# Wall-clock probe: which commands in tests/fm-public-followup.test.sh still read the real clock
+
+Method: a PATH-shadowed `date` that logs the caller of every bare
+"what time is it now" query (`date +%s` / `date -u +%s`) and then answers it
+normally. Timestamp *parsing* (date -j -f ... +%s) is left untouched.
+Both runs passed (52 ok, exit 0); only the clock reads differ.
+
+## BEFORE (suite as of ec645f2, only run_pf and two registry calls pinned)
+   6 bash <repo>/bin/fm-inactive-reconcile.sh _scan-locked 1
+   4 bash <repo>/bin/fm-startup-network.sh start --locked 1 --harvest-pid <pid>
+   4 bash <repo>/bin/fm-startup-network.sh run --locked 1 --lock-pid <pid> --generation <gen>
+   3 bash <repo>/bin/fm-x-poll.sh
+   1 bash tests/zz-pf-baseline-premerge-fix.sh
+   1 bash <repo>/bin/fm-public-followup.sh pending
+   1 bash <repo>/bin/fm-public-followup.sh deliver pf-retry
+   1 bash <repo>/bin/fm-public-followup.sh deliver pf-late
+   1 bash <repo>/bin/fm-public-followup.sh deliver pf-dry
+
+## AFTER (HEAD f4b03b0, FMX_NOW_OVERRIDE exported over the whole suite)
+   6 bash <repo>/bin/fm-inactive-reconcile.sh _scan-locked 1
+   4 bash <repo>/bin/fm-startup-network.sh start --locked 1 --harvest-pid <pid>
+   4 bash <repo>/bin/fm-startup-network.sh run --locked 1 --lock-pid <pid> --generation <gen>
+   1 bash tests/fm-public-followup.test.sh
+   1 bash <repo>/bin/fm-public-followup.sh deliver pf-retry
+   1 bash <repo>/bin/fm-public-followup.sh deliver pf-late
+   1 bash <repo>/bin/fm-public-followup.sh deliver pf-dry
+
+## Reading
+bin/fm-x-poll.sh went from 3 wall-clock reads to 0. That is the prune path
+(fmx_context_registry_prune, max_age 604800) the review finding named: it now
+runs at the same pinned instant the fixture window is seeded from, so the
+seeded x-context entry can never age out from under the suite.
+bin/fm-public-followup.sh went from 4 reads to 3, and the one that disappeared
+is the `pending` expiry comparison - the one that decides whether the seeded
+window is still reachable. The three that remain are all `deliver` calls landing
+in next_attempt_rfc3339(), a pre-existing raw `date +%s` that only stamps an
+advisory "try again at" time on a retryable transport error; no assertion in the
+suite reads it and nothing about the fixture window depends on it.
+The other reads that remain are session-start's detached background helpers
+(fm-startup-network.sh, fm-inactive-reconcile.sh), which stamp their own lock
+generations with a raw date and never touch the seeded follow-up window, plus
+one read by the test harness itself.
