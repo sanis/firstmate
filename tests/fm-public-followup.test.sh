@@ -24,6 +24,11 @@ PROMOTE="$ROOT/bin/fm-promote.sh"
 SESSION_START="$ROOT/bin/fm-session-start.sh"
 TMP_ROOT=$(fm_test_tmproot fm-public-followup)
 PF_TEST_NOW=1787539200
+# Exported so EVERY command this suite runs - the tool under test, the relay
+# poll, teardown, promote, session-start and emit alike - reads one clock.
+# A per-command prefix still wins over it, so the few tests that deliberately
+# exercise a different instant keep their own explicit override.
+export FMX_NOW_OVERRIDE="$PF_TEST_NOW"
 
 command -v jq >/dev/null 2>&1 || { echo "skip: jq not found"; exit 0; }
 command -v tasks-axi >/dev/null 2>&1 || { echo "skip: tasks-axi not found"; exit 0; }
@@ -123,9 +128,9 @@ tasks_in() {  # <home> <tasks-axi args...>
 # reason seed_repro_commitment is: a literal date turns every fixture built here
 # into an expired thread the day it passes, so pending escalates an unreachable
 # window and rechain refuses, both for a reason unrelated to the code under test.
-# It is derived from PF_TEST_NOW rather than read from the wall clock, because
-# every command here already runs at PF_TEST_NOW: a window seeded from real time
-# would drift away from that clock by one more day every day.
+# It is derived from PF_TEST_NOW rather than read from the wall clock, which is
+# sound because PF_TEST_NOW is exported over the whole suite: a window seeded
+# from real time would drift away from that clock by one more day every day.
 # SEED_COMMITMENT_EXPIRES_AT/_EPOCH publish the window so a test that must sit on
 # either side of it can pin FMX_NOW_OVERRIDE against it.
 seed_commitment() {
@@ -182,7 +187,7 @@ seed_commitment() {
 # past, so a fixed calendar timestamp is a time bomb: every rechain test passes
 # until the named day arrives and then fails for a reason that has nothing to do
 # with the code under test. Deriving it from PF_TEST_NOW keeps the window fixed
-# relative to the clock every command here actually runs at, which reading the
+# relative to the exported clock every command here runs at, which reading the
 # wall clock would not: that window would drift one more day away every day.
 # SEED_REPRO_EXPIRES_AT/_EPOCH publish the window so a test that must sit on
 # either side of it can pin FMX_NOW_OVERRIDE against it.
