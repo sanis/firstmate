@@ -41,7 +41,8 @@ Each shard is still strictly serial in itself, and separate runners mean no two 
 
 Assignment is longest-processing-time bin packing over per-script duration hints embedded in `bin/fm-test-run.sh`.
 The hints came from the `fm-test-timing-portable-serial-*` artifacts of green CI run [33100473041](https://github.com/sanis/firstmate/actions/runs/33100473041) on 2026-08-27, where the lane ran 133 scripts in 3240398 ms of serial work.
-That run measured every script the lane currently selects, so no hint is carried over from an older run.
+That run measured every script the lane selected at the time.
+The renewal that followed added `tests/fm-home-summary-refresh.test.sh` and `tests/fm-remote-transport-lanes.test.sh`, which it did not measure, so those two carry the default weight until the next refresh.
 A script with no hint gets the conservative `PORTABLE_SERIAL_DEFAULT_WEIGHT_MS` default.
 Hints only affect balance: the coverage guard keeps the partition complete and disjoint whatever they say, so a stale hint costs a slower shard rather than lost coverage.
 Balance is still worth keeping current, because enough unmeasured scripts let one shard carry more than twice another shard's real work and reach the job cap while another runner sits idle.
@@ -49,13 +50,14 @@ Refresh the hints whenever the serial lane gains scripts, rather than waiting fo
 
 | Lane | Script count | Estimated duration |
 |---|---:|---:|
-| `portable-serial-1of4` | 33 | 810093 ms (~810.1 s) |
-| `portable-serial-2of4` | 34 | 810107 ms (~810.1 s) |
-| `portable-serial-3of4` | 33 | 810093 ms (~810.1 s) |
-| `portable-serial-4of4` | 33 | 810105 ms (~810.1 s) |
-| imbalance | | 14 ms |
+| `portable-serial-1of4` | 34 | 820092 ms (~820.1 s) |
+| `portable-serial-2of4` | 34 | 820108 ms (~820.1 s) |
+| `portable-serial-3of4` | 34 | 820107 ms (~820.1 s) |
+| `portable-serial-4of4` | 33 | 820091 ms (~820.1 s) |
+| imbalance | | 17 ms |
 
-This table was refreshed on 2026-08-27 and records every script the lanes select.
+This table was refreshed on 2026-08-27 and recomputed on 2026-08-29 for the two scripts the renewal added.
+Those two are the only ones estimated rather than measured, at the `PORTABLE_SERIAL_DEFAULT_WEIGHT_MS` default each, so the balance above is still worth planning from.
 The refresh it replaced was overdue in a way the run before it made concrete: with fifteen scripts still on the default weight, the same green run's real shard times were 773043, 716092, 1093907 and 657356 ms, so one shard spent 18m14s of a 20-minute job cap while another idled at 11m.
 
 The single longest script, `tests/fm-pr-check-security.test.sh` at 233979 ms, is the floor for any shard count.

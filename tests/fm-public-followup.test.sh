@@ -23,6 +23,7 @@ TEARDOWN="$ROOT/bin/fm-teardown.sh"
 PROMOTE="$ROOT/bin/fm-promote.sh"
 SESSION_START="$ROOT/bin/fm-session-start.sh"
 TMP_ROOT=$(fm_test_tmproot fm-public-followup)
+PF_TEST_NOW=1787539200
 
 command -v jq >/dev/null 2>&1 || { echo "skip: jq not found"; exit 0; }
 command -v tasks-axi >/dev/null 2>&1 || { echo "skip: tasks-axi not found"; exit 0; }
@@ -103,7 +104,8 @@ run_pf() {  # <home> <args...>
   shift
   PATH="$home/fakebin:$PATH" FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" \
     FM_STATE_OVERRIDE="$home/state" FAKE_CURL_LOG="${FAKE_CURL_LOG:-}" \
-    FAKE_FOLLOWUP_CODE="${FAKE_FOLLOWUP_CODE:-200}" "$PF" "$@"
+    FAKE_FOLLOWUP_CODE="${FAKE_FOLLOWUP_CODE:-200}" \
+    FMX_NOW_OVERRIDE="${FMX_NOW_OVERRIDE:-$PF_TEST_NOW}" "$PF" "$@"
 }
 
 tasks_in() {  # <home> <tasks-axi args...>
@@ -117,16 +119,19 @@ tasks_in() {  # <home> <tasks-axi args...>
 # the typed obligation is created with its opaque thread binding, the work is
 # bound, and the private request context is retained.
 #
-# The retained thread window is anchored to the clock at seed time for the same
+# The retained thread window is anchored to the suite's pinned clock for the same
 # reason seed_repro_commitment is: a literal date turns every fixture built here
 # into an expired thread the day it passes, so pending escalates an unreachable
 # window and rechain refuses, both for a reason unrelated to the code under test.
+# It is derived from PF_TEST_NOW rather than read from the wall clock, because
+# every command here already runs at PF_TEST_NOW: a window seeded from real time
+# would drift away from that clock by one more day every day.
 # SEED_COMMITMENT_EXPIRES_AT/_EPOCH publish the window so a test that must sit on
 # either side of it can pin FMX_NOW_OVERRIDE against it.
 seed_commitment() {
   local home=$1 obligation=$2 request=$3 platform=$4 work_home=$5 work_id=$6
   local received_at
-  SEED_COMMITMENT_RECEIVED_EPOCH=$(date -u +%s)
+  SEED_COMMITMENT_RECEIVED_EPOCH=$PF_TEST_NOW
   SEED_COMMITMENT_EXPIRES_EPOCH=$((SEED_COMMITMENT_RECEIVED_EPOCH + 7 * 86400))
   received_at=$(iso_utc_at "$SEED_COMMITMENT_RECEIVED_EPOCH")
   SEED_COMMITMENT_EXPIRES_AT=$(iso_utc_at "$SEED_COMMITMENT_EXPIRES_EPOCH")
@@ -161,7 +166,7 @@ seed_commitment() {
     > "$home/state/x-inbox/$request.json"
   chmod 700 "$home/state/x-inbox"
   chmod 600 "$home/state/x-inbox/$request.json"
-  FM_HOME="$home" bash -c \
+  FM_HOME="$home" FMX_NOW_OVERRIDE="$PF_TEST_NOW" bash -c \
     ". '$ROOT/bin/fm-x-lib.sh'; fmx_context_registry_set '$home/state' '$request' '$platform' 1900" \
     || fail "could not retain the private request context"
 
@@ -172,16 +177,19 @@ seed_commitment() {
 
 # The pi-rearm shape: a report-ready promised-final bound to a secondmate.
 #
-# The retained thread window is anchored to the clock at seed time rather than
+# The retained thread window is anchored to the suite's pinned clock rather than
 # written as a literal date. rechain refuses once followup_expires_at is in the
-# past, so a fixed future timestamp is a time bomb: every rechain test passes
+# past, so a fixed calendar timestamp is a time bomb: every rechain test passes
 # until the named day arrives and then fails for a reason that has nothing to do
-# with the code under test. SEED_REPRO_EXPIRES_AT/_EPOCH publish the window so a
-# test that must sit on either side of it can pin FMX_NOW_OVERRIDE against it.
+# with the code under test. Deriving it from PF_TEST_NOW keeps the window fixed
+# relative to the clock every command here actually runs at, which reading the
+# wall clock would not: that window would drift one more day away every day.
+# SEED_REPRO_EXPIRES_AT/_EPOCH publish the window so a test that must sit on
+# either side of it can pin FMX_NOW_OVERRIDE against it.
 seed_repro_commitment() {   # <home> <obligation> <request> <work-home> <work-id>
   local home=$1 obligation=$2 request=$3 work_home=$4 work_id=$5
   local received_at obligation_expires_at
-  SEED_REPRO_RECEIVED_EPOCH=$(date -u +%s)
+  SEED_REPRO_RECEIVED_EPOCH=$PF_TEST_NOW
   SEED_REPRO_EXPIRES_EPOCH=$((SEED_REPRO_RECEIVED_EPOCH + 7 * 86400))
   received_at=$(iso_utc_at "$SEED_REPRO_RECEIVED_EPOCH")
   SEED_REPRO_EXPIRES_AT=$(iso_utc_at "$SEED_REPRO_EXPIRES_EPOCH")
@@ -204,7 +212,7 @@ seed_repro_commitment() {   # <home> <obligation> <request> <work-home> <work-id
     --expires-at "$obligation_expires_at" >/dev/null || fail "add failed"
   tasks_in "$home" public-followup bind-work "$obligation" --relation-file "$home/relation.json" >/dev/null \
     || fail "bind-work failed"
-  FM_HOME="$home" bash -c \
+  FM_HOME="$home" FMX_NOW_OVERRIDE="$PF_TEST_NOW" bash -c \
     ". '$ROOT/bin/fm-x-lib.sh'; fmx_context_registry_set '$home/state' '$request' discord 2000" \
     || fail "context retain failed"
   run_pf "$home" register "$obligation" --relation rel-code --work-home "$work_home" \
