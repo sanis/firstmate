@@ -99,6 +99,15 @@ fm_test_cleanup() {
 fm_test_tmproot() {
   local prefix=${1:-fm-test} root
   root=$(mktemp -d "${TMPDIR:-/tmp}/${prefix}.XXXXXX") || return 1
+  # Physically resolved, so a fixture root has the shape a real home has. A real
+  # firstmate home has no symlinked ancestor, but macOS's default $TMPDIR sits
+  # below /var, which is a symlink to /private/var. The process-event claim path
+  # compares a state root's physical path against a lexically normalized one and
+  # refuses when they differ, so an unresolved fixture root fails every suite that
+  # claims a source, on macOS only. Resolving here rather than in each suite keeps
+  # it to one place on a file upstream is actively restructuring.
+  # Fork-local: drop this when upstream resolves the fixture root itself.
+  root=$(cd -P -- "$root" && pwd -P) || return 1
   if ! printf '%s\n%s\n' "$$" "$FM_TEST_OWNER_IDENTITY" > "$root/.fm-test-fixture" ||
     ! printf '%s\n' "$root" >> "$FM_TEST_CLEANUP_REGISTRY"; then
     rm -rf "$root"
