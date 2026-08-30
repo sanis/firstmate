@@ -209,13 +209,24 @@ test_ship_brief_never_routes_a_worker_into_connector_procedure() {
 
 # A scout promoted in place keeps its scout brief, so the ship Rules block never
 # reaches it. The promotion handoff is where the rule must land, because that
-# worker opens the pull request itself.
+# worker opens the pull request itself. Promotion delivers that handoff by
+# publishing ship instructions and printing the fm-send.sh command that carries
+# them, so this runs that command against a capturing fm-send.sh and asserts on
+# the message the worker actually receives.
 test_promotion_handoff_carries_the_rule() {
-  local home meta out status brief rule
+  local home meta out status brief rule sendroot payload
   home="$TMP_ROOT/promote"
-  mkdir -p "$home/state" "$home/data"
+  sendroot="$TMP_ROOT/promote-sendroot"
+  payload="$TMP_ROOT/promote-payload"
+  mkdir -p "$home/state" "$home/data" "$sendroot/bin"
   meta="$home/state/evidence-promote.meta"
   printf 'window=fm-evidence-promote\nkind=scout\nworktree=/tmp/wt\n' > "$meta"
+  cat > "$sendroot/bin/fm-send.sh" <<'STUB'
+#!/usr/bin/env bash
+# Capture the message a promoted worker would receive, instead of steering one.
+printf '%s' "$2" > "$FM_TEST_CAPTURE"
+STUB
+  chmod +x "$sendroot/bin/fm-send.sh"
 
   # The expected rule is read back out of a generated ship brief rather than
   # restated here, so this asserts the promoted worker gets the SAME rule the
@@ -230,9 +241,18 @@ test_promotion_handoff_carries_the_rule() {
     "$ROOT/bin/fm-promote.sh" evidence-promote --mode direct-PR --yolo off 2>&1)
   status=$?
   expect_code 0 "$status" "promotion with a full delivery contract should succeed"
-  assert_contains "$out" "$rule" \
+
+  # Run the delivery command promotion printed, so the assertions below are made
+  # against the message the worker receives rather than the script's own output.
+  ( cd "$sendroot" \
+    && FM_TEST_CAPTURE="$payload" \
+       eval "$(printf '%s\n' "$out" | sed -n 's/^next: //p' | grep 'fm-send\.sh')" ) \
+    || fail "promotion's delivery command did not run"
+  assert_present "$payload" "promotion delivered no message to the promoted worker"
+
+  assert_grep "$rule" "$payload" \
     "the promotion handoff does not deliver the same evidence rule the ship brief carries"
-  assert_contains "$out" "$ROOT/.agents/skills/evidence-artifacts/SKILL.md" \
+  assert_grep "$ROOT/.agents/skills/evidence-artifacts/SKILL.md" "$payload" \
     "the promotion handoff does not point at the owner by a resolvable absolute path"
   pass "a promoted scout receives the ship brief's evidence rule and owner pointer"
 }
