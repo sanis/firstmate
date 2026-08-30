@@ -11,7 +11,15 @@ set -u
 
 TEARDOWN="$ROOT/bin/fm-teardown.sh"
 BEARINGS="$ROOT/bin/fm-bearings-snapshot.sh"
-TMP_ROOT=$(fm_test_tmproot fm-captain-hold)
+# Physically resolved, the way tests/fm-backend-autodetect-smoke.test.sh already
+# resolves its own root. A real firstmate home has no symlinked ancestor, but
+# macOS's default $TMPDIR sits under /var, which is a symlink to /private/var, so
+# a fixture home reached through it is not the shape production has. The claim
+# path bin/fm-procevent.sh takes compares a state root's physical path against a
+# lexically normalized one and refuses when they differ, which fails this suite
+# on macOS only. Fork-local: drop this resolution when upstream resolves the
+# fixture root itself.
+TMP_ROOT=$(cd -P -- "$(fm_test_tmproot fm-captain-hold)" && pwd -P)
 TASKS_AXI_BIN=$(command -v tasks-axi || true)
 
 command -v jq >/dev/null 2>&1 || { echo "skip: jq not found"; exit 0; }
@@ -708,7 +716,8 @@ SH
   PATH="$home/fakebin:$PATH" FM_ROOT_OVERRIDE="$home/adapter-root" FM_HOME="$home" \
     FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
     FM_PROCEVENT_CLAIM_ROOT="$home/procevent-claims" \
-    "$ROOT/bin/fm-procevent.sh" start fixture-src >/dev/null 2>&1
+    "$ROOT/bin/fm-procevent.sh" start fixture-src >/dev/null \
+    || fail "could not start the fixture channel source"
   assert_absent "$home/state/procevent-inbox/fixture-src.1.handled" \
     "feeding a captain answer retired the notification firstmate still needs"
   assert_present "$home/state/procevent-inbox/fixture-src.1.result" \
