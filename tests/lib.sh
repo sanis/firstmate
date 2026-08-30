@@ -83,21 +83,6 @@ FM_TEST_OWNER_IDENTITY=$(fm_test_pid_identity "$$") || {
   return 1
 }
 
-# fm_test_rm_tree <dir>: remove a fixture tree that may not be traversable.
-# Plain `rm -rf` refuses a directory it cannot descend into, so restore owner
-# traversal across the tree first. Never chmods or descends a symlink.
-fm_test_rm_tree() {
-  local dir=$1
-  [ -n "$dir" ] || return 0
-  if [ -d "$dir" ] && [ ! -L "$dir" ]; then
-    # The top directory is chmod'd on its own first: find cannot apply -exec to a
-    # directory it was never able to descend into.
-    chmod u+rwx "$dir" 2>/dev/null || true
-    find "$dir" -type d -exec chmod u+rwx {} + 2>/dev/null || true
-  fi
-  rm -rf "$dir"
-}
-
 fm_test_cleanup() {
   local d
   for d in "${FM_TEST_CLEANUP_DIRS[@]:-}"; do
@@ -123,13 +108,14 @@ fm_test_tmproot() {
   # it to one place on a file upstream is actively restructuring.
   # Fork-local: drop this when upstream resolves the fixture root itself.
   resolved=$(cd -P -- "$root" && pwd -P) || {
-    fm_test_rm_tree "$root"
+    chmod -R u+rwx "$root" 2>/dev/null || true
+    rm -rf "$root"
     return 1
   }
   root=$resolved
   if ! printf '%s\n%s\n' "$$" "$FM_TEST_OWNER_IDENTITY" > "$root/.fm-test-fixture" ||
     ! printf '%s\n' "$root" >> "$FM_TEST_CLEANUP_REGISTRY"; then
-    fm_test_rm_tree "$root"
+    rm -rf "$root"
     return 1
   fi
   printf '%s\n' "$root"
@@ -167,7 +153,10 @@ fm_test_reap_orphans() {
     mtime=$(stat -c %Y "$marker" 2>/dev/null || stat -f %m "$marker" 2>/dev/null) || continue
     [ $((now - mtime)) -ge "$FM_TEST_ORPHAN_MAX_AGE_SECONDS" ] || continue
     dir=$(dirname "$marker")
-    fm_test_rm_tree "$dir"
+    if [ -d "$dir" ] && [ ! -L "$dir" ]; then
+      find "$dir" -type d -exec chmod u+rwx {} + 2>/dev/null || true
+    fi
+    rm -rf "$dir"
   done
 }
 

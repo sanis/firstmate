@@ -107,14 +107,22 @@ test_physical_resolution_failure_rolls_back_root() {
   failure_tmp="$harness/tmp"
   mkdir -p "$failure_tmp"
 
-  # Make the root mktemp just created untraversable, so the physical-resolution
-  # step inside fm_test_tmproot fails on a directory that really exists.
+  # Make the root mktemp just created untraversable, nested untraversable
+  # directories and all, so the physical-resolution step inside fm_test_tmproot
+  # fails on a directory that really exists and whose rollback has to reach every
+  # depth. A directory locked inside another locked directory is never enumerated
+  # by a walk that could not descend into its parent, so the rollback cannot rely
+  # on one.
   if output=$(TMPDIR="$failure_tmp" bash -c '
     # shellcheck source=tests/lib.sh
     . "$1"
     mktemp() {
       local d
       d=$(command mktemp "$@") || return 1
+      mkdir -p "$d/pkg/locked" || return 1
+      : > "$d/pkg/locked/entrypoint" || return 1
+      chmod 000 "$d/pkg/locked" || return 1
+      chmod 000 "$d/pkg" || return 1
       chmod 000 "$d" || return 1
       printf "%s\n" "$d"
     }
