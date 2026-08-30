@@ -134,6 +134,16 @@ grep -qx 'kind=scout' "$META" || { echo "error: task $ID is not a scout task (ki
 # the --yes ban is the delivery hole this file used to leave open. The evidence rule
 # rides the same payload for the same reason: the scout brief never carried it, and
 # this worker opens the pull request itself.
+#
+# The evidence rule is item 7, not item 6, on purpose - do not renumber it. The
+# Definition of done appended below says "escalate to firstmate (rule 6)", so slot
+# 6 must keep landing on the supersede line, which is the text that restates the
+# escalation rules including ask-user. This only restores upstream's numbering; it
+# does not make the pointer correct. The real weakness is that the Definition of
+# done cross-references a list POSITION in a document both upstream and this fork
+# insert into, so any future insertion by either side silently re-aims it with no
+# test or lint to catch it. That redesign is upstream's to make and is out of scope
+# here, which is why this is a work-around rather than a fix.
 EVIDENCE_RULE=$(fm_evidence_rule_text "$FM_ROOT")
 INSTRUCTIONS="$DATA/$ID/ship-instructions.md"
 mkdir -p "$DATA/$ID"
@@ -149,8 +159,8 @@ Your scout task has been promoted to a ship task, mode=$MODE. Your window, workt
 3. Return to a clean default-branch base, then create your branch: \`git checkout -b fm/$ID\`.
 4. Carry over only the intended fix changes. Leave scratch commits, debug edits, and experiment files behind.
 5. If you reproduced a bug, turn that reproduction into a regression test.
-6. $EVIDENCE_RULE
-7. These ship instructions supersede the scout delivery rules and report-based Definition of done. Everything else in your original instructions carries over unchanged: the status protocol; the instruction inbox and its acknowledgement; the escalation rules, including ask-user; and every safety rule.
+6. These ship instructions supersede the scout delivery rules and report-based Definition of done. Everything else in your original instructions carries over unchanged: the status protocol; the instruction inbox and its acknowledgement; the escalation rules, including ask-user; and every safety rule.
+7. $EVIDENCE_RULE
 
 EOF
   fm_dod_block "$MODE" "$ID"

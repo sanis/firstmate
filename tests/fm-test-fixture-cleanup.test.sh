@@ -97,6 +97,38 @@ test_fixture_registration_failure_rolls_back_root() {
   pass "failed fixture registration rolls back the new root"
 }
 
+test_physical_resolution_failure_rolls_back_root() {
+  local harness failure_tmp output leaked_root
+  if [ "$(id -u)" -eq 0 ]; then
+    pass "physical-resolution rollback is unobservable as root (traversal is never refused)"
+    return
+  fi
+  harness=$(fm_test_tmproot fm-test-cleanup-resolve-harness)
+  failure_tmp="$harness/tmp"
+  mkdir -p "$failure_tmp"
+
+  # Make the root mktemp just created untraversable, so the physical-resolution
+  # step inside fm_test_tmproot fails on a directory that really exists.
+  if output=$(TMPDIR="$failure_tmp" bash -c '
+    # shellcheck source=tests/lib.sh
+    . "$1"
+    mktemp() {
+      local d
+      d=$(command mktemp "$@") || return 1
+      chmod 000 "$d" || return 1
+      printf "%s\n" "$d"
+    }
+    fm_test_tmproot fm-test-cleanup-resolve-failure
+  ' _ "$LIB" 2>/dev/null); then
+    fail "fm_test_tmproot succeeded after it could not physically resolve its new root"
+  fi
+  [ -z "$output" ] || fail "fm_test_tmproot published a root it could not resolve"
+  for leaked_root in "$failure_tmp"/fm-test-cleanup-resolve-failure.*; do
+    [ ! -e "$leaked_root" ] || fail "fm_test_tmproot leaked a root after physical resolution failed"
+  done
+  pass "failed physical resolution rolls back the new root"
+}
+
 test_orphan_sweep_respects_fixture_ownership() {
   local harness dirfile active_dir stale_dir fresh_dir pid tries
   harness=$(fm_test_tmproot fm-test-cleanup-orphan-harness)
@@ -168,5 +200,6 @@ test_fixture_root_gone_after_normal_exit
 test_fixture_root_gone_after_sigterm
 test_cleanup_registry_resists_precreation
 test_fixture_registration_failure_rolls_back_root
+test_physical_resolution_failure_rolls_back_root
 test_orphan_sweep_respects_fixture_ownership
 test_orphan_sweep_reaps_read_only_package_tree
