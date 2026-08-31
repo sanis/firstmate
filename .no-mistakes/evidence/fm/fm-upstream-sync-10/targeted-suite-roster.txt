@@ -1,0 +1,17 @@
+Targeted no-mistakes Test scope for this merge (per .no-mistakes.yaml and CONTRIBUTING.md line 77: local Test is intent-targeted, CI owns the full walk).
+
+tests/fm-bearings-board.test.sh  8 ok, 0 not ok
+tests/fm-brief.test.sh           21 ok, 0 not ok
+tests/fm-captain-hold-lifecycle.test.sh 17 ok, 0 not ok
+tests/fm-daemon.test.sh          144 ok, 0 not ok
+tests/fm-documentation-audiences.test.sh 6 ok, 0 not ok
+tests/fm-evidence-artifacts.test.sh 5 ok, 0 not ok
+tests/fm-pr-check-security.test.sh 27 ok, 0 not ok
+tests/fm-pr-description-guard.test.sh 23 ok, 0 not ok
+tests/fm-procevent-when.test.sh  13 ok, 0 not ok
+tests/fm-procevent.test.sh       53 ok, 0 not ok
+tests/fm-task-delivery.test.sh   8 ok, 0 not ok
+tests/fm-test-fixture-cleanup.test.sh 7 ok, 0 not ok
+tests/fm-test-fixtures.test.sh   6 ok, 0 not ok
+tests/fm-test-run.test.sh        26 ok, 0 not ok
+tests/fm-watch-triage.test.sh    71 ok, 0 not ok

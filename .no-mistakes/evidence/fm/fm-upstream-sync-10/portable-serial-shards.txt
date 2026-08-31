@@ -1,0 +1,28 @@
+$ bin/fm-test-run.sh --list --lane portable-serial-1of4  (CI serial shard 1 composition)
+tests/fm-pr-check-security.test.sh
+tests/fm-remote-reply.test.sh
+tests/fm-watch-arm.test.sh
+tests/fm-procevent.test.sh
+tests/fm-startup-network.test.sh
+tests/fm-secondmate-safety.test.sh
+tests/fm-remote-secondmate-trace-context.test.sh
+tests/fm-send-inbox.test.sh
+tests/fm-trace-context-spawn.test.sh
+tests/fm-spawn-pool-base-freshen.test.sh
+tests/fm-pending-reply.test.sh
+tests/fm-remote-transport-lanes.test.sh
+tests/fm-backend-orca.test.sh
+tests/fm-kimi-harness.test.sh
+tests/fm-guard-stale-banner.test.sh
+tests/fm-wake-drain-unread-status.test.sh
+tests/fm-backend-zellij.test.sh
+tests/fm-secondmate-lifecycle-e2e.test.sh
+tests/fm-shared-captain-inheritance.test.sh
+tests/fm-pr-description-guard.test.sh
+...
+
+$ for k in 1 2 3 4: script count per portable-serial shard
+shard 1of4: 34 scripts
+shard 2of4: 35 scripts
+shard 3of4: 35 scripts
+shard 4of4: 35 scripts

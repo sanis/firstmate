@@ -1,0 +1,11 @@
+$ bash tests/fm-procevent.test.sh   (identical checkout, tests/lib.sh reverted to upstream's unresolved fixture root)
+ok - no configured source means no generated state and no process
+not ok - reconcile never claimed the registered source
+exit status: 1
+
+$ bash tests/fm-procevent.test.sh   (this branch, unmodified)
+ok - an adapter with no silence verdict keeps announcing every result
+ok - the published interfaces state the loss limitation and claim no lossless delivery
+
+all procevent tests passed
+exit status: 0

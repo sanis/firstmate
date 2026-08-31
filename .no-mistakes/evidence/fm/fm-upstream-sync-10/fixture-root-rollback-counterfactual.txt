@@ -1,0 +1,9 @@
+Counterfactual for the fixture-root rollback (tests/lib.sh fm_test_tmproot)
+Scenario: the root mktemp just created is untraversable at every depth -
+  <root> mode 000, containing pkg mode 000, containing pkg/locked mode 000.
+Physical resolution (cd -P) therefore fails and the rollback must remove it.
+
+--- pre-fix rollback (plain rm -rf, no recursive chmod) ---
+fm_test_tmproot exit=1   published_root=""   leaked_fixture_root=fm-cf-probe.QgBTjS
+--- this branch (chmod -R u+rwx, then rm -rf) ---
+fm_test_tmproot exit=1   published_root=""   leaked_fixture_root=none

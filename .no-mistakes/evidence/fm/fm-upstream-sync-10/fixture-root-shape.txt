@@ -1,0 +1,7 @@
+$ TMPDIR is macOS default ($TMPDIR resolves under the /var -> /private/var symlink)
+TMPDIR=/var/folders/b8/p7dyhngn7l591759f0_ngqr40000gn/T/
+
+--- fixture root produced BEFORE the fix (upstream tests/lib.sh) ---
+/var/folders/b8/p7dyhngn7l591759f0_ngqr40000gn/T//fm-shape-probe.jj5OFC
+--- fixture root produced on this branch ---
+/private/var/folders/b8/p7dyhngn7l591759f0_ngqr40000gn/T/fm-shape-probe.nECiC0

@@ -1,0 +1,16 @@
+$ bin/fm-pr-check.sh task-a https://github.com/acme/widget/pull/42
+--- description delivered on the pull request ---
+## Evidence
+
+- Evidence: retry flow screenshot
+
+  ![01-retry](<local-evidence-path>/shots/01-retry.png)
+--- fm-pr-check.sh output ---
+error: the pull request description delivers evidence as local file paths no reader can open
+  <local-evidence-root>/01M0A19WBRM7DGRAFZZM6ZQ2FC/shots/01-retry.png
+upload each artifact to the pull request and embed the link it returns; the recipes are in
+  .agents/skills/evidence-artifacts/SKILL.md
+exit status: 3
+--- state after the refusal (nothing recorded or armed) ---
+before: task-a.meta
+after : task-a.meta

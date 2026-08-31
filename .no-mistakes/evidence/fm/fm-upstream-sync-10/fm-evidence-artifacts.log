@@ -1,0 +1,5 @@
+ok - every ship delivery mode carries the evidence rule and a resolvable owner pointer
+ok - scaffolds that open no pull request stay free of the rule
+ok - forge mechanics live only in the owner skill and its verification record
+ok - a ship brief routes workers only into instructions they can execute
+ok - a promoted scout receives the ship brief's evidence rule and owner pointer
