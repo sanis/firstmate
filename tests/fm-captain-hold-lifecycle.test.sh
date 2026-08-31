@@ -187,8 +187,7 @@ EOF
 
   FM_STATE_OVERRIDE="$home/state" bash -c '
     . "$1"
-    sig=$(fm_wake_signal_sig "$3") || exit 1
-    printf "%s" "$sig" > "$(fm_wake_signal_seen_path "$2" "$3")"
+    fm_wake_status_mark_current "$2" "$3"
   ' _ "$ROOT/bin/fm-wake-lib.sh" "$home/state" "$home/state/$id.status" \
     || fail "could not prime the announced decision baseline"
   run_captain "$home" complete "$id" sample-route-call >/dev/null \
@@ -709,7 +708,8 @@ SH
   PATH="$home/fakebin:$PATH" FM_ROOT_OVERRIDE="$home/adapter-root" FM_HOME="$home" \
     FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
     FM_PROCEVENT_CLAIM_ROOT="$home/procevent-claims" \
-    "$ROOT/bin/fm-procevent.sh" start fixture-src >/dev/null 2>&1
+    "$ROOT/bin/fm-procevent.sh" start fixture-src >/dev/null \
+    || fail "could not start the fixture channel source"
   assert_absent "$home/state/procevent-inbox/fixture-src.1.handled" \
     "feeding a captain answer retired the notification firstmate still needs"
   assert_present "$home/state/procevent-inbox/fixture-src.1.result" \

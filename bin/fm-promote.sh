@@ -2,12 +2,16 @@
 # Promote a scout task to a ship task in place: the crewmate keeps its window,
 # worktree, and loaded context; only the contract changes. Flips kind= to ship in
 # state/<task-id>.meta so fm-teardown.sh applies the full ship-task teardown protection
-# again. After promoting, send the crewmate its ship instructions via fm-send.sh
-# (inventory scratch state, reset to a clean default-branch base, carry over only
-# intended fix changes, create branch fm/<task-id>, implement, then report done
-# according to this task's delivery mode). A promoted worker keeps its scout brief,
-# which carries no delivery rules, so this follow-up is the only place the evidence
-# contract reaches it before it writes a PR or MR body; the sentence itself comes
+# again. Promotion also writes the crewmate's ship instructions to
+# data/<task-id>/ship-instructions.md and prints the fm-send.sh command that
+# delivers them. Those instructions carry the scratch-state inventory, the clean
+# default-branch base, the fm/<task-id> branch, the evidence rule, and - rendered
+# from bin/fm-dod-lib.sh, the single owner an ordinary ship brief also uses - the
+# mode-specific Definition of done, so a promoted worker receives exactly the same
+# delivery contract as a briefed one, including the no-mistakes mode's ask-user
+# escalation rule and --yes ban. A promoted worker keeps its scout brief, which
+# carries no delivery rules, so these instructions are also the only place the
+# evidence contract reaches it before it writes a PR or MR body; that sentence comes
 # from bin/fm-evidence-rule-lib.sh, shared with the ship brief bin/fm-brief.sh
 # generates, so the two handoffs cannot state the rule differently.
 # A scout records no delivery posture, so promotion is where this task's delivery
@@ -23,9 +27,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FM_ROOT="${FM_ROOT_OVERRIDE:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 FM_HOME="${FM_HOME:-${FM_ROOT_OVERRIDE:-$FM_ROOT}}"
 STATE="${FM_STATE_OVERRIDE:-$FM_HOME/state}"
+DATA="${FM_DATA_OVERRIDE:-$FM_HOME/data}"
+
 # shellcheck source=bin/fm-evidence-rule-lib.sh
 . "$SCRIPT_DIR/fm-evidence-rule-lib.sh"
-
+# shellcheck source=bin/fm-dod-lib.sh
+. "$SCRIPT_DIR/fm-dod-lib.sh"
 # shellcheck source=bin/fm-pr-lib.sh
 . "$SCRIPT_DIR/fm-pr-lib.sh"
 # shellcheck source=bin/fm-wake-lib.sh
@@ -120,6 +127,48 @@ META_LOCK_HELD=1
 [ -f "$META" ] || { echo "error: no meta for task $ID at $META" >&2; exit 1; }
 grep -qx 'kind=scout' "$META" || { echo "error: task $ID is not a scout task (kind=scout not in meta)" >&2; exit 1; }
 
+# The promoted worker must receive the same delivery contract an ordinary ship
+# brief carries, so the mode-specific Definition of done is rendered from its
+# single owner (bin/fm-dod-lib.sh) rather than summarised into a hint line. A
+# promoted no-mistakes worker that never received the ask-user escalation rule or
+# the --yes ban is the delivery hole this file used to leave open. The evidence rule
+# rides the same payload for the same reason: the scout brief never carried it, and
+# this worker opens the pull request itself.
+#
+# The evidence rule is item 7, not item 6, on purpose - do not renumber it. The
+# Definition of done appended below says "escalate to firstmate (rule 6)", so slot
+# 6 must keep landing on the supersede line, which is the text that restates the
+# escalation rules including ask-user. This only restores upstream's numbering; it
+# does not make the pointer correct. The real weakness is that the Definition of
+# done cross-references a list POSITION in a document both upstream and this fork
+# insert into, so any future insertion by either side silently re-aims it with no
+# test or lint to catch it. That redesign is upstream's to make and is out of scope
+# here, which is why this is a work-around rather than a fix.
+EVIDENCE_RULE=$(fm_evidence_rule_text "$FM_ROOT")
+INSTRUCTIONS="$DATA/$ID/ship-instructions.md"
+mkdir -p "$DATA/$ID"
+[ ! -d "$INSTRUCTIONS" ] || { echo "error: ship instructions path is a directory: $INSTRUCTIONS" >&2; exit 1; }
+TMP="$DATA/$ID/.ship-instructions.md.${BASHPID:-$$}"
+{
+  cat <<EOF
+Your scout task has been promoted to a ship task, mode=$MODE. Your window, worktree, and context stay as they are; only the contract below changes.
+
+# Ship instructions
+1. **Verify isolation before anything else.** Run \`pwd -P\` and \`git rev-parse --show-toplevel\`; both must resolve to the disposable task worktree you were launched in, such as a treehouse pool path or an Orca-managed worktree, not the primary checkout firstmate operates from. If either does not resolve to the worktree you were launched in, stop and escalate to firstmate.
+2. Inventory this worktree's scratch state with \`git status\` and \`git log\` before changing anything.
+3. Return to a clean default-branch base, then create your branch: \`git checkout -b fm/$ID\`.
+4. Carry over only the intended fix changes. Leave scratch commits, debug edits, and experiment files behind.
+5. If you reproduced a bug, turn that reproduction into a regression test.
+6. These ship instructions supersede the scout delivery rules and report-based Definition of done. Everything else in your original instructions carries over unchanged: the status protocol; the instruction inbox and its acknowledgement; the escalation rules, including ask-user; and every safety rule.
+7. $EVIDENCE_RULE
+
+EOF
+  fm_dod_block "$MODE" "$ID"
+} > "$TMP" || { echo "error: could not render ship instructions for mode=$MODE" >&2; exit 1; }
+mv "$TMP" "$INSTRUCTIONS"
+TMP=
+[ -f "$INSTRUCTIONS" ] && [ -r "$INSTRUCTIONS" ] || { echo "error: ship instructions were not published as a readable file: $INSTRUCTIONS" >&2; exit 1; }
+
 TMP="$STATE/.$ID.meta.promote.${BASHPID:-$$}"
 grep -v -e '^kind=' -e '^mode=' -e '^yolo=' "$META" > "$TMP"
 {
@@ -133,9 +182,10 @@ fm_lock_release "$META_LOCK"
 META_LOCK_HELD=0
 
 HOME_Q=$(printf '%q' "$FM_HOME")
-EVIDENCE_RULE=$(fm_evidence_rule_text "$FM_ROOT")
+INSTRUCTIONS_Q=$(printf '%q' "$INSTRUCTIONS")
 echo "promoted $ID to ship mode=$MODE yolo=$YOLO (teardown protection restored)"
-echo "next: FM_HOME=$HOME_Q bin/fm-send.sh fm-$ID '<ship instructions for mode=$MODE: review scratch state with git status and git log; reset to a clean default-branch base; carry over only intended fix changes; create branch fm/$ID; implement; report done>. $EVIDENCE_RULE'"
+echo "wrote ship instructions for mode=$MODE: $INSTRUCTIONS"
+echo "next: FM_HOME=$HOME_Q bin/fm-send.sh fm-$ID \"\$(cat $INSTRUCTIONS_Q)\""
 
 promote_print_rechain_hint() {
   local consent_home=$1 work_home=$2 task_id=$3 id prefix
