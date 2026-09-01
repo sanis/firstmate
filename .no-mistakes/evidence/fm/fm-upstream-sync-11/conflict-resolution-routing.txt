@@ -1,0 +1,45 @@
+### Conflict resolution in bin/fm-test-run.sh - pr-forge test classification
+### exercised through the runner's real --changed router in an isolated fixture repo
+
+Resolved lines (bin/fm-test-run.sh:283-285):
+    fm-check-unregister.test.sh|fm-pr-check-security.test.sh|fm-pr-description-guard.test.sh|\
+    fm-pr-merge.test.sh|fm-review-diff.test.sh|fm-teardown.test.sh|fm-x-mode.test.sh)
+      printf '%s\n' pr-forge
+
+== A. As resolved: alphabetical union of both sides ==
+-- change ONLY bin/fm-check-unregister.sh (upstream's new script) -> selected tests:
+tests/fm-check-unregister.test.sh
+tests/fm-pr-check-security.test.sh
+tests/fm-pr-description-guard.test.sh
+tests/fm-pr-merge.test.sh
+tests/fm-review-diff.test.sh
+tests/fm-teardown.test.sh
+tests/fm-x-mode.test.sh
+-- change ONLY bin/fm-pr-merge.sh (fork-local pr-forge source) -> selected tests:
+tests/fm-check-unregister.test.sh
+tests/fm-pr-check-security.test.sh
+tests/fm-pr-description-guard.test.sh
+tests/fm-pr-merge.test.sh
+tests/fm-review-diff.test.sh
+tests/fm-teardown.test.sh
+tests/fm-x-mode.test.sh
+
+== B. Counterfactual: OUR side taken wholesale, upstream's fm-check-unregister.test.sh dropped ==
+-- change ONLY bin/fm-check-unregister.sh -> selected tests:
+tests/fm-pr-check-security.test.sh
+tests/fm-pr-description-guard.test.sh
+tests/fm-pr-merge.test.sh
+tests/fm-review-diff.test.sh
+tests/fm-teardown.test.sh
+tests/fm-x-mode.test.sh
+-> upstream's own test is no longer selected by a change to the script it covers.
+
+== C. Counterfactual: UPSTREAM's side taken wholesale, fork-local fm-pr-description-guard.test.sh dropped ==
+-- change ONLY bin/fm-pr-merge.sh -> selected tests:
+tests/fm-check-unregister.test.sh
+tests/fm-pr-check-security.test.sh
+tests/fm-pr-merge.test.sh
+tests/fm-review-diff.test.sh
+tests/fm-teardown.test.sh
+tests/fm-x-mode.test.sh
+-> the fork-local PR-description guard test is no longer selected by a pr-forge source change.

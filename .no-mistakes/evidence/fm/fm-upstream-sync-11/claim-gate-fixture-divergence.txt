@@ -1,0 +1,14 @@
+### Requirement 4: the sync-10 fork-local test-fixture divergence is still required after the merge
+
+Files the merge touched among {tests/lib.sh, bin/fm-procevent-lib.sh} (empty means neither):
+upstream head a5f3cbee tests/lib.sh, physical fixture-root resolution: 0
+this branch      tests/lib.sh, physical fixture-root resolution: 1
+
+The process-event claim gate run against a default-TMPDIR fixture root on this machine:
+  root as mktemp -d returns it (upstream fixture shape) : /var/folders/b8/p7dyhngn7l591759f0_ngqr40000gn/T//fm-claim.EFYTf8
+  same root physically resolved (fork-local shape)      : /private/var/folders/b8/p7dyhngn7l591759f0_ngqr40000gn/T/fm-claim.EFYTf8
+  claim gate, upstream shape  : REFUSED (exit 1)
+  claim gate, fork-local shape : ACCEPTED  identity=/private/var/folders/b8/p7dyhngn7l591759f0_ngqr40000gn/T/fm-claim.EFYTf8	16777230	103974007	501	700
+
+Refusal cause: the gate compares cd -P/pwd -P against a lexical normalisation, and macOS
+/var is a symlink to /private/var, so an unresolved fixture root never matches.

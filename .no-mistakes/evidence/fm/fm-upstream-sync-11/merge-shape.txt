@@ -1,0 +1,21 @@
+### Merge shape: fork-local material preserved, upstream merged in
+
+$ git log -1 --format='%H parents=%P' HEAD
+9a4d1475058f0c129c99cd3b653709845d619b4c parents=7f58fcebdcaef8aba996bfe1786229966a629c32 a5f3cbeeb71768bca2ac54c6926d314b6d27b836
+  parent 1 = our main 7f58fceb, parent 2 = upstream a5f3cbee -> a merge, not a rebase
+
+tracked files present on our main but missing after the merge (deletions of fork-local material):
+  (no lines above means nothing fork-local was dropped)
+
+upstream commits reachable from HEAD, pinned set:
+  debe4bfa fix(bin): present Lavish feedback as structured output (#3 -> reachable
+  1260adce fix: keep task records and backlog transitions atomic (#33 -> reachable
+  d71f4b9c fix(bin): contain promote and Relay metadata publishing (# -> reachable
+  a56a78ac fix(bin): absorb turn-end wakes during bounded pane churn  -> reachable
+  0866a770 fix(bin): safely unregister custom checks (#3369) -> reachable
+  4ad8cbae refactor(quota): extract mid-task polling and candidate se -> reachable
+  6c1d2db1 fix: surface comments on Lavish annotations (#3371) -> reachable
+  a5f3cbee fix: support first public-followup registration on Bash 3. -> reachable
+
+commit deliberately excluded (355f46fe), reachable from HEAD?
+  not reachable - as intended
