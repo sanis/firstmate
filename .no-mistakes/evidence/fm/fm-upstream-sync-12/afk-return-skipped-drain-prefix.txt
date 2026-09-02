@@ -1,0 +1,12 @@
+### PRE-FIX build (merge commit, before 3b3d183) — same scenario
+
+$ bin/fm-afk-return.sh begin
+catch-up wake: WAKE DRAIN SKIPPED: queue lock remains held by live pid 40359 after 2s; retry on the next drain.
+fm-afk-return: catch-up clear; ordinary captain work may proceed
+[exit 0]
+
+$ bin/fm-afk-return.sh guard   # can ordinary captain work proceed?
+[exit 0]
+
+state/.afk-return-catchup absent  (catch-up gate CLEARED)
+undrained durable wake rows still in state/.wake-queue: 1

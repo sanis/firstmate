@@ -1,0 +1,22 @@
+### tests/fm-afk-return.test.sh :: test_skipped_wake_drain_keeps_catchup_gated
+
+--- WITHOUT the fix (bin/fm-afk-return.sh from the merge commit) ---
+ok - return catch-up precedes Bearings, owns live blocker remediation, preserves evidence once, and clears idempotently
+ok - tmux and Herdr blockers require the same explicit durable reclassification before ordinary work
+ok - needs-decision remains reportable without masquerading as a firstmate-actionable blocker
+ok - AFK return re-drains published wakes until handling acknowledges
+ok - away-mode re-entry fails closed while the prior return catch-up is pending
+ok - check retries recorded terminal teardown and keeps catch-up gated until success
+not ok - skipped wake drain cleared the catch-up gate (rc=0): catch-up wake: WAKE DRAIN SKIPPED: queue lock remains held by live pid 80670 after 1s; retry on the next drain.
+fm-afk-return: catch-up clear; ordinary captain work may proceed
+[exit 1]
+
+--- WITH the fix (target commit) ---
+ok - return catch-up precedes Bearings, owns live blocker remediation, preserves evidence once, and clears idempotently
+ok - tmux and Herdr blockers require the same explicit durable reclassification before ordinary work
+ok - needs-decision remains reportable without masquerading as a firstmate-actionable blocker
+ok - AFK return re-drains published wakes until handling acknowledges
+ok - away-mode re-entry fails closed while the prior return catch-up is pending
+ok - check retries recorded terminal teardown and keeps catch-up gated until success
+ok - skipped wake drain keeps catch-up gated until an uncontended drain presents the queue
+[exit 0]

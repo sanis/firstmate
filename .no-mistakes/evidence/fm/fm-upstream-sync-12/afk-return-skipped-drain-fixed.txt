@@ -1,0 +1,35 @@
+### FIXED build (target commit 3b3d183) — captain returns while the wake queue lock is held
+
+$ bin/fm-afk-return.sh begin
+fm-afk-return: catch-up must finish before the captain request
+catch-up lifecycle: durable wake drain was skipped while the queue lock was held; retry catch-up before ordinary work
+catch-up wake: WAKE DRAIN SKIPPED: queue lock remains held by live pid 29042 after 2s; retry on the next drain.
+fm-afk-return: handle each blocker now, or close it with resolved [key=...] and append a durable reclassification reason, then run bin/fm-afk-return.sh check
+[exit 3]
+
+$ bin/fm-afk-return.sh guard   # can ordinary captain work proceed?
+fm-afk-return: return catch-up is pending; remediate or durably reclassify every listed blocker, then run bin/fm-afk-return.sh check
+[exit 3]
+
+$ ls state/.afk-return-catchup ; wc -l < state/.wake-queue
+state/.afk-return-catchup  (catch-up gate still open)
+undrained durable wake rows: 1
+
+--- lock holder exits; captain retries catch-up ---
+
+$ bin/fm-afk-return.sh check
+catch-up lifecycle: durable wake drain was skipped while the queue lock was held; retry catch-up before ordinary work
+catch-up wake: WAKE DRAIN SKIPPED: queue lock remains held by live pid 29042 after 2s; retry on the next drain.
+catch-up wake: 1788357704 1 signal task.status signal: needs-decision [key=demo]: deploy window needs a call
+catch-up wake: wake annotation: latest wake-EVENT observed at drain, not current state: task.status: needs-decision [key=demo]: deploy window needs a call
+catch-up wake: OPEN DECISIONS (still open, folded from the durable status logs - not just the latest line):
+catch-up wake: task [key=demo] needs-decision: deploy window needs a call
+catch-up wake: OPEN DECISIONS: close one by answering it: bin/fm-send.sh <task> --resolve-key <key> '<answer>'
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 28999.1788357704.UqVh0W
+fm-afk-return: catch-up clear; ordinary captain work may proceed
+[exit 0]
+
+$ bin/fm-afk-return.sh guard
+[exit 0]
+
+state/.afk-return-catchup  (gate cleared)
