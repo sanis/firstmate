@@ -44,6 +44,7 @@ The hints came from the `fm-test-timing-portable-serial-*` artifacts of green CI
 That run measured every script the lane selected at the time.
 The renewal that followed added `tests/fm-home-summary-refresh.test.sh` and `tests/fm-remote-transport-lanes.test.sh`, which it did not measure, so those two carry the default weight until the next refresh.
 The renewal after that added four more scripts, each of which arrived carrying an upstream-supplied hint rather than the default.
+The latest renewal added `tests/fm-backlog-atomicity.test.sh`, `tests/fm-check-unregister.test.sh`, `tests/fm-procevent-quota.test.sh`, and `tests/fm-quota-choose.test.sh`, none of which arrived with a hint, so those four carry the default weight as well.
 A script with no hint gets the conservative `PORTABLE_SERIAL_DEFAULT_WEIGHT_MS` default.
 Hints only affect balance: the coverage guard keeps the partition complete and disjoint whatever they say, so a stale hint costs a slower shard rather than lost coverage.
 Balance is still worth keeping current, because enough unmeasured scripts let one shard carry more than twice another shard's real work and reach the job cap while another runner sits idle.
@@ -51,14 +52,14 @@ Refresh the hints whenever the serial lane gains scripts, rather than waiting fo
 
 | Lane | Script count | Estimated duration |
 |---|---:|---:|
-| `portable-serial-1of4` | 34 | 829116 ms (~829.1 s) |
-| `portable-serial-2of4` | 35 | 829112 ms (~829.1 s) |
-| `portable-serial-3of4` | 35 | 829113 ms (~829.1 s) |
-| `portable-serial-4of4` | 35 | 829124 ms (~829.1 s) |
+| `portable-serial-1of4` | 35 | 849116 ms (~849.1 s) |
+| `portable-serial-2of4` | 36 | 849112 ms (~849.1 s) |
+| `portable-serial-3of4` | 36 | 849113 ms (~849.1 s) |
+| `portable-serial-4of4` | 36 | 849124 ms (~849.1 s) |
 | imbalance | | 12 ms |
 
-This table was refreshed on 2026-08-27 and recomputed on 2026-08-30 for the scripts the two renewals since have added.
-`tests/fm-home-summary-refresh.test.sh` and `tests/fm-remote-transport-lanes.test.sh` remain the only two estimated rather than measured, at the `PORTABLE_SERIAL_DEFAULT_WEIGHT_MS` default each, so the balance above is still worth planning from.
+This table was refreshed on 2026-08-27 and recomputed on 2026-09-01 for the scripts the three renewals since have added.
+Six scripts are now estimated rather than measured, at the `PORTABLE_SERIAL_DEFAULT_WEIGHT_MS` default each: `tests/fm-home-summary-refresh.test.sh`, `tests/fm-remote-transport-lanes.test.sh`, and the four the latest renewal added, so the balance above is still worth planning from.
 The refresh it replaced was overdue in a way the run before it made concrete: with fifteen scripts still on the default weight, the same green run's real shard times were 773043, 716092, 1093907 and 657356 ms, so one shard spent 18m14s of a 20-minute job cap while another idled at 11m.
 
 The single longest hint, `tests/fm-pr-check-security.test.sh` at 233979 ms, is the floor for any shard count.
@@ -94,7 +95,7 @@ Portable shards, each portable serial shard, and the Herdr lane upload runner-ge
 | Lane | Bound | Rationale |
 |---|---|---|
 | portable parallel 1/2 | job `timeout-minutes: 10` | The measured shard sums are about three minutes and the timeout is a hang tripwire. |
-| portable serial 1-4 | job `timeout-minutes: 20` | Each balanced shard is about 13.7 minutes of estimated script time, leaving hang-tripwire margin for job setup and runner-speed spread. |
+| portable serial 1-4 | job `timeout-minutes: 20` | Each balanced shard is about 14.2 minutes of estimated script time, leaving hang-tripwire margin for job setup and runner-speed spread. |
 | Herdr | family-run step `timeout-minutes: 20`; job `timeout-minutes: 75` backstop | Healthy runs finish around 7 minutes, so the step bound is the hang tripwire (cleanup and timing artifacts still upload) while the job cap stays a last-resort backstop. |
 
 Timeouts are hang tripwires rather than expected healthy durations.
