@@ -16,9 +16,15 @@
 # The durable state/.afk-return-catchup file is written BEFORE daemon shutdown,
 # so a crash between stopping, wake presentation, and blocker handling fails closed.
 # It retains the presented wake, buffered-escalation, and wedge-marker evidence
-# until every live open blocker is closed and `check` succeeds. Repeated begin/check
-# calls are idempotent. `guard` never mutates state and is suitable for ordinary
-# read entrypoints such as fm-bearings-snapshot.sh.
+# until every live open blocker is closed and `check` succeeds. A lifecycle failure
+# holds the gate on its own, with no open blocker at all: a failed daemon shutdown,
+# a failed drain, an invalid wake acknowledgement, or a drain that reported
+# `WAKE DRAIN SKIPPED` on stdout. That last one exits zero by design - the drain
+# bounds its queue-lock wait and gives up when a live holder keeps it - so the exit
+# status alone cannot be read as "the queue was presented", and a skipped drain is
+# never a drained queue. Repeated begin/check calls are idempotent. `guard` never
+# mutates state and is suitable for ordinary read entrypoints such as
+# fm-bearings-snapshot.sh.
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -164,6 +170,10 @@ return_reconcile() {
     lifecycle_ok=0
     drained=""
   }
+  if printf '%s\n' "$drained" | grep -q '^WAKE DRAIN SKIPPED:'; then
+    append_evidence lifecycle 'durable wake drain was skipped while the queue lock was held; retry catch-up before ordinary work' "$evidence"
+    lifecycle_ok=0
+  fi
   grep -v '^WAKE_ACK_REQUIRED:' "$drain_err" >&2 || true
   wake_ack_line=$(grep '^WAKE_ACK_REQUIRED:' "$drain_err" | tail -1)
   wake_ack_through=$(sed -n 's/^WAKE_ACK_REQUIRED:.*--ack-through \([0-9][0-9]*\) --recovery-generation [A-Za-z0-9._-][A-Za-z0-9._-]*$/\1/p' "$drain_err" | tail -1)
