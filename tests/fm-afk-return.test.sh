@@ -275,9 +275,80 @@ test_check_retries_recorded_terminal_teardown() {
   pass "check retries recorded terminal teardown and keeps catch-up gated until success"
 }
 
+# The real drain (not the fixture stub) is required for the skipped-drain
+# contract: since upstream bounded its presentation-lock wait, a queue lock held
+# by a live pid makes the drain print `WAKE DRAIN SKIPPED:` on stdout and exit 0.
+install_real_drain() {  # <case-dir>
+  local dir=$1
+  cp "$ROOT/bin/fm-wake-drain.sh" "$dir/bin/"
+  cp "$ROOT/bin/fm-line-cap-lib.sh" "$dir/bin/"
+  cp "$ROOT/bin/fm-lease-lib.sh" "$dir/bin/"
+  chmod +x "$dir/bin/"*.sh
+}
+
+seed_durable_wake() {  # <case-dir>
+  local dir=$1 state
+  state="$dir/home/state"
+  printf 'needs-decision [key=fixture]: presentation remains retriable\n' > "$state/task.status"
+  FM_STATE_OVERRIDE="$state" bash -c '
+    # shellcheck disable=SC1090,SC1091
+    . "$1"
+    fm_wake_append signal task.status "signal: $2"
+  ' _ "$dir/bin/fm-wake-lib.sh" "$state/task.status" \
+    || fail "could not seed the durable wake for the skipped-drain case"
+}
+
+test_skipped_wake_drain_keeps_catchup_gated() {
+  local dir state gate out rc holder i
+  dir="$TMP_ROOT/skipped-drain"
+  install_runner "$dir"
+  install_real_drain "$dir"
+  state="$dir/home/state"
+  gate="$state/.afk-return-catchup"
+  seed_durable_wake "$dir"
+
+  FM_STATE_OVERRIDE="$state" bash -c '
+    # shellcheck disable=SC1090,SC1091
+    . "$1"
+    fm_lock_acquire_wait "$2"
+    printf "ready\n" > "$3"
+    exec sleep 30
+  ' _ "$dir/bin/fm-wake-lib.sh" "$state/.wake-queue.lock" "$dir/queue.ready" &
+  holder=$!
+  i=0
+  while [ "$i" -lt 100 ] && [ ! -s "$dir/queue.ready" ]; do
+    sleep 0.05
+    i=$((i + 1))
+  done
+  [ -s "$dir/queue.ready" ] \
+    || { kill "$holder" 2>/dev/null || true; fail "queue holder never acquired its lock"; }
+
+  set +e
+  out=$(FM_STATUS_PRESENTATION_LOCK_TIMEOUT=1 run_return "$dir" begin)
+  rc=$?
+  set -e
+  kill "$holder" 2>/dev/null || true
+  wait "$holder" 2>/dev/null || true
+
+  [ "$rc" -eq 3 ] || fail "skipped wake drain cleared the catch-up gate (rc=$rc): $out"
+  [ -e "$gate" ] || fail "skipped wake drain left no durable catch-up gate"
+  assert_contains "$out" 'durable wake drain was skipped' \
+    "skipped wake drain did not explain why catch-up remains pending"
+  grep -F $'evidence\tlifecycle\t' "$gate" | grep -Fq 'durable wake drain was skipped' \
+    || fail "skipped wake drain evidence was not retained in the durable gate"
+  grep "$(printf '\tsignal\t')" "$state/.wake-queue" >/dev/null \
+    || fail "skipped wake drain consumed the undrained durable wake"
+
+  out=$(run_return "$dir" check) || fail "uncontended retry did not clear catch-up: $out"
+  [ ! -e "$gate" ] || fail "uncontended drain retry left the catch-up gate behind"
+  assert_contains "$out" 'catch-up wake:' "uncontended drain retry did not present the durable wake"
+  pass "skipped wake drain keeps catch-up gated until an uncontended drain presents the queue"
+}
+
 test_return_gate_orders_catchup_before_bearings
 test_explicit_reclassification_requires_durable_reason
 test_captain_decision_does_not_masquerade_as_firstmate_blocker
 test_evidence_publication_failure_preserves_wake_for_redrain
 test_away_reentry_refuses_pending_return_gate
 test_check_retries_recorded_terminal_teardown
+test_skipped_wake_drain_keeps_catchup_gated
