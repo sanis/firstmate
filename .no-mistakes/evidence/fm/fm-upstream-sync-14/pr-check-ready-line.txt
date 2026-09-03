@@ -1,0 +1,13 @@
+$ cat body.md   # description as delivered to the forge
+    ## Summary
+    Renewed the fork from upstream.
+    
+    ## Evidence
+    ![shard table](https://github.com/o/r/assets/1/shards.png)
+
+$ fm-pr-check.sh task-a https://github.com/o/r/pull/1
+armed: state/task-a.check.sh
+exit=0
+
+--- parent channel /private/var/folders/b8/p7dyhngn7l591759f0_ngqr40000gn/T/fm-readyline-demo.mJlXv2/parent/state/mate-7.status ---
+done [key=child-pr-task-a]: child task-a PR ready: https://github.com/o/r/pull/1 mode=direct-pr

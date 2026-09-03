@@ -1,0 +1,23 @@
+serial lane scripts: 144
+unhinted scripts: 0
+
+lane                     scripts  weight_ms
+portable-serial-1of5     28       767438 (~12.79 min)
+portable-serial-2of5     29       767435 (~12.79 min)
+portable-serial-3of5     29       767431 (~12.79 min)
+portable-serial-4of5     29       767431 (~12.79 min)
+portable-serial-5of5     29       767448 (~12.79 min)
+
+total scripts across shards: 144
+imbalance (max-min): 17 ms
+
+--- rows recorded in docs/fm-test-portable-shards.md ---
+| `portable-serial-1of5` | 28 | 767438 ms (~12.79 min) |
+| `portable-serial-2of5` | 29 | 767435 ms (~12.79 min) |
+| `portable-serial-3of5` | 29 | 767431 ms (~12.79 min) |
+| `portable-serial-4of5` | 29 | 767431 ms (~12.79 min) |
+| `portable-serial-5of5` | 29 | 767448 ms (~12.79 min) |
+
+$ bin/fm-test-run.sh --check-coverage
+FM_TEST_COVERAGE ok total=180 parallel=24 serial=144 serial_shards=5 serial_unhinted=0 herdr=12
+exit=0

@@ -1,0 +1,10 @@
+$ fm-pr-check.sh task-a https://github.com/o/r/pull/1
+error: the pull request description delivers evidence as local file paths no reader can open
+  /var/folders/qz/8xk3mhpn1t95c2rv7_gbdlr40000gn/T/no-mistakes-evidence/01M08HCNG26R96B3RX8C8H395Y/mcp-transcript.json
+  /var/folders/qz/8xk3mhpn1t95c2rv7_gbdlr40000gn/T/no-mistakes-evidence/01M08HCNG26R96B3RX8C8H395Y/McpProbe40127TranscriptCapture.php
+upload each artifact to the pull request and embed the link it returns; the recipes are in
+  .agents/skills/evidence-artifacts/SKILL.md
+exit=3
+
+--- task state after refusal (nothing armed, nothing recorded) ---
+./task-a.meta

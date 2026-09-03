@@ -1,0 +1,14 @@
+Fork-side behaviour contracts that had to survive the upstream merge
+
+bin/fm-supervise-daemon.sh - lock taken only after backend validation
+  (upstream acquires earlier; the fork's away-daemon delivery fix depends on the later acquisition)
+  ok - daemon startup: the lock is not held while the target is still being validated
+  ok - daemon startup: a refused daemon leaves no lock or pidfile to unwind
+  ok - daemon startup: validations run before the lock, and the singleton gate still holds
+
+docs/architecture.md - afk-return skipped-wake-drain gate contract
+  ok - skipped wake drain keeps catch-up gated until an uncontended drain presents the queue
+
+tests/fm-evidence-artifacts.test.sh - fixture adaptation (upstream now refuses unfilled brief subsections)
+  before 5699fbe: not ok - promotion with a full delivery contract should succeed: expected exit 0, got 1
+  at     5699fbe: ok     - promotion with a full delivery contract should succeed
