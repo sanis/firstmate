@@ -1,0 +1,19 @@
+tests/fm-evidence-artifacts.test.sh
+  s_5ca675bd084705::t_3dfd13ed862e22 30-40,228,235-238
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "5699fbe0c45181b3d9aff13e7fcc2e33e0924912",
+  "prompts": {},
+  "sessions": {
+    "s_5ca675bd084705": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "afdb2e3b-980b-4556-8d07-f2bf163acb0b",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Justinas Bolys <justinas.bolys@mediatech.one>"
+    }
+  }
+}
