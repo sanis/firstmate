@@ -1290,6 +1290,7 @@ families_for_changed_path() {
       printf '%s\n' pr-forge
       printf '%s\n' watcher-wake-lock
       printf '%s\n' "__script__:fm-procevent-quota.test.sh"
+      printf '%s\n' "__script__:fm-pr-description-guard.test.sh"
       ;;
     bin/fm-pr-*|bin/fm-merge-local.sh|bin/fm-teardown.sh|bin/fm-review-diff.sh|\
     bin/fm-x-*|bin/fm-check*)

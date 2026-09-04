@@ -412,6 +412,29 @@ test_changed_pr_surface_selects_the_serial_description_guard() {
   pass "a PR surface change selects the serial description guard exactly once"
 }
 
+# The shared hard bound carries the PR description fetch, whose only guard now
+# lives outside pr-forge. A change to that bound must still reach it.
+test_changed_timeout_bound_selects_the_serial_description_guard() {
+  local tmp repo listed count
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-timeout-guard.XXXXXX")
+  repo="$tmp/repo"
+  init_changed_fixture_repo "$repo"
+
+  printf '\n' >>"$repo/bin/fm-timeout-lib.sh"
+  listed=$(cd "$repo" && bin/fm-test-run.sh --list --changed --base HEAD)
+
+  assert_contains "$listed" "tests/fm-pr-merge.test.sh" \
+    "a shared bound change must still select the PR family it names"
+  assert_contains "$listed" "tests/fm-pr-description-guard.test.sh" \
+    "a shared bound change must select the description guard that left pr-forge"
+  count=$(printf '%s\n' "$listed" | grep -Fc 'tests/fm-pr-description-guard.test.sh' || true)
+  [ "$count" = 1 ] \
+    || fail "description guard selected $count times, expected exactly one"
+
+  rm -rf "$tmp"
+  pass "a shared timeout bound change selects the serial description guard exactly once"
+}
+
 # Exercise begin/end markers from real fixture processes to prove the automatic
 # changed-suite default and its explicit serial override.
 test_changed_uses_bounded_automatic_concurrency() {
@@ -1454,6 +1477,7 @@ test_changed_dependency_selection_and_unmapped_failure
 test_prose_only_change_selects_the_documentation_suite
 test_changed_bin_reference_selects_per_script_not_per_family
 test_changed_pr_surface_selects_the_serial_description_guard
+test_changed_timeout_bound_selects_the_serial_description_guard
 test_changed_uses_bounded_automatic_concurrency
 test_script_list_uses_bounded_automatic_concurrency
 test_family_proofs_run_in_separate_concurrent_phases
