@@ -109,6 +109,7 @@ init_changed_fixture_repo() {
     fm-afk-pi-herdr-return-e2e.test.sh \
     fm-backend.test.sh \
     fm-pr-merge.test.sh \
+    fm-pr-description-guard.test.sh \
     fm-procevent-quota.test.sh \
     fm-quota-choose.test.sh \
     fm-pi-watch-extension.test.sh \
@@ -126,6 +127,7 @@ init_changed_fixture_repo() {
   : >"$repo/bin/fm-supervisor-target-lib.sh"
   : >"$repo/bin/fm-control-lib.sh"
   : >"$repo/bin/fm-timeout-lib.sh"
+  : >"$repo/bin/fm-pr-check.sh"
   : >"$repo/bin/fm-procevent-quota.sh"
   : >"$repo/bin/fm-quota-axi-lib.sh"
   : >"$repo/bin/fm-quota-choose.sh"
@@ -384,6 +386,30 @@ test_changed_bin_reference_selects_per_script_not_per_family() {
 
   rm -rf "$tmp"
   pass "a bin reference selects the referencing scripts, and consumers still select their curated families"
+}
+
+# The PR-description guard is deliberately outside the concurrent pr-forge
+# family, so family membership no longer carries it into a changed run. A PR
+# surface change must still select it, exactly once, alongside that family.
+test_changed_pr_surface_selects_the_serial_description_guard() {
+  local tmp repo listed count
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-pr-guard.XXXXXX")
+  repo="$tmp/repo"
+  init_changed_fixture_repo "$repo"
+
+  printf '\n' >>"$repo/bin/fm-pr-check.sh"
+  listed=$(cd "$repo" && bin/fm-test-run.sh --list --changed --base HEAD)
+
+  assert_contains "$listed" "tests/fm-pr-merge.test.sh" \
+    "a PR surface change must select its curated family"
+  assert_contains "$listed" "tests/fm-pr-description-guard.test.sh" \
+    "a PR surface change must select the description guard that left pr-forge"
+  count=$(printf '%s\n' "$listed" | grep -Fc 'tests/fm-pr-description-guard.test.sh' || true)
+  [ "$count" = 1 ] \
+    || fail "description guard selected $count times, expected exactly one"
+
+  rm -rf "$tmp"
+  pass "a PR surface change selects the serial description guard exactly once"
 }
 
 # Exercise begin/end markers from real fixture processes to prove the automatic
@@ -1427,6 +1453,7 @@ test_changed_runner_surfaces_select_their_family
 test_changed_dependency_selection_and_unmapped_failure
 test_prose_only_change_selects_the_documentation_suite
 test_changed_bin_reference_selects_per_script_not_per_family
+test_changed_pr_surface_selects_the_serial_description_guard
 test_changed_uses_bounded_automatic_concurrency
 test_script_list_uses_bounded_automatic_concurrency
 test_family_proofs_run_in_separate_concurrent_phases
