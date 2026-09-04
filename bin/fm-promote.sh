@@ -168,7 +168,7 @@ fi
 # rides the same payload for the same reason: the scout brief never carried it, and
 # this worker opens the pull request itself.
 #
-# The evidence rule is item 7, not item 6, on purpose - do not renumber it. The
+# The evidence rule is item 8, not item 6, on purpose - do not renumber it. The
 # Definition of done appended below says "escalate to firstmate (rule 6)", so slot
 # 6 must keep landing on the supersede line, which is the text that restates the
 # escalation rules including ask-user. This only restores upstream's numbering; it

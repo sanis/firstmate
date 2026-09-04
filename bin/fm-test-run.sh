@@ -301,10 +301,14 @@ family_for_basename() {
     fm-teardown-endpoint-safety.test.sh)
       printf '%s\n' backend-dispatch
       ;;
-    fm-check-unregister.test.sh|fm-pr-check-security.test.sh|fm-pr-description-guard.test.sh|\
+    fm-check-unregister.test.sh|fm-pr-check-security.test.sh|\
     fm-pr-merge.test.sh|fm-review-diff.test.sh|fm-teardown.test.sh|fm-x-mode.test.sh)
       printf '%s\n' pr-forge
       ;;
+    # This fork's own PR-description guard stays out of pr-forge while that
+    # family runs concurrently: docs/fm-test-isolation-proof.md proves the six
+    # scripts above safe together at four workers, and nothing proves a seventh.
+    # It falls through to unclassified and stays serial until a proof covers it.
     fm-afk-inject-e2e.test.sh|fm-afk-return.test.sh)
       printf '%s\n' afk
       ;;
@@ -1290,6 +1294,7 @@ families_for_changed_path() {
     bin/fm-pr-*|bin/fm-merge-local.sh|bin/fm-teardown.sh|bin/fm-review-diff.sh|\
     bin/fm-x-*|bin/fm-check*)
       printf '%s\n' pr-forge
+      printf '%s\n' "__script__:fm-pr-description-guard.test.sh"
       ;;
     bin/fm-nm-run-lib.sh)
       # Shared no-mistakes run-attribution primitives, sourced by both
