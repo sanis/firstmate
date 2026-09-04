@@ -1,0 +1,167 @@
+.agents/skills/harness-adapters/references/common/control-and-recovery.md
+  s_ba3639d682cd55::t_fefafb2a8e7836 19-29
+.agents/skills/harness-adapters/references/harness/claude.md
+  s_ba3639d682cd55::t_3e7450e03b8fc1 16-30,42-46
+.agents/skills/secondmate-provisioning/SKILL.md
+  s_ba3639d682cd55::t_eb2d75ca3a249d 226-228
+.agents/skills/updatefirstmate/SKILL.md
+  s_ba3639d682cd55::t_8aa9c8089ec5bc 6,19-25,39,41,44-46,52-53,55,58-78,80,83,93-97
+.github/workflows/ci.yml
+  s_ba3639d682cd55::t_b50b8f5c1cfbe7 388-389
+.no-mistakes.yaml
+  s_ba3639d682cd55::t_e08e9ea42ff1f8 32-52,55
+.pi/extensions/fm-branch-supervision.ts
+  s_ba3639d682cd55::t_610f4d5a7f469a 515-522,932-938,974-977,1237-1244
+.pi/extensions/lib/fm-branch-dispatch.ts
+  s_ba3639d682cd55::t_94c740531cc1b5 36-44,59-74,118-120,130-134,142,160,162,165,172,174,185-192
+AGENTS.md
+  s_ba3639d682cd55::t_5434a6c70e1f74 377,379,489,501,527-528,545
+CONTRIBUTING.md
+  s_ba3639d682cd55::t_a6bbd27d6f9bed 59,76,78,87,116-119
+README.md
+  s_ba3639d682cd55::t_d28c11762156fd 179
+bin/fm-backend.sh
+  s_ba3639d682cd55::t_2a7f4884d2a89e 339,341-346
+bin/fm-branch-outcome.sh
+  s_ba3639d682cd55::t_2491e2d83377ef 47-50,467-477
+bin/fm-branch-prompt.sh
+  s_ba3639d682cd55::t_ed50abd6d8bbd2 50,69,79-84,103-104
+bin/fm-brief.sh
+  s_ba3639d682cd55::t_d1fe55d9481cd9 7-8,192-196,383-385,463-465,473,475
+bin/fm-claude-trust.sh
+  s_ba3639d682cd55::t_7713415f015f4b 1-275
+bin/fm-control.sh
+  s_ba3639d682cd55::t_87b6c132c41c7f 37-42,251-252
+bin/fm-crew-state.sh
+  s_ba3639d682cd55::t_03c60ccb3dea1b 29-46,89-92,96-98,367-382,400-404,421-427,430-435
+bin/fm-dod-lib.sh
+  s_ba3639d682cd55::t_69b46e3085d2b1 15-22,145,168-176,214-215,220
+bin/fm-ff-lib.sh
+  s_ba3639d682cd55::t_0d24caec8c2f9b 235-248
+bin/fm-fleet-snapshot.sh
+  s_ba3639d682cd55::t_4271789211f687 36-40,88-93,124,157,216-218,245-248,264-265,271-272,298-299,307,475-640,642-643,648-650,652,673-674,686-691,693-695,730-739,741,743,834,836-840,864,873-877,1165-1166,1182-1183,1185-1189,1231-1232,1237,1353,1355,1367-1372,1461,1466,1472,1479-1484,1496-1500,1526-1529,1588-1602,1616-1619,1622,1638-1639,1642,1645,1653-1655,1691,1693-1694,1704,1712-1713,1718,1720,1723,1729-1730,1741-1742,1745,1749-1750,1753,1762,1777,1782-1784,1787,1793,1799-1800,1805-1806,1809-1812,1826,1845,1848-1860,1862,1867-1869,1871,1873,1884-1896
+bin/fm-guard.sh
+  s_ba3639d682cd55::t_1914767f77fd36 30-33,58-63,244-249,253
+bin/fm-nm-run-lib.sh
+  s_ba3639d682cd55::t_ab4073dcdfa3e1 8,59-65,74-78,83-84,112-114,125-183
+bin/fm-promote.sh
+  s_ba3639d682cd55::t_9a1f642fa3a34d 182-185,206
+bin/fm-remote-secondmate-control.sh
+  s_ba3639d682cd55::t_d8612d6197f820 6,41-44,70,210-249,359-364,417
+bin/fm-secondmate-restart-lib.sh
+  s_ba3639d682cd55::t_be509f573a38c7 1-101
+bin/fm-secondmate-restart.sh
+  s_ba3639d682cd55::t_7c8a533033bdc4 1-352
+bin/fm-spawn.sh
+  s_ba3639d682cd55::t_ba2f7b82a2f48e 196-204,1268-1278,2560-2581
+bin/fm-teardown.sh
+  s_ba3639d682cd55::t_159e1b0cc5215c 2573-2574,2923
+bin/fm-test-run.sh
+  s_ba3639d682cd55::t_473e06973a76fe 46-49,55-61,207-213,251,264,277,299,327-341,374,475-478,492-493,1900-1907,1909-1910,1924,1944-1948,1951,1957-1969,1974-1975,1977-1979,1981-1982,2214-2219
+bin/fm-update.sh
+  s_ba3639d682cd55::t_39caaec7fa61bd 28-43,55-56,77-84,88-125,129,150-179,189,196-207,209-210
+bin/fm-wake-drain.sh
+  s_ba3639d682cd55::t_bfc834681b2474 36-37,149-161,612-616,672,703-723
+docs/agent-control.md
+  s_ba3639d682cd55::t_1c4f48a8fcfffd 91
+docs/architecture.md
+  s_ba3639d682cd55::t_aba0421f1975fd 73,117-119,387-388,392
+docs/configuration.md
+  s_ba3639d682cd55::t_bade0f6f27e7b7 203,206-210,820
+docs/fm-test-isolation-proof.md
+  s_ba3639d682cd55::t_cd5fdfc059a69e 131-228,248-251
+docs/fm-test-portable-shards.md
+  s_ba3639d682cd55::t_40dab2151e75cf 43,45,47,56-60,63-64,105-106
+docs/orca-backend.md
+  s_ba3639d682cd55::t_aaa165a110474c 75
+docs/pi-supervision-branch.md
+  s_ba3639d682cd55::t_1abb52b9f1bbea 37-38,101,132,135
+docs/remote-secondmates.md
+  s_ba3639d682cd55::t_6e1852f0fa02f9 230-233,237
+docs/scripts.md
+  s_ba3639d682cd55::t_d4d73bb77797c6 23-25,46
+docs/verification/runtime-backends.md
+  s_ba3639d682cd55::t_dff763bae88f19 207-280,586-588
+docs/watcher-continuity.md
+  s_ba3639d682cd55::t_610a07f0a0097e 76,83
+tests/fixtures.sh
+  s_ba3639d682cd55::t_8ffb17aa8c0321 278-291
+tests/fm-backend-herdr-focus-flash-e2e.test.sh
+  s_ba3639d682cd55::t_2bf968f0707284 238-244,248-257,263,267
+tests/fm-backend-herdr-smoke.test.sh
+  s_ba3639d682cd55::t_f98e4d0bdc4de6 291
+tests/fm-backend-orca.test.sh
+  s_ba3639d682cd55::t_e040962ac26e21 10-16,491,526,542,588,619,654,688,720
+tests/fm-backend.test.sh
+  s_ba3639d682cd55::t_806df5e058b8cf 40-46,541,550-554,818,1072,1096,1123
+tests/fm-backlog-atomicity.test.sh
+  s_ba3639d682cd55::t_6f42a7ee46bf03 397-401
+tests/fm-backlog-handoff.test.sh
+  s_ba3639d682cd55::t_2f86d41e1ebe0c 276,284-285,287,352,358-360,362-363,427,433-435,506,511-513
+tests/fm-bearings-snapshot.test.sh
+  s_ba3639d682cd55::t_7a0756d0862619 2166-2431,2552-2555
+tests/fm-branch-supervision.test.sh
+  s_ba3639d682cd55::t_bf9b09e2b92aa1 56-59
+tests/fm-brief.test.sh
+  s_ba3639d682cd55::t_e5799161bfab16 216,354-360,375-426,854
+tests/fm-claude-stop-autoarm-live-e2e.test.sh
+  s_ba3639d682cd55::t_daf7780783b9c6 114-116
+tests/fm-claude-trust.test.sh
+  s_ba3639d682cd55::t_c2971ac9f252b8 1-462
+tests/fm-control-relaunch.test.sh
+  s_ba3639d682cd55::t_d2a404f944a774 173-176,178,193-196,198
+tests/fm-crew-state.test.sh
+  s_ba3639d682cd55::t_5589105b86c9a9 1462-1467,1488-1519,1522-1523,1585-1726,1782,1786-1789
+tests/fm-guard-stale-banner.test.sh
+  s_ba3639d682cd55::t_e0c09eded7a385 89-100,628-660,738
+tests/fm-herdr-submit-confirm-live-e2e.test.sh
+  s_ba3639d682cd55::t_db80478f3ec48f 86
+tests/fm-home-summary-refresh.test.sh
+  s_ba3639d682cd55::t_1022c5c3ff0bc6 17-20,165-259
+tests/fm-pi-branch-extension.test.sh
+  s_ba3639d682cd55::t_5a30a800c2cfff 672,675-677,953,1008,1070,1222-1223,1227,1229-1231,1311-1312,1316,1319-1321,1325,1341,1616-1707,3995
+tests/fm-remote-secondmate-lifecycle-e2e.test.sh
+  s_ba3639d682cd55::t_666e36570c0c3d 1068-1091
+tests/fm-secondmate-harness.test.sh
+  s_ba3639d682cd55::t_b0150addb7b819 747-748,772,794
+tests/fm-secondmate-restart.test.sh
+  s_ba3639d682cd55::t_fde5d49f9abfa5 1-636
+tests/fm-secondmate-sync.test.sh
+  s_ba3639d682cd55::t_0e87644c455d27 99-101,1023-1058,1367
+tests/fm-send-inbox-doorbell-live-e2e.test.sh
+  s_ba3639d682cd55::t_bde2228d97c65e 85
+tests/fm-session-start.test.sh
+  s_ba3639d682cd55::t_3e7f2cd25dae17 1468-1472,1474-1475,1489-1490,1504-1512,1534-1536,1540-1541,1544
+tests/fm-spawn-dispatch-profile.test.sh
+  s_ba3639d682cd55::t_a6ef1d09acdb7e 134,398,734-737,742
+tests/fm-task-delivery.test.sh
+  s_ba3639d682cd55::t_cc249973cd5437 374-377,547-549
+tests/fm-teardown.test.sh
+  s_ba3639d682cd55::t_209275b2d464d0 572-574,583-597
+tests/fm-test-run.test.sh
+  s_ba3639d682cd55::t_eddcba9184daa9 472-593,1012-1065,1431-1432,1445
+tests/fm-trace-context-spawn.test.sh
+  s_ba3639d682cd55::t_e016e4580e7c8c 123-126,128,145-148,150,243,245
+tests/fm-update.test.sh
+  s_ba3639d682cd55::t_e8cbaee2543666 16-20,42-64,76-77,91-94,96,100-102,104-105,108,112-114,124-126,134-136,154-155,172,186-287,377-381,444-447
+tests/fm-wake-queue.test.sh
+  s_ba3639d682cd55::t_ff8ff61be2166b 954-1057,1574-1575
+tests/lib.sh
+  s_ba3639d682cd55::t_7219568a320c99 174-178,198-233
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "264b6df92195227a5b620cf3e8ecf83567383b09",
+  "prompts": {},
+  "sessions": {
+    "s_ba3639d682cd55": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fdb1b994-511c-4033-bfcd-09eaf3135f2a",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Justinas Bolys <justinas.bolys@mediatech.one>"
+    }
+  }
+}
