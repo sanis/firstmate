@@ -1,0 +1,21 @@
+bin/fm-test-run.sh
+  s_ba3639d682cd55::t_d860548ee5dea5 304,308-311,1297
+bin/fm-promote.sh
+  s_ba3639d682cd55::t_a8dd74fd90b6df 171
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "369e06d2f4f3bbe1066d4adedec5a2bd130c98ce",
+  "prompts": {},
+  "sessions": {
+    "s_ba3639d682cd55": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fdb1b994-511c-4033-bfcd-09eaf3135f2a",
+        "model": "claude-opus-5"
+      },
+      "human_author": null
+    }
+  }
+}
