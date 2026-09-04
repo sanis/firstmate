@@ -1,0 +1,21 @@
+# Real-repo changed-path selection at HEAD (62539fa)
+# The PR description guard is outside the concurrent pr-forge family;
+# these two arms must still select it.
+
+$ printf "\n" >> bin/fm-timeout-lib.sh   # touch the shared hard bound
+$ bin/fm-test-run.sh --list --changed --base HEAD | grep -n pr-description-guard
+96:tests/fm-pr-description-guard.test.sh
+   (selected count: 1)
+
+$ printf "\n" >> bin/fm-pr-check.sh      # touch a PR surface script
+$ bin/fm-test-run.sh --list --changed --base HEAD | grep -n pr-description-guard
+7:tests/fm-pr-description-guard.test.sh
+   (selected count: 1)
+
+$ bin/fm-test-run.sh --list --family pr-forge   # guard is NOT a family member
+tests/fm-check-unregister.test.sh
+tests/fm-pr-check-security.test.sh
+tests/fm-pr-merge.test.sh
+tests/fm-review-diff.test.sh
+tests/fm-teardown.test.sh
+tests/fm-x-mode.test.sh
