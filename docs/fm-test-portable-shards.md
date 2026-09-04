@@ -40,12 +40,11 @@ Each shard is still strictly serial in itself, and separate runners mean no two 
 `.github/workflows/ci.yml` derives the same `n` from `strategy.job-total` rather than a literal, so changing the shard count in either file without the other fails the lane loudly instead of leaving part of the required suite unrun.
 
 Assignment is longest-processing-time bin packing over per-script duration hints embedded in `bin/fm-test-run.sh`.
-The hints are the slowest measurement of each script across the `fm-test-timing-portable-serial-*` artifacts of three green CI runs on 2026-09-01, [33558082172](https://github.com/kunchenguid/firstmate/actions/runs/33558082172), [33523597838](https://github.com/kunchenguid/firstmate/actions/runs/33523597838), and [33463326167](https://github.com/kunchenguid/firstmate/actions/runs/33463326167).
-Those runs measured the 140 scripts that lane carried, and every hint they cover is used here in preference to an older single-run measurement.
+The hints are the slowest measurements retained from the `fm-test-timing-portable-serial-*` artifacts of three green CI runs on 2026-09-01, [33558082172](https://github.com/kunchenguid/firstmate/actions/runs/33558082172), [33523597838](https://github.com/kunchenguid/firstmate/actions/runs/33523597838), and [33463326167](https://github.com/kunchenguid/firstmate/actions/runs/33463326167).
 The four scripts only this fork carries - `tests/fm-clickup-contract.test.sh`, `tests/fm-download-lib.test.sh`, `tests/fm-evidence-artifacts.test.sh`, and `tests/fm-pr-description-guard.test.sh` - keep their measurements from green fork run [33100473041](https://github.com/sanis/firstmate/actions/runs/33100473041).
-All 144 scripts of the merged lane are therefore measured rather than defaulted, and the hints total 3837183 ms of conservative balance weight.
+The merged lane's 145 scripts carry 143 such per-script maxima, totalling 3837161 ms of conservative balance weight.
 Taking the slowest of several runs rather than a single run keeps the balance honest on a slow runner: individual scripts varied by up to 20% between those three runs.
-A script with no hint gets the conservative `PORTABLE_SERIAL_DEFAULT_WEIGHT_MS` default.
+A script with no hint gets the conservative `PORTABLE_SERIAL_DEFAULT_WEIGHT_MS` default; the current 145-script lane has two such scripts, bringing its assignment weight to 3891161 ms.
 Hints only affect balance: the coverage guard keeps the partition complete and disjoint whatever they say, so a stale hint costs a slower shard rather than lost coverage.
 Balance is still worth keeping current, because enough unmeasured scripts let one shard carry more than twice another shard's real work and reach the job cap while another runner sits idle.
 That is not hypothetical: by 2026-09-01 the lane had grown from 116 to 139 scripts and from ~42 to ~63 minutes, 17 scripts were still unmeasured, and several hints were low by 2-5x, so shard 3 of 4 ran 17-20 minutes against its 20-minute cap while shard 1 ran 11.5 minutes and run [33574154856](https://github.com/kunchenguid/firstmate/actions/runs/33574154856) timed out seconds after a passing test.
@@ -54,15 +53,15 @@ Refresh the hints whenever the serial lane gains scripts, rather than waiting fo
 
 | Lane | Script count | Estimated duration |
 |---|---:|---:|
-| `portable-serial-1of5` | 28 | 767438 ms (~12.79 min) |
-| `portable-serial-2of5` | 29 | 767435 ms (~12.79 min) |
-| `portable-serial-3of5` | 29 | 767431 ms (~12.79 min) |
-| `portable-serial-4of5` | 29 | 767431 ms (~12.79 min) |
-| `portable-serial-5of5` | 29 | 767448 ms (~12.79 min) |
+| `portable-serial-1of5` | 29 | 778240 ms (~12.97 min) |
+| `portable-serial-2of5` | 28 | 778224 ms (~12.97 min) |
+| `portable-serial-3of5` | 29 | 778239 ms (~12.97 min) |
+| `portable-serial-4of5` | 29 | 778223 ms (~12.97 min) |
+| `portable-serial-5of5` | 30 | 778235 ms (~12.97 min) |
 | imbalance | | 17 ms |
 
-This table was recomputed on 2026-09-03 by replaying `bin/fm-test-run.sh`'s own assignment over the merged 144-script lane, rather than by adjusting the previous numbers, so it matches what the runner selects.
-No script is on the default weight, and the worst shard's 12.79 minutes is 64% of the 20-minute job cap.
+This table was recomputed on 2026-09-04 by replaying `bin/fm-test-run.sh`'s own assignment over the merged 145-script lane, from the runner's retained maxima plus its default for the two unhinted scripts, rather than by adjusting the previous numbers, so it matches what the runner selects.
+The worst shard's 12.97 minutes is 65% of the 20-minute job cap.
 
 The single longest script, `tests/fm-watch-triage.test.sh` at 262626 ms, is the floor for any shard count.
 
@@ -103,8 +102,8 @@ Portable shards, each portable serial shard, and the Herdr lane upload runner-ge
 | Lane | Bound | Rationale |
 |---|---|---|
 | portable parallel 1/2 | job `timeout-minutes: 10` | The measured shard sums are about three minutes and the timeout is a hang tripwire. |
-| portable serial 1-5 | job `timeout-minutes: 20` | Each balanced shard is about 12.8 minutes of measured script time, leaving roughly 1.6x hang-tripwire margin for job setup and runner-speed spread. |
-| Herdr | family-run step `timeout-minutes: 20`; job `timeout-minutes: 75` backstop | Healthy runs finish around 7 minutes, so the step bound is the hang tripwire (cleanup and timing artifacts still upload) while the job cap stays a last-resort backstop. |
+| portable serial 1-5 | job `timeout-minutes: 20` | Each balanced shard carries about 12.97 minutes of conservative assignment weight, leaving roughly 1.5x hang-tripwire margin for job setup and runner-speed spread. |
+| Herdr | family-run step `timeout-minutes: 20`; job `timeout-minutes: 75` backstop | Healthy runs finished around 7 minutes before this lane gained `fm-backend-herdr-focus-flash-e2e`, which measures about 2 minutes against a real lab locally, so the step bound is still the hang tripwire (cleanup and timing artifacts still upload) while the job cap stays a last-resort backstop. Refresh this figure from the lane's uploaded timing artifact. |
 
 Timeouts are hang tripwires rather than expected healthy durations.
 `.github/workflows/ci.yml` owns the exact numbers.
