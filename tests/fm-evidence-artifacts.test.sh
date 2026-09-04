@@ -27,6 +27,17 @@ scaffold() {  # <home> <id> <fm-brief args...>
   printf '%s\n' "$home/data/$id/brief.md"
 }
 
+# Promotion validates the scout brief's `## Captain's intent` and
+# `## Firstmate spec` subsections, so a scaffolded fixture brief must be filled
+# the way firstmate fills one before dispatch.
+fill_subsections() {  # <brief> <intent> <spec>
+  local brief=$1 intent=$2 spec=$3 content
+  content=$(cat "$brief")
+  content=${content//'{TASK}'/$intent}
+  content=${content//'{FIRSTMATE_SPEC}'/$spec}
+  printf '%s\n' "$content" > "$brief"
+}
+
 test_ship_briefs_carry_the_rule_and_point_at_the_owner() {
   local home brief mode id
   home="$TMP_ROOT/ship"
@@ -214,13 +225,17 @@ test_ship_brief_never_routes_a_worker_into_connector_procedure() {
 # them, so this runs that command against a capturing fm-send.sh and asserts on
 # the message the worker actually receives.
 test_promotion_handoff_carries_the_rule() {
-  local home meta out status brief rule sendroot payload
+  local home meta out status brief rule sendroot payload scout
   home="$TMP_ROOT/promote"
   sendroot="$TMP_ROOT/promote-sendroot"
   payload="$TMP_ROOT/promote-payload"
   mkdir -p "$home/state" "$home/data" "$sendroot/bin"
   meta="$home/state/evidence-promote.meta"
   printf 'window=fm-evidence-promote\nkind=scout\nworktree=/tmp/wt\n' > "$meta"
+  scout=$(scaffold "$home" evidence-promote sample --scout)
+  assert_present "$scout" "the promoted task's scout brief was not scaffolded"
+  fill_subsections "$scout" 'Find out why the reported evidence never rendered.' \
+    'Reproduce the report and write the findings up.'
   cat > "$sendroot/bin/fm-send.sh" <<'STUB'
 #!/usr/bin/env bash
 # Capture the message a promoted worker would receive, instead of steering one.
