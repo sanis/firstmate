@@ -168,7 +168,7 @@ fi
 # rides the same payload for the same reason: the scout brief never carried it, and
 # this worker opens the pull request itself.
 #
-# The evidence rule is item 7, not item 6, on purpose - do not renumber it. The
+# The evidence rule is item 8, not item 6, on purpose - do not renumber it. The
 # Definition of done appended below says "escalate to firstmate (rule 6)", so slot
 # 6 must keep landing on the supersede line, which is the text that restates the
 # escalation rules including ask-user. This only restores upstream's numbering; it
@@ -179,6 +179,10 @@ fi
 # here, which is why this is a work-around rather than a fix.
 EVIDENCE_RULE=$(fm_evidence_rule_text "$FM_ROOT")
 INSTRUCTIONS="$DATA/$ID/ship-instructions.md"
+PROMOTION_ASK_USER_BLOCK=
+if [ "$MODE" = no-mistakes ]; then
+  PROMOTION_ASK_USER_BLOCK=$(fm_ask_user_escalation_block "$DATA" "$ID")
+fi
 mkdir -p "$DATA/$ID"
 [ ! -d "$INSTRUCTIONS" ] || { echo "error: ship instructions path is a directory: $INSTRUCTIONS" >&2; exit 1; }
 TMP="$DATA/$ID/.ship-instructions.md.${BASHPID:-$$}"
@@ -199,6 +203,7 @@ EOF
 4. Carry over only the intended fix changes. Leave scratch commits, debug edits, and experiment files behind.
 5. If you reproduced a bug, turn that reproduction into a regression test.
 6. These ship instructions supersede the scout delivery rules and report-based Definition of done. Everything else in your original instructions carries over unchanged: the status protocol; the instruction inbox and its acknowledgement; the escalation rules, including ask-user; and every safety rule.
+$PROMOTION_ASK_USER_BLOCK
 7. Treat the scout-time Firstmate spec and any unmarked legacy \`# Task\` text as investigation context, not captain intent or ship-time instructions.
 8. $EVIDENCE_RULE
 
