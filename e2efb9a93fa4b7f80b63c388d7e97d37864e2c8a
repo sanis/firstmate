@@ -1,0 +1,19 @@
+CONTRIBUTING.md
+  s_b6a1fa933a3e96::t_20d17f2845be22 76
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "e2efb9a93fa4b7f80b63c388d7e97d37864e2c8a",
+  "prompts": {},
+  "sessions": {
+    "s_b6a1fa933a3e96": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4951c4cb-a2ba-41de-a036-d77e9dc48d84",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Justinas Bolys <justinas.bolys@mediatech.one>"
+    }
+  }
+}
