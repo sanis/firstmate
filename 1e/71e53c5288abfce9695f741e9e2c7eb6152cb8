@@ -1,0 +1,444 @@
+tests/fm-update.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 17-22,188-193,196-200,209-211,246-249,290-294,335-340,346,351-374,476,479,482-483
+tests/secondmate-helpers.sh
+  s_ee827f1c311620::t_11ced99480cbf9 34-53
+.agents/skills/bearings/SKILL.md
+  s_ee827f1c311620::t_11ced99480cbf9 45-50,81,84,91,96-97,107-109,114-120,139-140,146,154-156
+docs/verification/lint-option-a.md
+  s_ee827f1c311620::t_11ced99480cbf9 1-71
+tests/fm-procevent.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 1154-1288
+.agents/skills/bearings/assets/board-template.html
+  s_ee827f1c311620::t_11ced99480cbf9 551-553,559-566,569-570
+.pi/extensions/lib/fm-branch-dispatch.ts
+  s_ee827f1c311620::t_11ced99480cbf9 1-2,57-66,76-77,86-87,103-108,125-189,216-217,230-237,257-265,271-309,335-336,353-370,373,378-379,382,387,389,395-400,403,408-409
+tests/fm-pending-reply.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 25-29,92-105,710,898,901,905,907-910,1041,1135-1136,1259-1486,1541-1546
+tests/fm-omp-primary-live-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 1-313
+tests/fm-crew-state.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 14-18,21-22,35-38,90-95,102-109,111-115,141,145-151,156-159,211,214-215,218-221,253-287,376-447,546-657,953-1015,1050-1109,1257-1344,1524,1528-1556,2237-2241,2259-2262,2264-2265,2273-2275,2284
+tests/fm-omp-harness.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 1-587
+CONTRIBUTING.md
+  s_ee827f1c311620::t_11ced99480cbf9 42,48,53-54,76-77
+docs/extension-bindings.md
+  s_ee827f1c311620::t_11ced99480cbf9 219
+tests/fm-session-start.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 259,272,280,700-714,2529-2573,2664-2665
+docs/verification/runtime-backends.md
+  s_ee827f1c311620::t_11ced99480cbf9 58,66-69,87-88,95-116,367-571,1471-1548
+docs/pi-supervision-branch.md
+  s_ee827f1c311620::t_11ced99480cbf9 10,26-32,42,56-57,61,63,69-82,131,133-134,156,160-164
+tests/fm-secondmate-safety.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 1943-1996,2002,2004,2006-2007,2393,2414,2529,2803,3017
+bin/fm-secondmate-restart.sh
+  s_ee827f1c311620::t_11ced99480cbf9 2-3,12-17,56-57,72,327-338,345-356
+.agents/skills/harness-adapters/references/harness/opencode.md
+  s_ee827f1c311620::t_11ced99480cbf9 40
+.agents/skills/harness-adapters/references/harness/omp.md
+  s_ee827f1c311620::t_11ced99480cbf9 1-56
+bin/fm-config-inherit-lib.sh
+  s_ee827f1c311620::t_11ced99480cbf9 66,96-103,186,188-192,452,466-472,533-537
+docs/verification/rovo.md
+  s_ee827f1c311620::t_11ced99480cbf9 1-237
+tests/fm-rovo-harness.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 1-464
+bin/fm-supervision-instructions.sh
+  s_ee827f1c311620::t_11ced99480cbf9 84,93-94,114-115,150-152,179-181
+tests/fm-cursor-primary-live-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 30-32
+tests/fm-control-relaunch.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 327-364,1536
+tests/fm-pi-branch-responsiveness-live-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 1-238
+.agents/skills/stow/SKILL.md
+  s_ee827f1c311620::t_11ced99480cbf9 196
+AGENTS.md
+  s_ee827f1c311620::t_11ced99480cbf9 3-5,75,102,126,206,375,461,514-515,550,564
+bin/fm-ff-lib.sh
+  s_ee827f1c311620::t_11ced99480cbf9 400-413,432-435
+bin/fm-session-lock-lib.sh
+  s_ee827f1c311620::t_11ced99480cbf9 19-22,28
+tests/fm-backlog-atomicity.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 223-382,631-697,1213-1214,1223-1295,2615,2638-2644
+.agents/skills/firstmate-coding-guidelines/SKILL.md
+  s_ee827f1c311620::t_11ced99480cbf9 101,103-104,115-119
+  s_ee827f1c311620::t_6f5fb5590be54f 120
+tests/fm-control.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 38,51,271,285-289,384
+tests/fm-cmux-claude-composer-live-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 7-9,32
+tests/fm-grok-stop-live-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 13
+  s_ee827f1c311620::t_eb4f8fd8ac36a2 14
+tests/fm-composer-matrix-live-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 30-31,33,35
+tests/fm-muse-signals-live-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 4-6,122
+tests/fm-send-strict.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 63,104,197
+docs/secondmate-parent-channel.md
+  s_ee827f1c311620::t_11ced99480cbf9 32,38-41,57
+tests/fm-watch-arm.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 291,293-294
+bin/fm-harness.sh
+  s_ee827f1c311620::t_11ced99480cbf9 3,32-33,55-91,123-126,128-140,146,155-163,167-170,187-198
+  s_ee827f1c311620::t_b925c90f7e3cbc 199-200
+bin/fm-home-summary-refresh.sh
+  s_ee827f1c311620::t_11ced99480cbf9 8-10,154
+bin/fm-brief.sh
+  s_ee827f1c311620::t_11ced99480cbf9 72-74,276-277,400-410,492-502,511
+  s_ee827f1c311620::t_b41192f5b3364d 65-66
+bin/fm-ensure-agents-md.sh
+  s_ee827f1c311620::t_11ced99480cbf9 12-17,33-40,77-79,83-85
+bin/fm-watch.sh
+  s_ee827f1c311620::t_11ced99480cbf9 132-134,328-342,349-351,360,372-380,387-391,1244-1252,1254,1256,1261-1263,1276-1281,1783,1787-1795,1801-1803
+bin/fm-captain-hold.sh
+  s_ee827f1c311620::t_11ced99480cbf9 13-14,27,35-37,43-48,51-58,90-107,144-153,159-161,164-165,171-174,212,215,219,274-280,318-321,326-331,423,462-471,473-476,483,496-679,681-686,688,694,698-748,752-753,779-783,790-794,818-825,837-838,843-845,847,851-859,878,880,884-905,922,937-938,941,943,945,957,962,979-980,982-986,991-994,998,1010-1011,1109-1112,1151-1155,1166-1175,1205-1206,1211-1213,1248-1514,1516-1517,1548-1557,1595-1596,1600,1612-1616,1753-1762,1779-1782,1791,1799
+docs/supervision-protocols/pi.md
+  s_ee827f1c311620::t_11ced99480cbf9 23
+tests/fm-backend-herdr.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 26-33
+tests/fm-send-popup-settle.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 60
+.pi/extensions/lib/fm-operational-input.ts
+  s_ee827f1c311620::t_11ced99480cbf9 22-51,53,57-74,82-111
+.agents/skills/captain-hold-lifecycle/SKILL.md
+  s_ee827f1c311620::t_11ced99480cbf9 14,27-28,32,36-44,62-63
+.pi/extensions/fm-branch-supervision.ts
+  s_ee827f1c311620::t_11ced99480cbf9 90,114,310-316,336-349,355,357-371,373,375-377,379,382-399,587-609,782-794,809-815,822-823,825-831,840-850,898-900,921,926,939-940,949-956,963,983-984,990,993,1004-1024,1030,1085-1113,1115,1118,1135,1145,1195,1199-1202,1237,1255,1268,1291,1294,1299,1303,1316-1328,1332,1350,1385,1389-1390,1438,1447-1456,1460,1464,1478-1482,1485-1487,1517,1520-1524,1533,1536-1545,1567,1570-1572,1582-1587,1618-1622,1639,2022,2081-2114,2116,2119
+bin/fm-turnend-guard.sh
+  s_ee827f1c311620::t_11ced99480cbf9 217-218,454-455
+tests/fm-busy-adapter-wiring.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 26,300-401,424-427
+tests/fm-secondmate-harness.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 1068-1071
+bin/backends/tmux.sh
+  s_ee827f1c311620::t_11ced99480cbf9 27-28,175-178,239-266,300,351-375
+bin/fm-procevent-lib.sh
+  s_ee827f1c311620::t_11ced99480cbf9 383-409,499,574-575,577-595,603-614
+bin/fm-test-run.sh
+  s_ee827f1c311620::t_11ced99480cbf9 31-35,97-103,235,287,295,298-299,350,368,538-539,624,635,638,1281-1310,1315,1422,1457-1465,1541-1551,1605,1613,2119,2130,2133,2135-2137,2150-2151,2227-2230,2234-2240,2262-2271
+bin/fm-crew-state.sh
+  s_ee827f1c311620::t_11ced99480cbf9 53-63,67-73,80-86,334-466,616-626,643-646,670-673,716-722,725-728,731-738,752-756,758-803
+bin/fm-lint.sh
+  s_ee827f1c311620::t_11ced99480cbf9 6-7,9-18,23-24,27-29,33-36,60-62,78,91-97,101-118,251-252,280-284,316-317,453-455,460-462,468-470,556-560
+docs/verification/process-event-sources.md
+  s_ee827f1c311620::t_11ced99480cbf9 100,104,116,118,138,148,155,184-186
+tests/fm-bearings-board.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 16-38,41-42,44-101,105-106,113,241-246,312-315,318-324,384-389,391-393,401,512-769,778-787
+tests/fm-herdr-submit-confirm-live-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 17-19,26
+tests/fm-teardown.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 41-44,118-128,162-164,278-365,946-1037,1179-1443,2663-2692,2726-3129,3678-3681,3688-3694,3706-3718
+tests/fm-gemini-harness.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 1-271
+tests/fm-send-resolve-key.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 29-32,75-77,544-721,736-741
+docs/sessionstart-nudge.md
+  s_ee827f1c311620::t_11ced99480cbf9 10,78
+tests/fm-claude-stop-autoarm.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 626-639,1185
+docs/scripts.md
+  s_ee827f1c311620::t_11ced99480cbf9 23,36,45,66,77
+tests/fm-classify-corr-token.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 512-524,533
+.github/workflows/ci.yml
+  s_ee827f1c311620::t_11ced99480cbf9 72-76,82,174-181,192-193,195,397-398,405-406
+bin/fm-claude-stop-autoarm.sh
+  s_ee827f1c311620::t_11ced99480cbf9 21-22,132
+tests/fm-teardown-endpoint-safety.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 2,17,38-50,154-189,418-827,830,836-844
+.opencode/plugins/lib/fm-operational-input.js
+  s_ee827f1c311620::t_11ced99480cbf9 16-19
+.gitattributes
+  s_ee827f1c311620::t_11ced99480cbf9 1-2
+tests/fm-calm-pi-extension.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 681,706,715-720,722-730,906,1835-1846,2164-2166,3157,3692,3856-3857,3861-3863,3866-3868,3904,3907-3909,3913-3915,3918-3920,3943,3949
+tests/fm-gotmp.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 111-112,203-204
+.agents/skills/quota-array-dispatch/SKILL.md
+  s_ee827f1c311620::t_11ced99480cbf9 31
+.omp/extensions/fm-primary-turnend-guard.ts
+  s_ee827f1c311620::t_11ced99480cbf9 1-620
+bin/fm-bootstrap.sh
+  s_ee827f1c311620::t_11ced99480cbf9 795,1107,1114,1116
+tests/fm-backend-orca.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 772
+tests/fm-lint.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 71-74,156-157,168-169,171-179,185-187,401-676,1227-1235
+tests/fm-live-gate.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 1-220
+tests/fm-pi-primary-live-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 7-10,256
+tests/fm-quota-array-dispatch-live-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 11-14
+tests/fm-startup-memory-budget.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 65,283
+.pi/extensions/fm-primary-turnend-guard.ts
+  s_ee827f1c311620::t_11ced99480cbf9 10,256-270,274-275,451-460,462,467-468,481-493,495
+tests/fm-bearings-board-lavish-live-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 1-120
+.agents/skills/harness-adapters/references/harness/muse.md
+  s_ee827f1c311620::t_11ced99480cbf9 33
+bin/fm-remote-home-seed.sh
+  s_ee827f1c311620::t_11ced99480cbf9 160
+tests/fm-muse-harness.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 186,202,915-943
+docs/fm-test-portable-shards.md
+  s_ee827f1c311620::t_11ced99480cbf9 29,46,68,81
+  s_ee827f1c311620::t_ab9258e2ae8161 43,45,47,56-61,63-64,106
+tests/fm-secondmate-lifecycle-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 140-143,155
+tests/fm-task-delivery.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 36,751-793
+.agents/skills/harness-adapters/references/harness/rovo.md
+  s_ee827f1c311620::t_11ced99480cbf9 1-76
+.agents/skills/harness-adapters/references/harness/pi.md
+  s_ee827f1c311620::t_11ced99480cbf9 47
+.pi/extensions/fm-primary-pi-watch.ts
+  s_ee827f1c311620::t_11ced99480cbf9 609-628
+docs/supervision-protocols/grok.md
+  s_ee827f1c311620::t_11ced99480cbf9 28
+bin/fm-teardown.sh
+  s_ee827f1c311620::t_11ced99480cbf9 41-47,69-94,119,123-132,180-191,260-273,294-337,347,377-380,410-414,431-461,463,922-937,940-966,1403,1406-1408,1705-1708,1711-1715,1718,1731-1752,2072-2157,2574,2624-2678,2933,2956-2957,2973,3104-3147,3150-3163,3338,3343-3344,3390-3394
+docs/agent-control.md
+  s_ee827f1c311620::t_11ced99480cbf9 51
+docs/subagent-guard.md
+  s_ee827f1c311620::t_11ced99480cbf9 178,186
+docs/supervision-protocols/omp.md
+  s_ee827f1c311620::t_11ced99480cbf9 1-30
+docs/verification/muse.md
+  s_ee827f1c311620::t_11ced99480cbf9 207
+docs/trace-context.md
+  s_ee827f1c311620::t_11ced99480cbf9 26
+tests/fm-harness-liveness-drift-live-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 2,19-21,26-29,70-81
+tests/fm-watch-recovery-loop.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 23
+.agents/skills/process-event-sources/SKILL.md
+  s_ee827f1c311620::t_11ced99480cbf9 121
+bin/fm-secondmate-restart-lib.sh
+  s_ee827f1c311620::t_11ced99480cbf9 3,6-7,38
+bin/fm-remote-inherit-push.sh
+  s_ee827f1c311620::t_11ced99480cbf9 72-73
+bin/fm-supervision-lib.sh
+  s_ee827f1c311620::t_11ced99480cbf9 5-8,28-38,40-41,48,64-74,77-78
+docs/captain-hold-lifecycle.md
+  s_ee827f1c311620::t_11ced99480cbf9 13-15,18-20,38,40,54,59-115,119-142,144,170-173,180-189,193-194
+bin/fm-gemini-lib.sh
+  s_ee827f1c311620::t_11ced99480cbf9 1-107
+bin/fm-guard.sh
+  s_ee827f1c311620::t_11ced99480cbf9 8-10,161-162,166,220-221
+docs/cd-guard.md
+  s_ee827f1c311620::t_11ced99480cbf9 114,135,153
+docs/tmux-backend.md
+  s_ee827f1c311620::t_11ced99480cbf9 51,63,112
+.agents/skills/updatefirstmate/SKILL.md
+  s_ee827f1c311620::t_11ced99480cbf9 6,21-22,24-28,49-50,57,72-73,82,84,100
+tests/fm-send-inbox-doorbell-live-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 31-33,36
+bin/fm-classify-lib.sh
+  s_ee827f1c311620::t_11ced99480cbf9 421-428,1566,1569-1572,1574-1575,1630-1632,1641-1650,1662-1668,1676,1683,1707-1710,1722-1728
+tests/fm-codex-continuity-live-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 6-9
+tests/fm-tangle-guard.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 167-168,171-178,181-186,188-189,195-197,203
+tests/fm-bearings-snapshot.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 220,222-232,273-283,310,1115,1121-1122,1124-1128,1133-1135,1160,1168,1178-1391,2001-2092,2763,2767,2777-2822,2856,2858-2859,2958,2965,2971-2973
+tests/fm-composer-lib.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 274,276,278,284-285,291-353,683
+tests/fm-task-inbox.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 26-28,56-59,85-91,100,165,167,175-281,513,644-694,696-698,713-714
+tests/fm-turnend-guard.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 102-168,394,470-480,1990-1994,2006
+tests/lib.sh
+  s_ee827f1c311620::t_11ced99480cbf9 29-35,177-270
+  s_ee827f1c311620::t_4a474937a7671a 271
+.agents/skills/stuck-crewmate-recovery/SKILL.md
+  s_ee827f1c311620::t_11ced99480cbf9 6,43-60
+  s_ee827f1c311620::t_2a944048620ddd 61
+bin/fm-quota-choose.sh
+  s_ee827f1c311620::t_11ced99480cbf9 37-46,311,314-317,320-326,374-377,385-388
+docs/documentation-audiences.json
+  s_ee827f1c311620::t_94a494c0148652 455
+  s_ee827f1c311620::t_11ced99480cbf9 199-202,215-218,227-230,419-422,456-458,476,483-484,486
+  s_ee827f1c311620::t_20290191dbdda3 485
+bin/fm-control-lib.sh
+  s_ee827f1c311620::t_11ced99480cbf9 40-41,66,77-78,83,90,92,97-100,107,114-119,122,133,145-148,154,166-169,177-178,225,243-248
+docs/turnend-guard.md
+  s_ee827f1c311620::t_11ced99480cbf9 16,34,39,42,44,65,110,181
+tests/fm-pi-branch-extension.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 18-43,57,577-581,584,646,714,719,1021,1024,1026-1027,1029,1031,1057,1060,1095,1157,1162-1165,1183-1184,1204-1205,1235,1243,1265,1284,1293,1300,1303,1308-1309,1330,1369,1376,1384,1470,1614,1672,1758,1801-1865,1880,1933,2072-2074,2122,2124,2155,2199,2237,2310,2336,2355,2391-2392,2408-2410,2422,2456,2467,2479-2480,2518,2554,2563-2564,2575-2576,2587-2588,2604-2605,2641,2647,2657-2658,2665,2703,2852-2854,2861,2973,2983,2998-2999,3006,3044,3173,3333,3353-3354,3397,3401-3402,3404,3428,3437,3480,3524,3528-3529,3531,3637-3638,3711,3717-3727,3751-3901,3933,3936,3944,3947,3949,4114,4120-4134,4139,4264-4737,4750,4774-4777
+tests/fm-pi-primary-types.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 7-8,12,35
+docs/watcher-continuity.md
+  s_ee827f1c311620::t_11ced99480cbf9 8,13,27,36,120
+tests/fm-secondmate-reconcile.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 548,567,668,675,887-888
+bin/fm-remote-secondmate-control.sh
+  s_ee827f1c311620::t_11ced99480cbf9 289
+bin/fm-fleet-snapshot.sh
+  s_ee827f1c311620::t_11ced99480cbf9 24-25,30-48,86-90,190-196,228-231,237-241,255-260,361-362,364-372,383-384,450,453,489-490,510-518,934,943-944,1033,1052-1053,1302-1304
+bin/fm-send.sh
+  s_ee827f1c311620::t_11ced99480cbf9 46-50,152-172,559-570,613-629,641,644-645,647,651,654-660,1007-1008,1014
+docs/herdr-backend.md
+  s_ee827f1c311620::t_11ced99480cbf9 3,11
+tests/fm-fleet-snapshot-view.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 202-258,585,589,593-594,642-733,1051-1052
+tests/fm-spawn-batch.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 87,94
+tests/fm-sessionstart-instruction-refresh-live-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 27-30
+.pi/extensions/lib/fm-async-exec.ts
+  s_ee827f1c311620::t_11ced99480cbf9 1-105
+tests/fm-claude-stop-autoarm-live-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 15-18
+tests/fm-pi-windows-shell-invocation.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 1-119
+tests/fm-spawn-dispatch-profile.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 134,150,696-697,705-707,709,712-717,754,810-1095
+tests/fm-sessionstart-hook-live-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 43-46
+tests/fm-test-run.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 116,162-163,218-230,267-268,272-278,338-341,343,550-593,888-961,1623,1630,1637-1639
+tests/fm-wake-queue.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 1251-1277,1572
+tests/fm-watch-triage.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 1525-1635,4146-4151
+docs/architecture.md
+  s_ee827f1c311620::t_11ced99480cbf9 7,71-72,77-78,109,113,118,120,124,151,164,181,192,206-207,241,282,313-316,366,394
+tests/fm-tmux-submit-busy.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 325-339
+bin/fm-procevent-lavish.sh
+  s_ee827f1c311620::t_11ced99480cbf9 10,397,405-408,412-413,418,434,457-485,493,495-500,502-517,520-522,671
+tests/fm-tmux-agent-liveness.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 57-61,180-195
+  s_ee827f1c311620::t_58e3fe851a8405 196
+bin/fm-composer-lib.sh
+  s_ee827f1c311620::t_11ced99480cbf9 293,314,319-335,358,396-414,968-974,988,1125
+tests/fm-spawn-worktree-settle.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 15-21,24-25,137-142,149,152-221,225-227
+bin/fm-session-start.sh
+  s_ee827f1c311620::t_11ced99480cbf9 768-785
+bin/fm-watch-checkpoint.sh
+  s_ee827f1c311620::t_11ced99480cbf9 66-73,78
+tests/fm-nm-test-contract.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 1-26
+tests/fm-afk-pi-herdr-return-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 5-9,21-23
+bin/fm-backlog-transition-lib.sh
+  s_ee827f1c311620::t_11ced99480cbf9 25-29,31-40,180,194-203,212-288,298,300,317,328,332-340,349-355,377-380,382,389-399,402-408,425-427
+.no-mistakes.yaml
+  s_ee827f1c311620::t_11ced99480cbf9 25,27-30,32
+docs/configuration.md
+  s_ee827f1c311620::t_11ced99480cbf9 96,98-100,116,206,209,299,305-306,315,339-385,439,467,521,779-783,791-795,877,899,911
+tests/fm-backend-herdr-presentation-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 27,38,214-224,412,437,451-454,870-873,875,1216-1219,1260-1262,1355,1357
+bin/fm-spawn.sh
+  s_ee827f1c311620::t_11ced99480cbf9 17-23,26-28,111-118,125,134-154,176-192,212-233,244-248,252-253,261-268,368-387,855-856,988-991,1223,1308,1358-1385,1428-1447,1468-1503,1531-1557,1564,1599-1604,1609-1619,1652-1662,1686-1688,1737-1760,1772-1777,1801,1840-1846,1861-1864,1908-1914,1919-1951,2142-2152,2174-2191,2261-2281,2283,2286-2294,2296,2299-2332,2378-2391,2394-2408,2906-2987,3013-3016,3018-3019,3022-3027,3029-3039,3041-3042,3045-3046,3048-3051,3053,3056,3061,3135-3139,3150,3157-3165,3200-3233,3318-3354,3624-3661,3678-3681,3697-3698,3705-3711,3717-3718,3723-3724,3728-3729,3748-3750,3753,3816-3834,3867-3890,3916-3923,3954-3961,3964-3965
+bin/fm-dod-lib.sh
+  s_ee827f1c311620::t_11ced99480cbf9 25-40,235-239
+  s_ee827f1c311620::t_14240ecd0b6fd1 240
+.omp/fm-worker-overlay.yml
+  s_ee827f1c311620::t_11ced99480cbf9 1-27
+tests/fm-rovo-signals-live-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 1-358
+tests/fm-send-secondmate-marker-herdr-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 25
+.agents/skills/harness-adapters/references/harness/gemini.md
+  s_ee827f1c311620::t_11ced99480cbf9 1-109
+bin/fm-busy-lib.sh
+  s_ee827f1c311620::t_11ced99480cbf9 32,35-36,45,56-58,60-67,199,201,841-853,960-979
+  s_ee827f1c311620::t_f046cee66b6144 980-981
+tests/fm-brief.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 439-440,635-638,849-871
+tests/fm-harness-adapter-instructions-live-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 13
+  s_ee827f1c311620::t_25192dcdd0217c 14
+bin/fm-secondmate-report.sh
+  s_ee827f1c311620::t_11ced99480cbf9 10-16,18-19,22-23,26,30-31,36-37,48-56,69-74,76-87,97,99,103
+tests/fm-ensure-agents-md.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 193-254,428-429
+bin/fm-wake-lib.sh
+  s_ee827f1c311620::t_11ced99480cbf9 35-45,192,241,243-270,273,323-324,358,386,414,463,867,876,878,991,1019,1064,1117-1185,1195
+tests/fm-bearings-board-render.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 21-35,38,41-63
+tests/fm-herdr-version-floor-live-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 2,13-14,24-26,33
+tests/fm-pi-watch-extension.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 36,813-1182,3985-3988
+bin/fm-pending-reply-lib.sh
+  s_ee827f1c311620::t_11ced99480cbf9 18-20,58-59,74-77,187-213,328,1025-1049,1088,1121,1147-1149,1187-1188,1209-1219,1231-1236,1250-1251,1254-1255,1267-1270,1272-1277,1280-1285,1290-1291,1304-1306,1315-1336,1374-1378,1390,1462-1466
+bin/fm-parent-channel-lib.sh
+  s_ee827f1c311620::t_11ced99480cbf9 27-28
+bin/fm-task-inbox-lib.sh
+  s_ee827f1c311620::t_11ced99480cbf9 16-23,51-62,255-259,261,263-268,271-273,275-278,287-292,297-300,367-371,396-401
+bin/fm-update.sh
+  s_ee827f1c311620::t_11ced99480cbf9 28-33,35-52,86-93,97,115-133,135-140,167-171,177,184-193,209-211,215
+docs/verification/supervision.md
+  s_ee827f1c311620::t_11ced99480cbf9 51-57,214,243,251,467
+.agents/skills/secondmate-provisioning/SKILL.md
+  s_ee827f1c311620::t_11ced99480cbf9 109,111-113,132,146-147,231,258
+.omp/extensions/fm-primary-omp-watch.ts
+  s_ee827f1c311620::t_11ced99480cbf9 1-1073
+bin/fm-procevent.sh
+  s_ee827f1c311620::t_11ced99480cbf9 140-142,151-155,366-378,835-838,915,965,1005,1027,1216
+tests/fm-captain-hold-lifecycle.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 75-83,106-531,742,744-747,749,751-752,754,761,765-766,794-795,797-806,812,827-942,949-967,986,989-992,994,999,1011-1015,1321-1390,1413-1422,1428-1429,1450-1455,1457-1462,1469-1472,1479-1487,1495,1521,1532-1558,1581-1584,1592-1916,2088,2103-2107,2167-2185,2454,2610-2611,2619,2621-2624,2635-2641
+tests/fm-gate-refuse.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 209,260
+tests/fm-grok-continuity-live-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 6-9
+tests/fm-kimi-harness.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 208,465,550,553
+tests/fm-opencode-primary-live-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 6-9
+tests/fm-pi-branch-live-e2e.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 35-36,54
+tests/fm-quota-choose.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 218-235
+tests/fm-secondmate-restart.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 21-24,71,73-74,98-99,101,104-106,109,168-217,221-229,293,319-355,599,725-806,810,823-824
+tests/fm-send-inbox.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 75,127
+tests/fm-spawn-pool-base-freshen.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 7-8,62-165,218-365,539,565,679-680,687-692
+bin/fm-bearings-board.sh
+  s_ee827f1c311620::t_11ced99480cbf9 14-20,27,32-35,38-65,118-125,143-144,150-152,160-161,188-340,342,352-359,392-403,408-414,420-431
+README.md
+  s_ee827f1c311620::t_11ced99480cbf9 40,45,61,75,110-119,190,222,231,234
+tests/fm-supervision-instructions.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 71-74,88-97
+  s_ee827f1c311620::t_b6b5c56f67f64b 98
+bin/fm-bearings-snapshot.sh
+  s_ee827f1c311620::t_11ced99480cbf9 31-42,66,70,146-147,334-381,416,467-469,471-488,490-493,505,508-509,514-515,576
+tests/fm-afk-launch.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 138,177,182,213,258-260,262-264,288,296,322,1146-1148,1151,1204,1207,1237-1239,1241
+docs/arm-pretool-check.md
+  s_ee827f1c311620::t_11ced99480cbf9 27,154,165
+bin/fm-nm-run-lib.sh
+  s_ee827f1c311620::t_11ced99480cbf9 6-11,135-137,154-156,162-187,198-204
+  s_ee827f1c311620::t_a2513242ee21bb 205
+tests/fm-trace-context-spawn.test.sh
+  s_ee827f1c311620::t_11ced99480cbf9 261
+.agents/skills/harness-adapters/SKILL.md
+  s_ee827f1c311620::t_11ced99480cbf9 6,38,44,56,93-96
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.2",
+  "base_commit_sha": "1e71e53c5288abfce9695f741e9e2c7eb6152cb8",
+  "prompts": {},
+  "sessions": {
+    "s_ee827f1c311620": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ca423612-50bb-455b-a8d8-ed81d496431a",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Justinas Bolys <justinas.bolys@mediatech.one>"
+    }
+  }
+}
