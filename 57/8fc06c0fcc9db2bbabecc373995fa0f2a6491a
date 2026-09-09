@@ -1,0 +1,235 @@
+tests/fm-bearings-board-render.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 23-26,42-46
+tests/fm-kimi-harness.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 225-226
+tests/fm-pi-branch-extension.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 57,110-113,123-134,466-467,1248-1249,1335-1346,2645-2654,2864-2909,3447-3458,3809,4238,4838-4929,4958
+bin/fm-wake-lib.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 95,107-125,1671-1687,1785-1864,1882
+tests/fm-pi-branch-live-e2e.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 54
+bin/fm-remote-job-lib.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 761
+tests/fm-turnend-guard.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 1983-2071,2155-2158
+tests/fm-claude-stop-autoarm.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 179-185,1168-1179,1226
+  s_25e0e795b7ab53::t_40e9e2df9c5c8e 177-178
+bin/fm-captain-hold.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 33,160-168,173-176,1767-1780,1793-1802
+.pi/extensions/lib/fm-native-contract.ts
+  s_25e0e795b7ab53::t_9f7300930d865f 1-36
+tests/fm-remote-backlog-handoff.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 314
+bin/fm-remote-inherit-push.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 30
+docs/verification/runtime-backends.md
+  s_25e0e795b7ab53::t_9f7300930d865f 610-631,1524-1537
+  s_25e0e795b7ab53::t_cacefd0acd36a8 1538
+bin/fm-supervise-daemon.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 245
+bin/fm-procevent-lavish.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 100,178,231-232,242,244-245,249-261,263,283,293-294
+tests/fm-backend-herdr.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 17-18,334-504,4669-4674
+tests/fm-pr-check-security.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 967-972
+bin/fm-spawn.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 47,50-52,187-192,235-236,294-298,523-524,650,658-662,1430-1438,1707-1708,1713-1721,1844,1873-1876,3357-3367,3753,3850-3857,3881
+tests/fm-calm-pi-extension.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 74-149,757,3187-3283,3285,3331,3732-3735,4169
+bin/fm-harness.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 16-21,279-290,292
+bin/fm-pr-lib.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 218,226,234,242
+bin/fm-procevent-extension-capture.pl
+  s_25e0e795b7ab53::t_9f7300930d865f 4,95-96,99-100,187-194,206-209
+bin/fm-backlog-receive.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 60
+bin/fm-procevent-lib.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 106-301,329,347-351,363,391-395,592,615-617,624,626-629,728-732,849
+.agents/skills/process-event-sources/SKILL.md
+  s_25e0e795b7ab53::t_9f7300930d865f 121-122,129
+docs/configuration.md
+  s_25e0e795b7ab53::t_9f7300930d865f 62-63,66-69,74,367,392-393,410,425,429-430,740-742,800-801,807-809,818-837,887,927-929,963,969-971
+tests/fm-secondmate-harness.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 772,794
+tests/fm-secondmate-restart.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 553-580,843
+tests/fm-session-start.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 976,1380
+tests/fm-teardown.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 1604-1610
+docs/captain-hold-lifecycle.md
+  s_25e0e795b7ab53::t_9f7300930d865f 189
+tests/fm-pi-codex-native.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 1-362
+bin/fm-bootstrap.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 941,948,1108,1111,1134,1137
+bin/fm-remote-entrypoint.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 34
+docs/fm-test-portable-shards.md
+  s_25e0e795b7ab53::t_5710757aef9a24 47,56-61,63-64,106
+bin/backends/herdr.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 381,383-500,781,789
+bin/fm-guard.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 30-36,50,187-198,277-278
+tests/fm-backend-herdr-presentation-e2e.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 509,534,1194-1198,1202,1232,1257,1284,1300,1322,1324,1339,1341
+tests/fm-busy-state.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 442-462
+tests/fm-pi-primary-live-e2e.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 256
+tests/fm-pi-primary-types.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 35
+tests/fm-backlog-atomicity.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 2369-2375
+docs/remote-secondmates.md
+  s_25e0e795b7ab53::t_9f7300930d865f 55
+tests/fm-remote-doctor.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 625
+bin/fm-classify-lib.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 655-657,674,683,1074
+bin/fm-x-lib.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 92-93,106,117-118,413
+tests/fm-pi-watch-extension.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 36
+tests/fm-backend-herdr-smoke.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 70-81
+bin/fm-lock-lib.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 27
+.agents/skills/harness-adapters/references/harness/pi.md
+  s_25e0e795b7ab53::t_9f7300930d865f 18,41,54
+bin/fm-secondmate-restart.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 279,282-286
+bin/fm-busy-event.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 26-31,48,61,95,101-102,115,163,171,186,211,221-222
+  s_25e0e795b7ab53::t_c3a516886333f3 223-226
+bin/fm-remote-file.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 80
+bin/fm-control.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 251-252,640,642,685-686
+  s_25e0e795b7ab53::t_5059aac2cbdd8a 687
+docs/architecture.md
+  s_25e0e795b7ab53::t_9f7300930d865f 13-18,24,30-32,34,55,127,129,225
+bin/fm-procevent.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 149-170,174-177,462,552,612-620,636-637,639-643,646-647,649,651-653,657-682,684,687-690,692-695,754-757,771-772,790-797,834-844,846-853,857-872,887-894,896-918,941-945,1070-1169,1178,1256-1257,1273-1277,1281-1283,1285-1298,1304-1306,1343,1620,1741
+docs/scripts.md
+  s_25e0e795b7ab53::t_9f7300930d865f 43,121,136
+docs/verification/process-event-sources.md
+  s_25e0e795b7ab53::t_9f7300930d865f 116-119,121-122,180,182,184,188-193,195-196,198-200,202
+tests/fm-procevent.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 27-28,30-33,42-46,50,410,442,473,497,507,509-519,522,540,601,641,687,739-756,759,767,791,814,834,836,853,860,886,1129-1139,1141,1358,1393-1405,1533-1590,1980-2501
+  s_25e0e795b7ab53::t_32e97f57f92495 2502
+tests/fm-remote-secondmate-lifecycle-e2e.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 9-10,1112-1126
+  s_25e0e795b7ab53::t_9d061a37d1f8b8 1127
+tests/fm-stat-shadowing.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 1-139
+tests/fm-remote-job-orphan-reap.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 64-87,150,164
+tests/herdr-client-pair-fixture.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 1-60
+docs/turnend-guard.md
+  s_25e0e795b7ab53::t_9f7300930d865f 52-53,60-69,184
+tests/fm-spawn-dispatch-profile.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 134,398,580-647,822,860-902,1228-1230,1240-1241
+tests/fm-test-fixtures.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 2,4-8,16-30,142
+bin/fm-turnend-guard.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 38-48,202-210
+docs/pi-supervision-branch.md
+  s_25e0e795b7ab53::t_9f7300930d865f 147-148
+tests/remote-herdr-fixture.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 55
+bin/fm-wake-grant.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 25-26,28-29
+bin/fm-config-inherit-lib.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 106,114,122
+bin/fm-remote-secondmate-control.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 164-167,236,238-240
+bin/fm-supervision-lib.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 18
+.agents/skills/harness-adapters/references/common/model-and-effort.md
+  s_25e0e795b7ab53::t_9f7300930d865f 20-21
+bin/fm-claude-stop-autoarm.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 96-102,226,228
+bin/fm-teardown.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 25-27,865,2935,3340
+bin/fm-test-run.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 93-101,214-236,331,1314,1906-1915,2305
+bin/fm-startup-memory-budget-lib.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 26
+tests/fm-wake-queue.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 17,235-236,246-247,249-253,255,257-261,265-279,281-296,304-308,312-314,316,318-321,325-331,333-357,359-429,431-490,494,501-502,507,545,547,587,589,887-1044,1915-1918,1937-1939
+docs/herdr-backend.md
+  s_25e0e795b7ab53::t_9f7300930d865f 36-45
+tests/fm-watch-triage.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 2360-2627,3129-3164,4470,4481-4484
+tests/lib.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 45-50,99-148,151,191-192,412-436,554-593
+bin/fm-fleet-snapshot.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 1089-1090,1443
+bin/fm-remote-doctor.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 454,456-463
+tests/fm-busy-adapter-wiring.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 62,73,76,96-100,153-154
+bin/fm-test-isolation-proof.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 219-220
+bin/fm-wake-drain.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 2-3,71,75,80-131,135,643,794-798
+bin/fm-pending-reply-lib.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 574
+tests/fm-bearings-board.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 25-28,46-52,56-59
+.pi/extensions/fm-primary-pi-watch.ts
+  s_25e0e795b7ab53::t_9f7300930d865f 32,1122
+tests/fm-watch-recovery-loop.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 23
+bin/fm-watch.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 82-89,158-159,161,170-178,219-221,227-229,232-237,652-658,663-668,679-707,710-711,729,732,745,748-773,776,900-904,906,909-910,1080-1082,1091-1183,1191,1195,1200-1202,1204,1208,1211-1218,1222,1230-1237,1242,2060-2065,2123-2134,2137
+tests/fm-pi-branch-responsiveness-live-e2e.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 53
+tests/fm-procevent-when.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 24-27
+tests/fm-bootstrap.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 522,904,909,914,925,1124-1129
+tests/fm-tool-update-check.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 690,695-696,698,708,718-719,722,728
+docs/verification/trace-context.md
+  s_25e0e795b7ab53::t_9f7300930d865f 12
+AGENTS.md
+  s_25e0e795b7ab53::t_9f7300930d865f 100
+docs/watcher-continuity.md
+  s_25e0e795b7ab53::t_9f7300930d865f 75-81,92
+tests/fm-test-run.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 172-234,1685
+bin/fm-inactive-reconcile.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 124
+tests/fm-backend-orca.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 542
+tests/fm-control-relaunch.test.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 406,425,438,624-648,1572
+docs/calm-mode-feasibility.md
+  s_25e0e795b7ab53::t_9f7300930d865f 20,241,246,290,544-611
+bin/fm-remote-inherit.sh
+  s_25e0e795b7ab53::t_9f7300930d865f 25
+.pi/extensions/fm-branch-supervision.ts
+  s_25e0e795b7ab53::t_9f7300930d865f 81,91,238-240,652-656,670,672,722-762,765-767,769-773,789-814,818-822,824,829-832,1746,1749,1793-1806,1808,2064,2126
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.2",
+  "base_commit_sha": "578fc06c0fcc9db2bbabecc373995fa0f2a6491a",
+  "prompts": {},
+  "sessions": {
+    "s_25e0e795b7ab53": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "896e091e-dea7-43bd-98c8-9d0baafe550d",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Justinas Bolys <justinas.bolys@mediatech.one>"
+    }
+  }
+}
