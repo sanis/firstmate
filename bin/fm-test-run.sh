@@ -90,6 +90,15 @@
 #   FM_TEST_SLOWEST rank=<k> script=<path> duration_ms=<n>
 #   FM_TEST_BUDGET max_wall_ms=<n> duration_ms=<n>   (only with --max-wall-ms)
 #
+# Placement refusal:
+#   A task worker is assigned an isolated worktree, and that placement is
+#   checked only when its task starts. When FM_TASK_ID marks such a worker and
+#   this runner resolves to the repository's PRIMARY checkout, every executing
+#   mode refuses before selecting a suite: the suite creates and switches
+#   branches, and the primary is the checkout every linked worktree resolves
+#   against. Inspection modes execute nothing and stay available, and a run with
+#   no FM_TASK_ID set is unchanged.
+#
 # Exit status is non-zero if any selected script exits non-zero, a configured
 # --fail-on-gate-skip token appears, the measured duration exceeds
 # --max-wall-ms, timing-artifact finalization fails, or a concurrent worker
@@ -202,6 +211,29 @@ now_iso() {
   date -u +%Y-%m-%dT%H:%M:%SZ
 }
 
+# Enforce the placement refusal described in this script's header.
+#
+# The primary checkout is the working tree whose own git dir IS the repository's
+# common git dir; every linked worktree has a git dir under it instead. That is
+# the same predicate bin/fm-spawn.sh uses to keep a launch out of the primary,
+# and unlike comparing top-level paths it still holds when the primary is
+# reached through a different path. When git resolves neither directory - a
+# non-repository fixture, a detached copy - nothing proves this is the primary,
+# so the run proceeds.
+refuse_primary_checkout_for_task() {
+  local task_id git_dir common_dir top
+  task_id=${FM_TASK_ID:-}
+  [ -n "$task_id" ] || return 0
+  git_dir=$(git -C "$ROOT" rev-parse --absolute-git-dir 2>/dev/null) \
+    && git_dir=$(cd "$git_dir" 2>/dev/null && pwd -P) || git_dir=
+  common_dir=$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) \
+    && common_dir=$(cd "$common_dir" 2>/dev/null && pwd -P) || common_dir=
+  [ -n "$git_dir" ] && [ -n "$common_dir" ] || return 0
+  [ "$git_dir" = "$common_dir" ] || return 0
+  top=$(cd "$ROOT" && pwd -P)
+  die "refusing to run in the repository primary checkout $top while FM_TASK_ID=$task_id is set; run from the assigned task worktree instead"
+}
+
 cpu_count() {
   local n
   n=$(getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
@@ -296,7 +328,7 @@ family_for_basename() {
     fm-herdr-version-floor-live-e2e.test.sh|\
     fm-opencode-primary-live-e2e.test.sh|fm-pi-branch-live-e2e.test.sh|\
     fm-pi-branch-responsiveness-live-e2e.test.sh|\
-    fm-pi-primary-live-e2e.test.sh|fm-omp-primary-live-e2e.test.sh|\
+    fm-pi-primary-live-e2e.test.sh|fm-pi-codex-native.test.sh|fm-omp-primary-live-e2e.test.sh|\
     fm-sessionstart-hook-live-e2e.test.sh|fm-sessionstart-instruction-refresh-live-e2e.test.sh|\
     fm-quota-array-dispatch-live-e2e.test.sh|fm-send-secondmate-marker-herdr-e2e.test.sh|\
     fm-send-inbox-doorbell-live-e2e.test.sh|\
@@ -1279,7 +1311,7 @@ families_for_changed_path() {
       printf '%s\n' "__script__:fm-quota-choose.test.sh"
       ;;
     .pi/extensions/fm-branch-supervision.ts|.pi/extensions/lib/fm-async-exec.ts|\
-    .pi/extensions/lib/fm-branch-dispatch.ts)
+    .pi/extensions/lib/fm-branch-dispatch.ts|.pi/extensions/lib/fm-native-contract.ts)
       # The portable suites that actually load these files, named one by one.
       # Left unmapped, a Pi extension library resolves through the reference
       # scan, which widens to each referencing suite's WHOLE family - and
@@ -1871,6 +1903,16 @@ case "$PER_SCRIPT_TIMEOUT_SECS" in
   ''|*[!0-9]*) die "--per-script-timeout-secs requires a whole number of seconds (0 disables)" ;;
 esac
 
+# Refuse before any suite is selected or run. The inspection modes execute
+# nothing: --list-families, --list-concurrent-safe-families, --list-lanes,
+# --check-coverage, --concurrent-safe-family-jobs-max and --aggregate-json have
+# already exited above, and --list/--list-scheduled print their selection and
+# exit below. An unset MODE still falls through to the usage error, so a caller
+# who named no selection mode is told that rather than this.
+if [ -n "${MODE:-}" ] && [ "$LIST_ONLY" -eq 0 ] && [ "$LIST_SCHEDULED" -eq 0 ]; then
+  refuse_primary_checkout_for_task
+fi
+
 case "${MODE:-}" in
   all)
     select_all
@@ -2260,7 +2302,7 @@ else
       cat "$out"
     fi
     if worker_root_mode_is_enforceable; then
-      mode=$(stat -c %a "$work" 2>/dev/null || stat -f %Lp "$work" 2>/dev/null || echo unknown)
+      mode=$(stat -c %a "$work" 2>/dev/null || /usr/bin/stat -f %Lp "$work" 2>/dev/null || echo unknown)
       case "$mode" in
         700|0700) ;;
         *)

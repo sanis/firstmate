@@ -44,7 +44,7 @@ The 146 current hints include the slowest measurements retained from the `fm-tes
 The four scripts only this fork carries - `tests/fm-clickup-contract.test.sh`, `tests/fm-download-lib.test.sh`, `tests/fm-evidence-artifacts.test.sh`, and `tests/fm-pr-description-guard.test.sh` - keep their measurements from green fork run [33100473041](https://github.com/sanis/firstmate/actions/runs/33100473041).
 Those per-script maxima total 3848303 ms of conservative balance weight.
 Taking the slowest of several CI runs rather than a single run keeps the balance honest on a slow runner: individual scripts varied by up to 20% between those three runs.
-A script with no hint gets the conservative `PORTABLE_SERIAL_DEFAULT_WEIGHT_MS` default; the current 155-script lane has nine such scripts, bringing its assignment weight to 4091303 ms.
+A script with no hint gets the conservative `PORTABLE_SERIAL_DEFAULT_WEIGHT_MS` default; the current 157-script lane has eleven such scripts, bringing its assignment weight to 4145303 ms.
 Hints only affect balance: the coverage guard keeps the partition complete and disjoint whatever they say, so a stale hint costs a slower shard rather than lost coverage.
 Balance is still worth keeping current, because enough unmeasured scripts let one shard carry more than twice another shard's real work and reach the job cap while another runner sits idle.
 That is not hypothetical: by 2026-09-01 the lane had grown from 116 to 139 scripts and from ~42 to ~63 minutes, 17 scripts were still unmeasured, and several hints were low by 2-5x, so shard 3 of 4 ran 17-20 minutes against its 20-minute cap while shard 1 ran 11.5 minutes and run [33574154856](https://github.com/kunchenguid/firstmate/actions/runs/33574154856) timed out seconds after a passing test.
@@ -53,15 +53,15 @@ Refresh the hints whenever the serial lane gains scripts, rather than waiting fo
 
 | Lane | Script count | Estimated duration |
 |---|---:|---:|
-| `portable-serial-1of5` | 30 | 818263 ms (~13.64 min) |
-| `portable-serial-2of5` | 32 | 818267 ms (~13.64 min) |
-| `portable-serial-3of5` | 30 | 818247 ms (~13.64 min) |
-| `portable-serial-4of5` | 31 | 818263 ms (~13.64 min) |
-| `portable-serial-5of5` | 32 | 818263 ms (~13.64 min) |
-| imbalance | | 20 ms |
+| `portable-serial-1of5` | 31 | 829060 ms (~13.82 min) |
+| `portable-serial-2of5` | 32 | 829065 ms (~13.82 min) |
+| `portable-serial-3of5` | 32 | 829070 ms (~13.82 min) |
+| `portable-serial-4of5` | 31 | 829053 ms (~13.82 min) |
+| `portable-serial-5of5` | 31 | 829055 ms (~13.82 min) |
+| imbalance | | 17 ms |
 
-This table was recomputed on 2026-09-07 by replaying `bin/fm-test-run.sh`'s own assignment over the merged 155-script lane, from the runner's retained maxima plus its default for the nine unhinted scripts, rather than by adjusting the previous numbers, so it matches what the runner selects.
-The worst shard's 13.64 minutes is 68% of the 20-minute job cap.
+This table was recomputed on 2026-09-09 by replaying `bin/fm-test-run.sh`'s own assignment over the merged 157-script lane, from the runner's retained maxima plus its default for the eleven unhinted scripts, rather than by adjusting the previous numbers, so it matches what the runner selects.
+The worst shard's 13.82 minutes is 69% of the 20-minute job cap.
 
 The single longest script, `tests/fm-watch-triage.test.sh` at 262626 ms, is the floor for any shard count.
 
@@ -103,7 +103,7 @@ Portable shards, each portable serial shard, and the Herdr lane upload runner-ge
 | Lane | Bound | Rationale |
 |---|---|---|
 | portable parallel 1/2 | job `timeout-minutes: 10` | The measured shard sums are about three minutes and the timeout is a hang tripwire. |
-| portable serial 1-5 | job `timeout-minutes: 20` | Each balanced shard carries about 13.64 minutes of conservative assignment weight, leaving roughly 1.5x hang-tripwire margin for job setup and runner-speed spread. |
+| portable serial 1-5 | job `timeout-minutes: 20` | Each balanced shard carries about 13.82 minutes of conservative assignment weight, leaving roughly 1.5x hang-tripwire margin for job setup and runner-speed spread. |
 | Herdr | family-run step `timeout-minutes: 20`; job `timeout-minutes: 75` backstop | Healthy runs finished around 7 minutes before this lane gained `fm-backend-herdr-focus-flash-e2e`, which measures about 2 minutes against a real lab locally, so the step bound is still the hang tripwire (cleanup and timing artifacts still upload) while the job cap stays a last-resort backstop. Refresh this figure from the lane's uploaded timing artifact. |
 
 Timeouts are hang tripwires rather than expected healthy durations.
