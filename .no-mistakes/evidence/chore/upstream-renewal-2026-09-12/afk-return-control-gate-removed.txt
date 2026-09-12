@@ -1,0 +1,25 @@
+### control: bin/fm-afk-return.sh lines 584-587 (the WAKE DRAIN SKIPPED gate) deleted
+ok - return catch-up owns live blocker remediation, reports itself to Bearings as content, preserves evidence once, and clears idempotently
+ok - tmux and Herdr blockers require the same explicit durable reclassification before ordinary work
+ok - needs-decision remains reportable without masquerading as a firstmate-actionable blocker
+ok - AFK return re-drains published wakes until handling acknowledges
+ok - away-mode re-entry fails closed while the prior return catch-up is pending
+ok - check retries recorded terminal teardown and keeps catch-up gated until success
+not ok - skipped wake drain cleared the catch-up gate (rc=0): === Return brief ===
+Supervisor health:
+  - GAP: watcher downtime was detected during the away window (recovery marker present)
+  - GAP: the watcher beat was 999999s old at return (grace 300s)
+Mandate clauses:
+  (no away-posture record for this window; legacy away flag only)
+Waiting on you:
+  (nothing)
+Tried and failed, or could not be fixed:
+  (nothing)
+Handled while away:
+  (no routine outcomes recorded in the store for this window)
+Cost: 0 supervision outcome(s) recorded (0 routine, 0 captain); 0 task(s) live at return.
+catch-up health: GAP: watcher downtime was detected during the away window (recovery marker present)
+catch-up health: GAP: the watcher beat was 999999s old at return (grace 300s)
+catch-up wake: WAKE DRAIN SKIPPED: queue lock remains held by live pid 90703 after 1s; retry on the next drain.
+fm-afk-return: catch-up clear; ordinary captain work may proceed
+SUITE_EXIT=1

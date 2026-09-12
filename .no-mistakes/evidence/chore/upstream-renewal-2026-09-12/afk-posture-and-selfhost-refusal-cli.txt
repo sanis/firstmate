@@ -1,0 +1,101 @@
+==========================================================================
+A. The captain enters away mode: propose the mandate, read it back, confirm
+==========================================================================
+
+$ bin/fm-afk-launch.sh propose --words 'merge the windows fix when green' --action merge --object 'task fix-windows PR' --when 'checks green' --action merge --object regardless
+Away posture read-back (proposed, not yet confirmed):
+  entered: 2026-09-12T10:34:08Z
+  expected return: not given
+  spend cap: 4 concurrent workers
+  merge when green (task ids): (none)
+  reach: hold-for-return only. No phone channel is configured; anything that needs you waits for your return.
+  your words (verbatim):
+    merge the windows fix when green
+  accepted clauses:
+    1. merge task fix-windows PR when checks green
+  refused clauses:
+    2. "action=merge object=regardless when=(none)" - refused: missing when - the clause states no precondition
+  everything else waits for your return: no red merge without its named check, no discard without a named object and condition, never credentials, legal, financial, or attended prompts, nothing by analogy, and every clause expires at return.
+  hard rule: forbidden, destructive, irreversible, and security-sensitive actions are never pre-authorizable regardless of clause text; no recorded clause is authority by itself.
+  recorded clauses are held for the return brief and are not executed by this release.
+Say go to confirm; restate any refused clause first if you want it recorded.
+(exit 3)
+
+state after propose:
+.afk-contract.proposed
+
+$ bin/fm-afk-launch.sh confirm
+Away posture confirmed at 2026-09-12T10:34:08Z: hold-for-return only. No phone channel is configured; anything that needs you waits for your return. 1 mandate clause(s) recorded, 1 refused, and 0 flagged as naming a never-set concept; recorded clauses are held for the return brief and are not executed by this release; forbidden, destructive, irreversible, and security-sensitive actions are never pre-authorizable regardless of clause text, and no recorded clause is authority by itself. Expected return: not given. Spend cap: 4 concurrent workers.
+(exit 0)
+
+state after confirm:
+.afk-contract
+
+recorded away-posture record:
+version: 1
+entered: 2026-09-12T10:34:08Z
+entered_epoch: 1789209248
+expected_return: -
+reach_channels: none
+reach_announced: No phone channel is configured; anything that needs you waits for your return.
+spend_max_concurrent_workers: 4
+merge_grants: -
+confirmed: 2026-09-12T10:34:08Z
+confirmed_epoch: 1789209248
+words: |-
+  merge the windows fix when green
+clauses:
+  - id: 1
+    action: merge
+    object: e:task fix-windows PR
+    when: e:checks green
+    stop: -
+    flag: -
+refused:
+  - id: 2
+    text: e:action=merge object=regardless when=(none)
+    missing: when - the clause states no precondition
+
+==========================================================================
+B. ADVERSARIAL: try to start the in-pane daemon from the captain's OWN
+   Herdr pane - the pane the daemon would have to deliver escalations into
+==========================================================================
+
+$ HERDR_ENV=1 HERDR_PANE_ID=w1R:p1 HERDR_SESSION=default bin/fm-afk-launch.sh start-native
+fm-afk-launch: refusing the in-pane away daemon on herdr: it would run inside 'default:w1R:p1', the same pane it must deliver into, and its own background job keeps that pane reading as busy for its whole lifetime - no escalation could ever be delivered. Use 'bin/fm-afk-launch.sh start', which runs the daemon in its own non-visible terminal and passes this pane in as the delivery target.
+(exit 1)
+
+away flag written?  no - refused before any lifecycle state
+daemon terminal record written? no
+confirmed posture record still intact? yes
+
+==========================================================================
+C. The same entry from a pane the daemon does NOT have to deliver into
+==========================================================================
+
+$ bin/fm-afk-launch.sh start-native   (no ambient pane)
+(exit 0)
+away flag: present
+daemon terminal record: none	-	native	firstmate:0
+
+==========================================================================
+D. ADVERSARIAL: a daemon path with NO confirmed posture record
+==========================================================================
+
+$ bin/fm-afk-contract.sh propose ... (proposal only, never confirmed); then start-native
+fm-afk-launch: a confirmed away-posture record is required; run propose and confirm before starting the daemon
+(exit 1)
+away flag written? no
+proposal promoted to a record? no, still only .afk-contract.proposed
+
+==========================================================================
+E. The captain returns: stop archives the record under its entry time
+==========================================================================
+
+$ bin/fm-afk-launch.sh stop
+fm-afk-launch: away-posture record archived at /var/folders/b8/p7dyhngn7l591759f0_ngqr40000gn/T//nm-afk-drive.9nDd0b/state/afk-contracts/1789209248.afk-contract
+fm-afk-launch: away mode stopped; daemon terminal torn down, .afk cleared, and the posture record archived
+(exit 0)
+away flag cleared? yes
+live record cleared? yes
+archived at state/afk-contracts/1789209248.afk-contract ? yes

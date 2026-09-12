@@ -1,0 +1,133 @@
+### ambient env injected by the harness (simulating a captain's live Herdr pane):
+HERDR_ENV=1 HERDR_PANE_ID=w1R:p1 HERDR_SESSION=default TMUX_PANE=%9 PI_CODING_AGENT=1
+
+ok - clear-stale: removes escalations buffer, sidecar, and wedge marker
+ok - clear-stale: leaves the durable wake-queue intact (no pending work dropped)
+ok - propose: the read-back lists accepted and refused clauses and writes only a proposal
+ok - confirm: records the posture, announces hold-for-return only, and launches no daemon
+ok - propose: refuses while the prior return catch-up is pending
+ok - pi: start refuses to launch the daemon and writes no state
+ok - pi: start-native refuses to prepare a daemon
+ok - pi-signed: start refuses to launch the daemon and writes no state
+ok - pi-signed: start-native refuses to prepare a daemon
+ok - daemon entry: a pending proposal cannot bypass captain confirmation
+ok - daemon entry: an explicitly confirmed record permits lifecycle preparation
+ok - failed start: preserves the pre-confirmed posture record
+ok - stop: clears the away flag and archives the posture record under its entry time
+ok - launcher paths: relative home and state ignore CDPATH before daemon command construction
+ok - launcher paths: absolute symlink spellings are preserved
+ok - launcher paths: unresolved relative FM_HOME fails loudly
+ok - launcher paths: unresolved relative FM_STATE_OVERRIDE fails loudly
+ok - refresh: the already-running branch is the one that ran
+ok - refresh: daemon already alive - stale artifacts preserved (current session's buffer kept)
+ok - stop-ordering: daemon SIGTERM'd while .afk still present (flush is not a no-op)
+ok - stop-ordering: .afk cleared last
+ok - stop-ordering: daemon-terminal record removed
+ok - stop identity: stale lock cannot signal an unrelated live process
+ok - failed start: away flag and delivery artifacts roll back
+ok - concurrent start: one serialized daemon terminal remains tracked
+ok - launcher lock: incomplete publication receives initialization grace
+ok - launcher signal: TERM exits and releases the lifecycle lock
+fm-afk-launch: daemon launched in non-visible herdr workspace ws-partial (pane lab:pane-exact), supervising lab:captain
+ok - herdr create: malformed response recovers durable exact ownership
+fm-afk-launch: herdr create failed after returning exact ids; closing lab:pane-exact
+fm-afk-launch: recorded terminal teardown is unconfirmed; preserving exact id
+ok - herdr create error: unconfirmed exact id is persisted for reconciliation
+fm-afk-launch: failed to run daemon in herdr pane lab:pane-exact; closing it
+fm-afk-launch: recorded terminal teardown is unconfirmed; preserving exact id
+ok - herdr run failure: unconfirmed exact id remains reconcilable
+fm-afk-launch: failed to persist daemon terminal record; closing tmux:exact-session
+ok - record failure: newly created terminal is closed by exact id
+fm-afk-launch: daemon did not become ready; closing tmux:exact-session
+ok - readiness failure: exact terminal and durable record roll back
+fm-afk-launch: daemon did not become ready; closing tmux:exact-session
+fm-afk-launch: recorded terminal teardown is unconfirmed; preserving exact id
+ok - readiness failure: unconfirmed terminal retains its reconciliation id
+ok - tmux absence: clean missing differs from transport probe failure
+ok - native lifecycle: launcher owns state with no terminal
+ok - native lifecycle: uniform stop clears state without closing a terminal
+ok - start-native refuses the in-pane daemon on a native-busy backend
+ok - start-native refusal says what is blocked and why
+ok - start-native refusal names the path to use instead
+ok - refused start-native wrote no lifecycle state at all
+ok - start-native still proceeds when the daemon pane is not the delivery target
+ok - recorded target: a refresh into the daemon's own delivery pane proceeds
+ok - recorded target: a daemon delivering into a pane firstmate has left is refused
+ok - recorded target: the refusal names both the daemon's pane and the current one
+ok - recorded target: the refusal says away mode is still on
+ok - recorded target: the refused refresh left away mode exactly as it found it
+ok - recorded target: a record with no delivery pane is not refused on an unobserved guess
+ok - recorded target: an unrecorded delivery pane is reported as unchecked
+ok - start-native refresh: a daemon still delivering into this pane refreshes
+ok - start-native refresh: an orphaned daemon delivering into a pane firstmate left is refused
+ok - start-native refusal names both the daemon's pane and the current one
+ok - start-native refusal says away mode is still on
+ok - start-native refusal left away mode exactly as it found it
+ok - fresh entry: a captain-pane probe hiccup after startup does not refuse the entry
+ok - fresh entry: away mode and the terminal record survive the probe hiccup
+ok - fresh entry: the daemon terminal that just came up was not torn down
+ok - refresh: a delivery target that is no longer a live pane is refused
+ok - refresh refusal names the dead delivery target
+ok - refresh: a live delivery target still refreshes the away-mode flag
+ok - refresh: a pre-existing in-pane daemon is refused instead of silently refreshed
+ok - refresh refusal names what is blocked
+ok - refresh refusal names the remedy that actually clears the block
+ok - refresh refusal leaves away mode exactly as it found it - still on
+ok - refresh refusal tells the captain away mode is still active
+ok - refresh refusal does not claim away mode was never entered
+ok - refresh: an in-pane daemon living outside the delivery target still refreshes
+ok - refresh: a legacy record with no host pane is not refused on an unobserved guess
+ok - refresh says plainly that the host pane is unknown
+ok - refresh names the unverified residual and an action that resolves it
+ok - refresh: a daemon in its own terminal still refreshes the away-mode flag
+ok - fm-afk-start.sh refuses to host the daemon in its own delivery target
+ok - the entry refusal says what is blocked
+ok - the entry refusal names the path to use instead
+ok - the refused entry left no away-mode flag behind
+ok - a daemon entry outside its delivery target still enters away mode (afk: daemon already running pid=84441)
+ok - native entry: the prepared-state path ran through to daemon startup
+ok - native entry: launcher-prepared lifecycle state is not rewritten
+fm-afk-launch: reconciling leaked daemon terminal tmux:exact-session
+fm-afk-launch: recorded terminal teardown is unconfirmed; preserving exact id
+ok - teardown failure: exact terminal record is preserved
+ok - record publication: failed atomic rename preserves the complete prior record
+fm-afk-launch: daemon terminal record is malformed; refusing to act on it
+ok - record read: malformed record fails closed without acting on a partial id
+fm-afk-launch: daemon terminal record is malformed; refusing to act on it
+fm-afk-launch: malformed daemon terminal record; refusing to stop away mode
+ok - stop: malformed terminal record preserves away state and fails closed
+fm-afk-launch: failed to create detached tmux daemon session 'fm-afk-daemon-3907499979-6976-1569-1789208987'
+ok - tmux launch: planned exact target is recorded before creation and removed on failure
+fm-afk-launch: failed to create detached tmux daemon session 'fm-afk-daemon-26896742-7089-15296-1789208987'
+ok - tmux launch: unique names eliminate collision teardown
+ok - stop validation: malformed record causes no daemon or state side effects
+ok - launcher lock: incomplete metadata fails acquisition and releases lock
+fm-afk-launch: failed to clear away-mode flag
+fm-afk-launch: away mode stopped; terminal teardown or the record archive remains recorded for retry
+ok - stop state: away-flag removal failure is surfaced
+fm-afk-launch: away-mode daemon did not exit after SIGTERM; preserving lifecycle state
+ok - stop liveness: captured live daemon preserves lifecycle state after lock release
+fm-afk-launch: a confirmed away-posture record is required; run propose and confirm before starting the daemon
+fm-afk-launch: a confirmed away-posture record is required; run propose and confirm before starting the daemon
+ok - refresh record: malformed terminal identity fails closed
+fm-afk-launch: failed to clear stale away-mode artifacts
+ok - clear failure: native entry aborts and restores prior state
+fm-afk-launch: reconciling leaked daemon terminal tmux:exact-session
+fm-afk-launch: terminal close command failed, but exact absence was confirmed
+ok - confirmed absence: cleanup succeeds and removes the stale record
+fm-afk-launch: rollback restoration incomplete; backup retained at /var/folders/b8/p7dyhngn7l591759f0_ngqr40000gn/T//fm-afk-restore-fail.XOIQYR/state/.afk-launch-backup.DXTCKu
+ok - rollback restore: incomplete restoration retains its recovery backup
+ok - flag failure: lifecycle aborts without active state
+ok - herdr e2e: captain tab pane count unchanged after start (no split)
+ok - herdr e2e: daemon launched in a separate non-visible workspace
+ok - herdr e2e: daemon pane is NOT in the captain's tab
+ok - herdr e2e: daemon terminal scoped to the lab session
+ok - herdr e2e: captain tab pane count restored after stop
+ok - herdr e2e: daemon workspace removed by exact id on stop
+ok - herdr e2e: record + .afk cleared on stop
+ok - tmux e2e: captain window pane count unchanged after start (no split-window)
+ok - tmux e2e: daemon launched in a separate detached session
+ok - tmux e2e: captain window pane count unchanged after stop
+ok - tmux e2e: daemon session killed by exact id on stop
+ok - tmux e2e: record + .afk cleared on stop
+SUITE_EXIT=0

@@ -1,0 +1,68 @@
+==========================================================================
+A. ADVERSARIAL: the captain returns while another process holds the wake
+   queue lock, so the durable wake drain cannot run
+==========================================================================
+(queue lock held by live pid 48748)
+
+$ bin/fm-afk-return.sh begin
+=== Return brief ===
+Supervisor health:
+  - GAP: watcher downtime was detected during the away window (recovery marker present)
+  - GAP: the away daemon was not running at return (the away flag stood with no live daemon)
+  - GAP: the watcher beat was 999999s old at return (grace 300s)
+Mandate clauses:
+  (no away-posture record for this window; legacy away flag only)
+Waiting on you:
+  (nothing)
+Tried and failed, or could not be fixed:
+  (nothing)
+Handled while away:
+  (no routine outcomes recorded in the store for this window)
+Cost: 0 supervision outcome(s) recorded (0 routine, 0 captain); 0 task(s) live at return.
+fm-afk-return: catch-up must finish before the captain request
+catch-up health: GAP: watcher downtime was detected during the away window (recovery marker present)
+catch-up health: GAP: the away daemon was not running at return (the away flag stood with no live daemon)
+catch-up health: GAP: the watcher beat was 999999s old at return (grace 300s)
+catch-up lifecycle: durable wake drain was skipped while the queue lock was held; retry catch-up before ordinary work
+catch-up wake: WAKE DRAIN SKIPPED: queue lock remains held by live pid 48748 after 1s; retry on the next drain.
+fm-afk-return: handle each blocker now, or close it with resolved [key=...] and append a durable reclassification reason, then run bin/fm-afk-return.sh check
+(exit 3)
+
+durable catch-up gate left behind? yes
+lifecycle evidence recorded in the gate:
+  evidence	lifecycle	durable wake drain was skipped while the queue lock was held; retry catch-up before ordinary work
+undrained durable wake still queued? yes
+
+==========================================================================
+B. The captain retries once the lock is free: catch-up completes
+==========================================================================
+$ bin/fm-afk-return.sh check
+/tmp/nm-afk-ret.hpy2Lt/bin/fm-wake-drain.sh: line 224: /tmp/nm-afk-ret.hpy2Lt/bin/fm-guard.sh: No such file or directory
+=== Return brief ===
+Supervisor health:
+  - GAP: watcher downtime was detected during the away window (recovery marker present)
+  - GAP: the away daemon was not running at return (the away flag stood with no live daemon)
+  - GAP: the watcher beat was 999999s old at return (grace 300s)
+Mandate clauses:
+  (no away-posture record for this window; legacy away flag only)
+Waiting on you:
+  (nothing)
+Tried and failed, or could not be fixed:
+  (nothing)
+Handled while away:
+  (no routine outcomes recorded in the store for this window)
+Cost: 0 supervision outcome(s) recorded (0 routine, 0 captain); 0 task(s) live at return.
+catch-up health: GAP: watcher downtime was detected during the away window (recovery marker present)
+catch-up health: GAP: the away daemon was not running at return (the away flag stood with no live daemon)
+catch-up health: GAP: the watcher beat was 999999s old at return (grace 300s)
+catch-up lifecycle: durable wake drain was skipped while the queue lock was held; retry catch-up before ordinary work
+catch-up wake: WAKE DRAIN SKIPPED: queue lock remains held by live pid 48748 after 1s; retry on the next drain.
+catch-up wake: 1789209511 1 signal task.status signal: /tmp/nm-afk-ret.hpy2Lt/home/state/task.status
+catch-up wake: wake annotation: latest wake-EVENT observed at drain, not current state: task.status: needs-decision [key=fixture]: presentation remains retriable
+catch-up wake: OPEN DECISIONS (still open, folded from the durable status logs - not just the latest line):
+catch-up wake: task [key=fixture] needs-decision: presentation remains retriable
+catch-up wake: OPEN DECISIONS: close one by answering it: bin/fm-send.sh <task> --resolve-key <key> '<answer>'
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 48662.1789209511.BdBq32
+fm-afk-return: catch-up clear; ordinary captain work may proceed
+(exit 0)
+durable catch-up gate cleared? yes

@@ -1,0 +1,56 @@
+### captain pane: TMUX_PANE=%0  session=nm-afk-live3-83963
+
+$ bin/fm-afk-contract.sh propose --words "stepping out, hold for my return"
+Away posture read-back (proposed, not yet confirmed):
+  entered: 2026-09-12T10:37:05Z
+  expected return: not given
+  spend cap: 4 concurrent workers
+  merge when green (task ids): (none)
+  reach: hold-for-return only. No phone channel is configured; anything that needs you waits for your return.
+  your words (verbatim):
+    stepping out, hold for my return
+  accepted clauses:
+    (none)
+  refused clauses:
+    (none)
+  everything else waits for your return: no red merge without its named check, no discard without a named object and condition, never credentials, legal, financial, or attended prompts, nothing by analogy, and every clause expires at return.
+  hard rule: forbidden, destructive, irreversible, and security-sensitive actions are never pre-authorizable regardless of clause text; no recorded clause is authority by itself.
+  recorded clauses are held for the return brief and are not executed by this release.
+Say go to confirm; restate any refused clause first if you want it recorded.
+exit=0
+
+$ bin/fm-afk-contract.sh confirm
+Away posture confirmed at 2026-09-12T10:37:05Z: hold-for-return only. No phone channel is configured; anything that needs you waits for your return. No mandate clauses recorded. Forbidden, destructive, irreversible, and security-sensitive actions are never pre-authorizable regardless of clause text, and no recorded clause is authority by itself. Expected return: not given. Spend cap: 4 concurrent workers.
+exit=0
+
+=== S3a: fresh entry launches the daemon in its OWN terminal (not the captain pane) ===
+$ bin/fm-afk-launch.sh start
+fm-afk-launch: daemon launched in detached tmux session 'fm-afk-daemon-2776463659-84485-6110-1789209426', supervising %0
+exit=0
+state/.afk present: yes
+launch record: /tmp/nm-afk-live.WyRppE/state/.afk-daemon-terminal
+daemon tmux sessions: fm-afk-daemon-2776463659-84485-6110-1789209426
+nm-afk-live3-83963
+
+=== S3b: refresh from the SAME pane is accepted ===
+$ bin/fm-afk-launch.sh start   (daemon already running)
+fm-afk-launch: daemon already running; refreshed away-mode flag (no new terminal)
+exit=0
+state/.afk still present: yes
+
+=== S3c: ADVERSARIAL - captain has MOVED to another pane; refresh must refuse and leave away mode ON ===
+moved-to target: fm-afk-daemon-2776463659-84485-6110-1789209426:0.0
+$ FM_SUPERVISOR_TARGET=<other live pane> bin/fm-afk-launch.sh start
+fm-afk-launch: away mode is STILL ON from the earlier entry and this command changed nothing, but the running daemon's delivery path is blocked: the daemon already running delivers into '%0', but firstmate is now in 'fm-afk-daemon-2776463659-84485-6110-1789209426:0.0' - every escalation it sends goes to a pane you have left. Run 'bin/fm-afk-launch.sh stop' and re-enter with 'bin/fm-afk-launch.sh start', which launches a daemon targeting this pane.
+exit=1
+state/.afk STILL present (away mode untouched): yes
+daemon still alive: 2
+
+=== S3d: stop tears the daemon terminal down and clears the flag last ===
+$ bin/fm-afk-launch.sh stop
+fm-afk-launch: terminal close command failed, but exact absence was confirmed
+fm-afk-launch: away-posture record archived at /tmp/nm-afk-live.WyRppE/state/afk-contracts/1789209425.afk-contract
+fm-afk-launch: away mode stopped; daemon terminal torn down, .afk cleared, and the posture record archived
+exit=0
+state/.afk present after stop: no
+daemon tmux sessions after stop: nm-afk-live3-83963
