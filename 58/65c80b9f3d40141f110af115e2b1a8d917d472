@@ -1,0 +1,337 @@
+.agents/skills/afk/SKILL.md
+  s_a4fe3a8b9bf50e::t_9e5a9065b46708 4-5,13-44,48-63,69-79,83,86-95,97,103,105,127-128,132,148,152,164,182,228,232,235,242
+.agents/skills/bearings/SKILL.md
+  s_a4fe3a8b9bf50e::t_4fa61dcdfc9b05 57-58,104,106-110,138
+.agents/skills/bearings/assets/board-template.html
+  s_a4fe3a8b9bf50e::t_897e3fc23cd4ca 442-452,631-633,636-637,681
+.agents/skills/bootstrap-diagnostics/SKILL.md
+  s_a4fe3a8b9bf50e::t_ea8d05f8aa5e15 5,22,25-27,64-66,70-71
+.agents/skills/captain-hold-lifecycle/SKILL.md
+  s_a4fe3a8b9bf50e::t_53c5686ffb8abe 28,30-32,35
+.agents/skills/firstmate-coding-guidelines/SKILL.md
+  s_a4fe3a8b9bf50e::t_5a25d43684dcbe 128
+.agents/skills/fmx-respond/SKILL.md
+  s_a4fe3a8b9bf50e::t_6b7f5517d86e95 136,260
+.agents/skills/harness-adapters/references/harness/claude.md
+  s_a4fe3a8b9bf50e::t_97bda9209a8580 15,32-33
+.agents/skills/process-event-sources/SKILL.md
+  s_a4fe3a8b9bf50e::t_80bd4b159aa812 6-9,22,36-43,120-123
+.agents/skills/secondmate-provisioning/SKILL.md
+  s_a4fe3a8b9bf50e::t_ad18561335622f 197-198,200
+.agents/skills/stow/SKILL.md
+  s_a4fe3a8b9bf50e::t_4ae658560d8940 196,226
+.github/workflows/ci.yml
+  s_a4fe3a8b9bf50e::t_08446a7e1155ad 50-56,100,144-147,400-405,417-418
+.gitignore
+  s_a4fe3a8b9bf50e::t_9bab04c639adb8 14-15
+AGENTS.md
+  s_b5fb8022772ead::t_736dabd4cbf07d 10,12,14,69,71,74,123-124,142-144,193,202-203,245,352-354,454,458,460,519,522,529,540-541,565,577
+CONTRIBUTING.md
+  s_a4fe3a8b9bf50e::t_0b40e7fc41aa1a 53,120
+bin/backends/herdr.sh
+  s_a4fe3a8b9bf50e::t_474dff904a1eda 42,89-95,951-992,996-1000,1012,1036,1041,1053-1055,1061-1063,1065-1069,1071-1089,1105-1108,1191-1192,1251-1255,1293-1294,1310-1311,1331-1332,1340,1355,2068-2203,2205-2210,2212-2251,2270-2275,2282-2286,2294-2318,2322-2339,2345,2347-2352,2482,2558-2564,2683,2735,2784,2807,2889,3416-3421,3423,3425-3431
+bin/backends/tmux.sh
+  s_a4fe3a8b9bf50e::t_6e16571f42eff3 25-26,155-158,291,303,340,359
+bin/fm-afk-contract.sh
+  s_a4fe3a8b9bf50e::t_2c8a865bc80d8f 1-933
+bin/fm-afk-launch.sh
+  s_b5fb8022772ead::t_b6347050ec3528 2-7,9-23,47-59,85,139-143,204-252,706-708,711-712,714-715,783-785,857,897-898,903-910,912,914,931-932
+bin/fm-afk-return.sh
+  s_a4fe3a8b9bf50e::t_c255e7fd0ecc0b 2-3,6,8-11,13-36,39-49,56,59-66,69,89-104,108-167,171-172,178-185,191,196-197,206-208,214,218-219,224-226,261-287,289-290,295-312,317-519,521-522,527-570,572,598-647,657-676,709,713,718-721,724-727,732-738
+bin/fm-agent-process-lib.sh
+  s_a4fe3a8b9bf50e::t_0d7c5dbde46a23 1-106
+bin/fm-backend.sh
+  s_a4fe3a8b9bf50e::t_c82bb50ab18541 887-897
+bin/fm-backlog-handoff.sh
+  s_a4fe3a8b9bf50e::t_6d84bb55472018 53-59,63-75,102,320,332-336,373,381,451-452,455-522,540,600,644-654,657,660-670,824-847,849-852
+bin/fm-backlog-transition-lib.sh
+  s_a4fe3a8b9bf50e::t_946b7ee790fa11 25-27,30-39,55-57,179-268,270,285-292,294,297-299,302,385-386,388,390-397,399,404,406-413,415,420,431-433,435,472-474,476,483-490,492,494,517-525,528-530,532,536,545-554,603-605,617-619,653,662,664,739-756
+bin/fm-bearings-board.sh
+  s_a4fe3a8b9bf50e::t_5e6c362768aee8 75-81,119-129,173,185
+bin/fm-bearings-snapshot.sh
+  s_a4fe3a8b9bf50e::t_5b49ae3213b4f7 28-31,47-51,58-63,72,99-101,146,150,152-153,207-229,369-370,420-421,433-435,497-498,508-510,541-553,559-560,581-591,604-607
+bin/fm-bootstrap.sh
+  s_a4fe3a8b9bf50e::t_dbf508643a0ee4 9,18,62-65,67-68,101-103,113,154-156,901,1342-1346,1443-1444,1485,1489-1505
+bin/fm-branch-prompt.sh
+  s_a4fe3a8b9bf50e::t_2a112a02f00365 48,50
+bin/fm-brief.sh
+  s_a4fe3a8b9bf50e::t_5926c2526e3a46 20-21,293,366-370,400-402,426
+bin/fm-captain-hold.sh
+  s_a4fe3a8b9bf50e::t_24d7239d30c140 50,54,56,69,71,160-161,335,338-339,563,569-570,620,632-633,826,829,891-913,918,1792-1796,1798,1819-1836
+bin/fm-classify-lib.sh
+  s_a4fe3a8b9bf50e::t_f7c4080ab4164b 93,95-104,106-122,210-226
+bin/fm-claude-stop-autoarm.sh
+  s_a4fe3a8b9bf50e::t_ff578cbffa4cb1 56-57,187-198,200
+bin/fm-config-inherit-lib.sh
+  s_a4fe3a8b9bf50e::t_365fcf21defc48 20-22,69
+bin/fm-crew-state.sh
+  s_a4fe3a8b9bf50e::t_c20d4965cf07f7 47-50,121-126,537-543,583-597,797-800
+bin/fm-decision-hold.sh
+  s_a4fe3a8b9bf50e::t_5e15edfbd7cc80 62,172
+bin/fm-fleet-snapshot.sh
+  s_a4fe3a8b9bf50e::t_05205cb7efd379 88-95,103-104,217-219,393-407,473,515-520,954,960-969,986,988-989,1033,1100-1104,1292
+bin/fm-guard.sh
+  s_a4fe3a8b9bf50e::t_2ef9005ef97cb2 14-17
+bin/fm-herdr-lab-viewer.py
+  s_a4fe3a8b9bf50e::t_9561a187dafdc2 1-204
+bin/fm-herdr-lab.sh
+  s_a4fe3a8b9bf50e::t_c29bf97374c2f0 10-11,28-35,166-386,495-498,537,560-563
+bin/fm-inactive-reconcile.sh
+  s_a4fe3a8b9bf50e::t_f8d2d0e5875a59 314-321,325-326,405,503
+bin/fm-landed-lib.sh
+  s_a4fe3a8b9bf50e::t_1182c4a741d1d9 1-79
+bin/fm-lint.sh
+  s_a4fe3a8b9bf50e::t_28faf3d8f3476b 36,39-42,67,69,162-394,562,875-880
+bin/fm-mail-check.sh
+  s_a4fe3a8b9bf50e::t_b16908db5f2588 1-394
+bin/fm-mail.py
+  s_a4fe3a8b9bf50e::t_08e92fe0747107 1-491
+bin/fm-mail.sh
+  s_a4fe3a8b9bf50e::t_51b143cb94a981 1-651
+bin/fm-merge-local.sh
+  s_a4fe3a8b9bf50e::t_1e73988fa0e48a 12-16,24-40,44-45,49,51-71,115-133
+bin/fm-merge-outcome-lib.sh
+  s_a4fe3a8b9bf50e::t_0239cd87010d2b 38,45-48,55,57,64-68,78,103
+bin/fm-nm-run-lib.sh
+  s_a4fe3a8b9bf50e::t_74ba8595ec3ab2 82-97,108-120,182-197,201-207,214-222,226,238,240-253,259,261,264-265,268,271-272,274-280,282,284,287
+bin/fm-parent-channel-lib.sh
+  s_a4fe3a8b9bf50e::t_67c8db45c41a54 6-8
+bin/fm-pending-reply-lib.sh
+  s_a4fe3a8b9bf50e::t_c867f486f6b2b7 41-46,85-97,242-244,513-518,538,1250
+bin/fm-pr-merge.sh
+  s_a4fe3a8b9bf50e::t_bb6c0733bb9751 5,11-29,32,44,65-76,79-89,106-107,110-111,132-161,237,245-264,266-267,269-272,274-284,289-309,325-335,445-564,567-568,643-645,753-817,876,942-945,947,960-972,1009-1014,1016-1019,1034-1035
+bin/fm-procevent-lib.sh
+  s_a4fe3a8b9bf50e::t_f58584476a8b0c 181,214-238,242,245-251,255-256,266-267,347-358,635-657,758-777
+bin/fm-procevent.sh
+  s_a4fe3a8b9bf50e::t_569e2756290040 50-72,372-373,799-802,806,1129,1135-1140,1147,1162-1171,1185,1205-1206,1223-1314,1316-1323,1378-1390,1396-1407,1410,1428-1430,1432-1433,1436-1439,1445-1540,1547-1575,1593,1744-1745,1910,1923-1939
+bin/fm-public-followup.sh
+  s_a4fe3a8b9bf50e::t_e23259cb895382 211-215,290,298
+bin/fm-remote-doctor.sh
+  s_a4fe3a8b9bf50e::t_51f97ba822514d 15-27,68-69,163-167,170,174-203,214-274,284-287,294-299,309-310,314,318-319,323-324,327,329,333-336,606-607,615,632,635-636,643,667-689,721-722,729,740-741,758,765,791,800,833-834,851,898-902,904,907
+bin/fm-remote-entrypoint.sh
+  s_a4fe3a8b9bf50e::t_5365639103d9a1 34
+bin/fm-remote-herdr-guard.sh
+  s_a4fe3a8b9bf50e::t_3d2b3ace8f1bf8 1-108
+bin/fm-remote-herdr-owner-lib.sh
+  s_a4fe3a8b9bf50e::t_b5ac20f3e3a4d8 1-176
+bin/fm-send.sh
+  s_a4fe3a8b9bf50e::t_376c288724a4bb 548
+bin/fm-session-start.sh
+  s_a4fe3a8b9bf50e::t_9db27851ac6443 48-50,109-112,157,389,456-457,470,497,817,876-887
+bin/fm-spawn.sh
+  s_a4fe3a8b9bf50e::t_d45bc896b6e089 42-45,118-126,252-262,265,331-334,424-448,923,1055-1071,1503-1506,2608-2612,2614,2642,3114-3131,3195-3214,3865
+bin/fm-supervise-daemon.sh
+  s_a4fe3a8b9bf50e::t_d62a4feec794d6 52-54,98-103,180-183,288-289,297,519,527,1269,1361-1380,1397-1402,1404-1406,1593-1596,1608-1613
+bin/fm-tasks-axi-lib.sh
+  s_a4fe3a8b9bf50e::t_11db8bcd6d6a06 18-25,144,150-154,156,160-171,175-178
+bin/fm-tasks-axi.sh
+  s_a4fe3a8b9bf50e::t_cb1c398f1a5381 1-127
+bin/fm-teardown.sh
+  s_a4fe3a8b9bf50e::t_738cb409a8a774 14-20,26-27,31,82-111,124-127,342,941,1420,1423-1426,1436,2098,2178-2243,2711,2724,2733,2757,2762-2767,2939,2996-3021,3023,3063,3140,3171,3286,3289-3290,3316-3317,3340-3344,3508,3510-3511
+bin/fm-test-isolation-proof.sh
+  s_a4fe3a8b9bf50e::t_d436fe323b6e12 141
+bin/fm-test-run.sh
+  s_a4fe3a8b9bf50e::t_1bab3c2e956788 21,39-43,67,119-122,126-132,299,310-312,318,347,375,492-540,544-546,548-549,551-552,560-561,563,569,571-572,662,674,678,682,695,711,715,720,727-728,732,739,751,758,763,782,808,828-837,966,1096-1105,1108-1110,1242-1243,1245-1246,1249,1335,1341-1349,1351,1377-1383,1408,1413-1416,1573-1578,2082-2089,2333-2338
+bin/fm-turnend-guard.sh
+  s_a4fe3a8b9bf50e::t_b85618ae5de91b 82-87,257-276,281,293-296,299,304,325,489
+bin/fm-wake-lib.sh
+  s_a4fe3a8b9bf50e::t_23a0279e61ff77 191-193,341-345,375-377,1213-1327,1371-1375,1456-1457,1466-1467,1472-1473,1510-1543,1592-1593,1611,1613-1615,1784-1797
+bin/fm-watch.sh
+  s_a4fe3a8b9bf50e::t_6d9b39c80b4b0b 14-18,55-59,79-94,135-138,167-171,278-280,282-285,305-319,862-867,870,987,996-1005,1008-1022,1027,1074-1078,1259-1261,1267,1291,1296,1300-1319,1424,1432-1440,1446-1455,1731-1748,2116-2117,2119-2121,2239-2245
+bin/fm-x-link.sh
+  s_a4fe3a8b9bf50e::t_e967702899a83c 180
+docs/agent-control.md
+  s_a4fe3a8b9bf50e::t_e18d8f8cb947b5 102-103
+docs/architecture.md
+  s_a4fe3a8b9bf50e::t_7c367e326e1e46 12,25,27,51-52,55-56,66,81,135-143,155,165,280-282,317-319,324,331-332,396,429
+docs/captain-hold-lifecycle.md
+  s_a4fe3a8b9bf50e::t_a11c96a83836bc 10,17-18,38-45,48,50-51,107,148-150,153-157,192-193,206
+docs/cd-guard.md
+  s_a4fe3a8b9bf50e::t_8edbec7f699607 14
+docs/configuration.md
+  s_a4fe3a8b9bf50e::t_d2b76f70f07eb7 42,97,102-105,107-109,117-122,280,351-361,459,462-463,472-473,475,560-591,620,849-864,867-868,890-893,899,903-922,1005-1007,1015,1017,1022,1025-1030,1042,1063-1064
+docs/fm-test-isolation-proof.md
+  s_a4fe3a8b9bf50e::t_035a1aa396e2f4 122-123,125
+docs/fm-test-portable-shards.md
+  s_a4fe3a8b9bf50e::t_fe987077e914f5 8-10,12-15,17,19-36,38-41,63-67,76-81,83-85,126-127,130
+docs/gitlab-merge-watch.md
+  s_a4fe3a8b9bf50e::t_4aa912b89efc1d 261
+docs/herdr-backend.md
+  s_a4fe3a8b9bf50e::t_e7631b1a635f23 129-132,136,187-188,286-299,309,324-326,367-368,370,373
+docs/pi-supervision-branch.md
+  s_a4fe3a8b9bf50e::t_1cc3e3d841d9f2 25,67,153-155
+docs/remote-secondmates.md
+  s_a4fe3a8b9bf50e::t_fcf863e84aa474 46,101-104,115,223-224,269,279
+docs/scripts.md
+  s_a4fe3a8b9bf50e::t_952277ead624cc 31,40,66,92,94-95,107,153-155
+docs/secondmate-parent-channel.md
+  s_a4fe3a8b9bf50e::t_a7d8d22e3a2b9e 12,45
+docs/supervision-protocols/claude.md
+  s_a4fe3a8b9bf50e::t_7ccdf555e3ccb6 21
+docs/supervision-protocols/pi.md
+  s_a4fe3a8b9bf50e::t_1ada7f8bb8b9ba 3,22,30
+docs/tmux-backend.md
+  s_a4fe3a8b9bf50e::t_34d24c75460b4f 52
+docs/turnend-guard.md
+  s_a4fe3a8b9bf50e::t_0b410d8e86e2ac 38-40,99,114-116,188-189
+docs/verification/process-event-sources.md
+  s_a4fe3a8b9bf50e::t_569e1691bf524c 89,120-126,129,183-205
+docs/verification/rovo.md
+  s_a4fe3a8b9bf50e::t_4894c26cab33d9 187
+docs/verification/runtime-backends.md
+  s_a4fe3a8b9bf50e::t_bc66a0e7d0d938 66,610-650,798,887-918,1047,1051-1052,1056-1058,1062,1065-1196,1199-1200,1207-1218
+docs/verification/supervision.md
+  s_a4fe3a8b9bf50e::t_345cd64a5fc5d8 372
+tests/assets/board-render-harness.mjs
+  s_a4fe3a8b9bf50e::t_5b5597b98915e8 6-8,98-113,115,125-126
+tests/fm-afk-contract.test.sh
+  s_a4fe3a8b9bf50e::t_94dc161c8a9c34 1-644
+tests/fm-afk-launch.test.sh
+  s_a4fe3a8b9bf50e::t_9e25ff0365f0b4 25-35,54-180,374,396,653-654,679-681,712-714,737-739,824-826,889,932,977,1413,1468,1515,1557,1583-1587
+tests/fm-afk-pi-herdr-return-e2e.test.sh
+  s_a4fe3a8b9bf50e::t_06763143fa2ff3 2,4-14,16-18,41,49,51,65-70,78-81,163,173-183,185-194,196-197,204-207,209-211,213-214,223-225,227-240,248,253-255,257-264,270-272,274,277-279,281,283,286-287
+tests/fm-afk-return.test.sh
+  s_a4fe3a8b9bf50e::t_a2b4c72d8e4e9c 2,7-14,31-40,51,99-100,104-113,139-166,168,171-172,189-191,206,334-340,342-349,352-353,356-358,360-639,641-738,740,743-749,752,758-769
+tests/fm-backend-herdr-agent-exit-shell-e2e.test.sh
+  s_a4fe3a8b9bf50e::t_bae637828ca397 1-213
+tests/fm-backend-herdr-presentation-e2e.test.sh
+  s_a4fe3a8b9bf50e::t_ee4b927b8f6817 678-683,687-688,690-693,697-700,702,752
+tests/fm-backend-herdr-stale-active-tab-e2e.test.sh
+  s_a4fe3a8b9bf50e::t_97ca065b1dcdb7 1-92
+tests/fm-backend-herdr.test.sh
+  s_a4fe3a8b9bf50e::t_1ea8dacbf17873 64-68,164-166,364-701,1159-1160,1182-1183,1956-1958,1961,1964,1967-1968,1971-2022,2081-2180,2928-2930,2933,3481,3520-3521,5183-5195,5254-5255,5258-5260
+tests/fm-backlog-atomicity.test.sh
+  s_a4fe3a8b9bf50e::t_1809c4b6d9838e 45-53,67-75,123-143,633-774,812-832,1062,1085,1113,1139,1646,1674,2750-2755,2769-2929,2935,2996-2999,3002,3085-3091
+tests/fm-bearings-board-render.test.sh
+  s_a4fe3a8b9bf50e::t_e77f3eb6e8f03c 59-64,66,76-80,168-234
+tests/fm-bearings-board.test.sh
+  s_a4fe3a8b9bf50e::t_24c4173c9d6158 263-276
+tests/fm-bearings-snapshot.test.sh
+  s_a4fe3a8b9bf50e::t_8e4803c87faac9 17,216-223,316-317,323,1145-1146,1618-1849,2405-2537,3139,3167-3177,3246,3333-3335,3350-3352
+tests/fm-bootstrap.test.sh
+  s_a4fe3a8b9bf50e::t_7fac503098d1d8 8,376-377,386,388-390,394-395,398,403-405,407
+tests/fm-brief.test.sh
+  s_a4fe3a8b9bf50e::t_46fac0644937fc 820-854,927
+tests/fm-captain-hold-lifecycle.test.sh
+  s_a4fe3a8b9bf50e::t_9bb91530f67012 11-12,50-52,54-65,67,100-180,2182-2238,2598-2849,2914-3092,3145-3808,3876,3882,3884-3886,3888-3896
+tests/fm-claude-stop-autoarm.test.sh
+  s_a4fe3a8b9bf50e::t_77ed8ead0fbbc7 90-91,136-137,148-149,170-171,182-183,408-411
+tests/fm-control-herdr-smoke.test.sh
+  s_a4fe3a8b9bf50e::t_a5629e9ffd4549 12-17,50-57,68-69,105,119-195,205-217,219-236,242,256-320
+tests/fm-control-relaunch.test.sh
+  s_a4fe3a8b9bf50e::t_034f46b4a4b194 1522-1523
+tests/fm-crew-state.test.sh
+  s_a4fe3a8b9bf50e::t_93cd11ada4a456 24-27,156-167,233-234,238,1148-1334,1524-1570,2519-2524,2570-2571
+tests/fm-cursor-harness.test.sh
+  s_a4fe3a8b9bf50e::t_9030480e07d831 159,161,165,167,170-171
+tests/fm-daemon.test.sh
+  s_a4fe3a8b9bf50e::t_414e1431e8d333 3-8,1110-1158,1484-1599,3488,3502-3503
+tests/fm-gitignore-config.test.sh
+  s_a4fe3a8b9bf50e::t_05e6d6b9e805a7 11-12
+tests/fm-guard-stale-banner.test.sh
+  s_a4fe3a8b9bf50e::t_e920ab04081640 77-93,415-541,888-891
+tests/fm-harness-liveness-drift-live-e2e.test.sh
+  s_a4fe3a8b9bf50e::t_08c285496d903b 137
+tests/fm-herdr-attached-viewer-live-e2e.test.sh
+  s_a4fe3a8b9bf50e::t_b73f4d2944853c 1-259
+tests/fm-herdr-lab.test.sh
+  s_a4fe3a8b9bf50e::t_70afda3a8c5f71 67-72,91,223-225,247-500,508-517
+tests/fm-herdr-pi-stale-registration-live-e2e.test.sh
+  s_a4fe3a8b9bf50e::t_35b41949c8886b 1-159
+tests/fm-inactive-reconcile.test.sh
+  s_a4fe3a8b9bf50e::t_c8f310c71989e9 236,247-248,259-290,825
+tests/fm-lint.test.sh
+  s_a4fe3a8b9bf50e::t_2f437dbd425730 442,929-1002,1290-1291
+tests/fm-mail-check.test.sh
+  s_a4fe3a8b9bf50e::t_37050b7cef692d 1-423
+tests/fm-mail.test.sh
+  s_a4fe3a8b9bf50e::t_d976fb59b9e873 1-2659
+tests/fm-omp-harness.test.sh
+  s_a4fe3a8b9bf50e::t_3dc44d3db86e49 100-103
+tests/fm-on.test.sh
+  s_a4fe3a8b9bf50e::t_fb383f8382d645 71
+tests/fm-pending-reply.test.sh
+  s_a4fe3a8b9bf50e::t_76bc967e31126d 30-31,1509-1572,1613
+tests/fm-pr-check-security.test.sh
+  s_a4fe3a8b9bf50e::t_7c3241d7045151 147-154,526,529-530
+tests/fm-pr-merge.test.sh
+  s_a4fe3a8b9bf50e::t_b10721bb28779e 8-9,32-33,38-41,61-89,92,104,106-107,109-120,123-137,139-143,147-150,159-160,163-166,169-170,172-173,321,327-332,334,338,358-366,385,407,541-542,586,598-599,620,651,667,685,716,724,762,804-806,809,822,827-830,832-834,836-837,845-847,944-951,958-959,971-978,1002,1006-1007,1009,1039,1058,1094,1096,1121,1149,1151,1165,1167-1174,1176-1183,1203,1232,1259,1284,1313,1341,1343-1348,1350-1357,1370,1384,1398,1481-1484,1486-1492,1495-1496,1519,1711,1717,1719-1727,1940-1944,2050,2083-2481,2494-2507
+tests/fm-procevent.test.sh
+  s_a4fe3a8b9bf50e::t_7d0cc588af648a 56-92,954-955,968-971,1178-1213,1353-1358,1361-1412,1425-1430,1433-1773,2013-2037,2039,2041,2043-2060,2062,2064-2065,2068-2075,2079-2119,2882-2906,2910-2911,2958-2964,2967,2970-2972,3067-3568
+tests/fm-public-followup.test.sh
+  s_a4fe3a8b9bf50e::t_d201fb4c0bfe13 314-362,3192
+tests/fm-remote-backlog-handoff.test.sh
+  s_a4fe3a8b9bf50e::t_fbb8bf1af4e334 339-340,343-346,349-449,497-643
+tests/fm-remote-doctor.test.sh
+  s_a4fe3a8b9bf50e::t_036048e48e7267 5-11,17,27-29,40-64,67-69,74-78,80,113-116,159,161-164,168-171,173-176,186-188,214-244,263,289,310-312,317-322,331-333,336,338-341,345-347,352-387,460-467,510,521,546,586,612-677,697-765
+tests/fm-remote-herdr-guard.test.sh
+  s_a4fe3a8b9bf50e::t_d1c6c7f8583b0a 1-343
+tests/fm-remote-secondmate-lifecycle-e2e.test.sh
+  s_a4fe3a8b9bf50e::t_fc6b79870a15f6 474-477
+tests/fm-secondmate-harness.test.sh
+  s_a4fe3a8b9bf50e::t_f48c5c2d84d176 1010,1395-1440,2638-2639
+tests/fm-send-remote-delivery.test.sh
+  s_a4fe3a8b9bf50e::t_279de9438f8303 302-305,307,321-327
+tests/fm-session-lock-ancestry.test.sh
+  s_a4fe3a8b9bf50e::t_5222d94d010815 240-241
+tests/fm-session-start.test.sh
+  s_a4fe3a8b9bf50e::t_0041a420698080 1756,1800
+tests/fm-spawn-dispatch-profile.test.sh
+  s_a4fe3a8b9bf50e::t_fabab9efc004fa 1206-1298,1332-1336
+tests/fm-spawn-pool-base-freshen.test.sh
+  s_a4fe3a8b9bf50e::t_39f056fd82fc32 679-745,747
+tests/fm-tasks-axi.test.sh
+  s_a4fe3a8b9bf50e::t_b28bddccef261c 1-230
+tests/fm-teardown-endpoint-safety.test.sh
+  s_a4fe3a8b9bf50e::t_2658ba92529358 51-55,833-974,987-988
+tests/fm-teardown.test.sh
+  s_a4fe3a8b9bf50e::t_a9ba11925cff77 721,1104-1109,1112-1113,1119-1122
+tests/fm-test-fixtures.test.sh
+  s_a4fe3a8b9bf50e::t_5080d96952dbce 9-14,22-155,282
+tests/fm-test-isolation-proof.test.sh
+  s_a4fe3a8b9bf50e::t_5396838fa8f665 271-288,297
+tests/fm-test-run.test.sh
+  s_a4fe3a8b9bf50e::t_4fb0037a036ff5 95,103,185,264-269,317-324,600,752,1082-1138,1140,1168-1174,1178-1199,1382,1460,1524,1589,1811-1812,1814
+tests/fm-tmux-agent-liveness.test.sh
+  s_a4fe3a8b9bf50e::t_9786a2d900e974 120,128,134
+tests/fm-turnend-guard.test.sh
+  s_a4fe3a8b9bf50e::t_6eaaf8077abe2f 1223-1233,1628-1736,1826-1827,2260-2261
+tests/fm-watch-arm.test.sh
+  s_a4fe3a8b9bf50e::t_f43af07d155179 802-843,846
+tests/fm-watch-triage.test.sh
+  s_a4fe3a8b9bf50e::t_5cea857f9cfdf3 2360-2400,4025-4037,4141-4242,4565-4791,4864,4886-4887,4898-4904
+tests/git-config-helpers.sh
+  s_a4fe3a8b9bf50e::t_7e27eeb97f56d8 1-26
+tests/herdr-client-pair-fixture.sh
+  s_a4fe3a8b9bf50e::t_b55ab6289ad464 55-58
+tests/herdr-test-safety.sh
+  s_a4fe3a8b9bf50e::t_49391c1071796a 7-9
+tests/lib.sh
+  s_a4fe3a8b9bf50e::t_c83ea49f8426e6 36-40,56-65,463-465,469,529-538
+tests/remote-herdr-fixture.sh
+  s_a4fe3a8b9bf50e::t_3f0391b0c2c406 44,51,101-103
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5865c80b9f3d40141f110af115e2b1a8d917d472",
+  "prompts": {},
+  "sessions": {
+    "s_a4fe3a8b9bf50e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "74b534c8-d811-4422-a859-d122fd9c1688",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Justinas Bolys <justinas.bolys@mediatech.one>"
+    },
+    "s_b5fb8022772ead": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "98366f72-6d3c-4e3e-aec3-f3553bc10db6",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Justinas Bolys <justinas.bolys@mediatech.one>"
+    }
+  }
+}
