@@ -1,0 +1,19 @@
+docs/herdr-backend.md
+  s_ca3e56513e0eb3::t_141a18d3740003 332-337
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7cdfd531e2d62fea10a33b5a14655322c8620db1",
+  "prompts": {},
+  "sessions": {
+    "s_ca3e56513e0eb3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "93ca36a7-9679-4c51-9cec-768453bc98e1",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Justinas Bolys <justinas.bolys@mediatech.one>"
+    }
+  }
+}
