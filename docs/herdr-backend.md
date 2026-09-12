@@ -321,9 +321,11 @@ It refuses Zellij, Orca, and cmux as supervisor backends rather than applying th
 For Herdr, target existence, native state, capture, composer state, and verified submit all route through the shared backend dispatcher and the explicit named-session CLI owner.
 The pane-independent max-defer alert is configured in [`wedge-alarm.md`](wedge-alarm.md).
 
-Harnesses with native tracked background execution can run the daemon in their terminal.
+On Herdr the away daemon always runs in its own dedicated workspace, whatever the harness offers.
+A harness-native in-pane background job is not usable here: Herdr's native agent state observes the pane's own background jobs, so a daemon hosted in the captain's pane keeps that pane reporting busy for its whole lifetime and the daemon's own busy guard then defers every injection into it.
+That is a self-referential deadlock rather than a tuning problem, so `bin/fm-afk-launch.sh start-native` refuses on Herdr, `bin/fm-afk-start.sh` refuses before it writes any lifecycle state, and the daemon refuses again at startup if it finds itself tenanting its own supervisor target.
 Pi and pi-signed no longer launch the away daemon; their ordinary supervision session continues under the posture record.
-For another harness without native tracked background execution, `bin/fm-afk-launch.sh` creates a dedicated unfocused Herdr workspace, runs the daemon there with an explicit supervisor target and backend, records the exact daemon pane, and closes only that pane on stop.
+For every other harness on Herdr, `bin/fm-afk-launch.sh` creates a dedicated unfocused Herdr workspace, runs the daemon there with an explicit supervisor target and backend, records the exact daemon pane, and closes only that pane on stop.
 It never splits the captain's active tab and never uses shell `&`.
 Recovery reconciles only the recorded exact id.
 
