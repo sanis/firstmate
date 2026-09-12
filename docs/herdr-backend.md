@@ -329,6 +329,12 @@ For every other harness on Herdr, `bin/fm-afk-launch.sh` creates a dedicated unf
 It never splits the captain's active tab and never uses shell `&`.
 Recovery reconciles only the recorded exact id.
 
+A fresh entry runs no separate delivery-path check: that daemon validates its own backend and supervisor target at startup and takes the daemon lock only once they pass, so a startup refusal can never be sighted as readiness and the launcher's wait reports the launch as failed instead.
+The launcher therefore verifies the delivery path only on a refresh - either entry point invoked while a daemon is already running - which is the only place a pre-existing in-pane daemon can be observed, since such a daemon is never re-created.
+It compares the recorded delivery pane against the pane firstmate occupies now and probes the recorded one, so a daemon still injecting into a pane the captain has left is refused instead of reported verified; a record predating that field reads as unknown, which warns and never refuses.
+Those checks are deliberately timing-independent and never sample busy-ness, because firstmate is mid-turn running the launcher and the captain pane is legitimately busy at entry.
+A refusal there leaves away mode exactly as it found it and says so, because the running daemon keeps buffering until it is stopped and re-entered.
+
 On stop, the daemon receives termination while `state/.afk` still exists so its final flush can run, the recorded terminal is closed, and the AFK flag is removed last.
 A fresh entry clears stale transient escalation caches, while durable queue and task records remain authoritative.
 

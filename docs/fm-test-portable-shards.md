@@ -40,9 +40,6 @@ Its scheduling regressions also check stored parallel lane order and preserve se
 These checks do not detect a script outgrowing an existing hint or establish measured job headroom.
 Refresh `portable_parallel_weight_hints` with the slowest completed `duration_ms` per script from several green CI runs' `fm-test-timing-portable-parallel-*` artifacts whenever the parallel set gains scripts or a member grows materially.
 
-Those estimates are the assignment's inputs rather than current runtimes: green CI run [33100473041](https://github.com/sanis/firstmate/actions/runs/33100473041) measured the lanes at 141202 ms and 139195 ms, an imbalance of 2007 ms, with the renewal-grown `tests/fm-pr-merge.test.sh` alone at 50184 ms against the 6290 ms the proof recorded for it.
-Both lanes stay far inside the 10-minute cap, so refreshing the partition is balance work needing a fresh isolation proof, not a capacity risk.
-
 ## Portable serial remainder
 
 `portable-serial` includes every `tests/*.test.sh` that is neither proven-isolated nor `real-herdr-gated`.
