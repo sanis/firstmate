@@ -482,7 +482,8 @@ const attempt = () => {
       );
     }
     const carryImportConsent = approvedExternalImports(projects, project);
-    const targetFlags = carryImportConsent ? [trustFlag, ...importFlags] : [trustFlag];
+    const targetDeclined = declinedExternalImports(projects, target);
+    const targetFlags = carryImportConsent && !targetDeclined ? [trustFlag, ...importFlags] : [trustFlag];
     const projectFlags = carryImportConsent ? [trustFlag, ...importFlags] : [trustFlag];
     setFlags(projects, target, targetFlags);
     setFlags(projects, project, projectFlags);

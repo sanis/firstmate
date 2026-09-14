@@ -57,7 +57,8 @@
 # would be wrongly refused. After each home's own update (primary and every
 # local secondmate), this script best-effort runs that home's own
 # fm-procevent-when.sh rebind-all to republish those bindings against the new
-# bytes; a failure there is swallowed rather than failing the update.
+# bytes; a failure there is reported as a warning and fails the script's own
+# exit status, even though the git update itself already landed.
 #
 # Usage: fm-update.sh [--help]
 set -eu
@@ -85,6 +86,7 @@ fi
 # --- main firstmate repo ---------------------------------------------------
 
 reread_firstmate="no"
+rebind_failed=0
 ff_target "$FM_ROOT" "firstmate" origin no no
 if [ "$FF_STATUS" = "updated" ]; then
   if [ -n "$FF_INSTR" ]; then
@@ -98,7 +100,10 @@ if [ "$FF_STATUS" = "updated" ]; then
   # process's own FM_ROOT is the repo that was just updated, which is not
   # always where this very script file happens to live (FM_ROOT_OVERRIDE, as
   # this test suite uses to point fm-update.sh at a fixture checkout).
-  FM_HOME="$FM_HOME" FM_ROOT_OVERRIDE="$FM_ROOT" "$SCRIPT_DIR/fm-procevent-when.sh" rebind-all || true
+  if ! FM_HOME="$FM_HOME" FM_ROOT_OVERRIDE="$FM_ROOT" "$SCRIPT_DIR/fm-procevent-when.sh" rebind-all; then
+    echo "warning: fm-procevent-when.sh rebind-all failed for firstmate home $FM_ROOT; some watch trust bindings may still be desynced" >&2
+    rebind_failed=1
+  fi
 fi
 
 # --- secondmates -----------------------------------------------------------
@@ -163,7 +168,10 @@ fm_ff_after_secondmate_settled() {  # <id> <home> <window> <status> <instr>
   # own worktree rather than letting an outer FM_ROOT_OVERRIDE (this process's
   # own, if the caller set one) leak into the child and misscope it.
   if [ "${4:-}" = "updated" ] && [ -x "$2/bin/fm-procevent-when.sh" ]; then
-    FM_HOME="$2" FM_ROOT_OVERRIDE="$2" "$2/bin/fm-procevent-when.sh" rebind-all || true
+    if ! FM_HOME="$2" FM_ROOT_OVERRIDE="$2" "$2/bin/fm-procevent-when.sh" rebind-all; then
+      echo "warning: fm-procevent-when.sh rebind-all failed for secondmate $1 home $2; some watch trust bindings may still be desynced" >&2
+      rebind_failed=1
+    fi
   fi
   claim_settled_secondmate "$1"
 }
@@ -241,3 +249,8 @@ fi
 echo "reread-firstmate: $reread_firstmate"
 echo "restart-secondmates:${FF_RESTART_WINDOWS:- none}"
 echo "nudge-secondmates:${FF_STEER_WINDOWS:- none}"
+
+if [ "$rebind_failed" -eq 1 ]; then
+  echo "rebind-all: failed for at least one home; watch trust bindings may still be desynced" >&2
+  exit 1
+fi
