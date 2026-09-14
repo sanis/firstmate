@@ -219,6 +219,33 @@ JSON
   pass "fm-claude-trust.sh: carries forward a project's already-granted import consent to the worktree entry"
 }
 
+# A worktree path can be reused across relaunches (e.g. an operator manually
+# opened claude in that exact worktree earlier to inspect a stuck worker and
+# answered "No, disable" on the external-imports dialog there), leaving that
+# worktree's OWN entry with hasClaudeMdExternalIncludesApproved===false even
+# though the project entry carries standing "Yes" consent. That worktree-level
+# decline must not be silently flipped back to true by a later spawn just
+# because the project entry approves - the decline check must apply to the
+# target entry, not only the project entry. Trust registration itself must
+# still succeed (only a DECLINED PROJECT entry refuses the whole thing), and
+# the project entry's own consent must be unaffected.
+test_target_entry_declined_external_imports_is_not_overridden() {
+  local rec store out
+  rec=$(make_case worktree-decline)
+  read_case "$rec"
+  store="$CONFIG/.claude.json"
+  cat > "$store" <<JSON
+{"hasCompletedOnboarding":true,"projects":{"$PROJ":{"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":true,"hasClaudeMdExternalIncludesWarningShown":true},"$WT":{"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}}}
+JSON
+  out=$(run_trust "$CONFIG" "$WT" "$PROJ")
+  expect_code 0 $? "registration must still succeed when only the target entry declined: $out"
+  assert_store_value "$store" 'false' \
+    "the worktree entry's own decline was overridden" projects "$WT" hasClaudeMdExternalIncludesApproved
+  assert_all_flags "$store" "$PROJ" \
+    "the project entry's own already-granted import consent was lost"
+  pass "fm-claude-trust.sh: does not override a worktree entry's own declined external-imports consent"
+}
+
 # The project-root entry is the same store the launching user's interactive
 # claude sessions read and write (it is usually already present, carrying
 # unrelated keys such as allowedTools or MCP config), so preservation must
@@ -794,6 +821,7 @@ test_secondmate_spawn_fails_closed_when_home_trust_cannot_be_recorded() {
 test_fresh_worktree_is_trusted
 test_fresh_worktree_also_trusts_the_project_root_without_import_consent
 test_registration_carries_forward_existing_import_consent
+test_target_entry_declined_external_imports_is_not_overridden
 test_project_root_entry_preserves_other_keys
 test_project_root_entry_declined_external_imports_is_not_overridden
 test_registration_is_idempotent

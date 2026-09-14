@@ -386,8 +386,10 @@ fi
 # In worktree mode every flag lands on both the worktree entry and the project
 # entry in the same read-modify-write attempt, so a single rename either
 # records all of it or none of it - there is no state where the worktree entry
-# is fresh and the project entry stale, or the other way round. In
-# secondmate-home mode only the single home entry is written.
+# is fresh and the project entry stale, or the other way round, except for the
+# worktree entry's own standing decline described below, which withholds the
+# import flags from that one entry on purpose. In secondmate-home mode only
+# the single home entry is written.
 #
 # The two external-imports flags (worktree mode only) are gated separately
 # from the trust flag, because they are a CONSENT grant, not a pre-approval
@@ -407,6 +409,16 @@ fi
 # left exactly as undecided as it already was - the worker wedges on it, the
 # same honest outcome as an explicit decline, rather than a spawn spending
 # consent the human was never asked for.
+#
+# The decline check also applies to the worktree entry itself, not only the
+# project entry: a worktree path can be reused across relaunches (e.g. an
+# operator manually opened claude in that exact worktree earlier and answered
+# "No, disable" there), leaving hasClaudeMdExternalIncludesApproved===false on
+# that one entry even though the project entry still carries standing "Yes"
+# consent. That worktree-level decline must not be silently flipped back to
+# true just because the project entry approves, so the import flags are
+# withheld from the worktree entry alone in that case - trust still registers
+# normally on both entries, and the project entry's own consent is unaffected.
 TRUST_FLAG='hasTrustDialogAccepted'
 IMPORT_FLAGS='["hasClaudeMdExternalIncludesApproved","hasClaudeMdExternalIncludesWarningShown"]'
 if [ "$MODE" = worktree ]; then
