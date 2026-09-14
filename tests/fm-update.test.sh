@@ -471,6 +471,84 @@ test_unsafe_secondmate_home_skipped_before_git_update() {
   pass "T11 unsafe secondmate home is not fast-forwarded"
 }
 
+# --- T12: a self-update rebinds a locally armed watch on the primary --------
+# A self-update fast-forwards bin/ in place, changing bytes an armed
+# fm-procevent-when watch's trust binding was hashed against with no
+# tampering involved; without a rebind the very next fire would be refused.
+test_primary_update_rebinds_local_watch() {
+  local w before_hash after_hash out spec
+  w=$(new_world t12)
+  mkdir -p "$w/seed/bin"
+  printf "#!/usr/bin/env bash\necho v1 >> \"\$1\"\n" > "$w/seed/bin/watched-action.sh"
+  chmod +x "$w/seed/bin/watched-action.sh"
+  git -C "$w/seed" add -A
+  git -C "$w/seed" commit -qm add-watched-action
+  git -C "$w/seed" push -q origin main
+  git -C "$w/main" pull -q origin main
+
+  FM_ROOT_OVERRIDE="$w/main" FM_HOME="$w/home" "$ROOT/bin/fm-procevent-when.sh" \
+    arm rebind-primary --interval 60 --stable 1 \
+    --condition true --action "$w/main/bin/watched-action.sh" "$w/rebind.log" >/dev/null
+  spec="$w/home/state/when/when-rebind-primary.spec"
+  before_hash=$(grep '^action_sha256=' "$spec")
+
+  printf "#!/usr/bin/env bash\necho v2 >> \"\$1\"\n" > "$w/seed/bin/watched-action.sh"
+  git -C "$w/seed" add -A
+  git -C "$w/seed" commit -qm bump-watched-action
+  git -C "$w/seed" push -q origin main
+
+  out=$(run_update "$w")
+
+  assert_contains "$out" "firstmate: updated " "the primary still advanced"
+  assert_contains "$out" "rebound: when-rebind-primary" "the primary self-update rebound its own locally armed watch"
+  after_hash=$(grep '^action_sha256=' "$spec")
+  [ "$before_hash" != "$after_hash" ] \
+    || fail "the watch's trust binding was not refreshed to match the updated action bytes"
+  pass "T12 a self-update rebinds a locally armed watch on the primary"
+}
+
+# --- T13: a rebind-all failure is a visible warning, not a failed update ---
+# A subsidiary fm-procevent-when.sh rebind-all failure (here: the watched
+# action a locally armed watch pointed at was removed by the very update that
+# just landed) must not be swallowed - it is reported as a warning on stderr -
+# but it must also NOT fail fm-update.sh's own exit status: the git
+# fast-forward itself already landed, and fm-remote-secondmate-control.sh's
+# cmd_update treats any non-zero exit from this script as the update itself
+# having failed, which would skip its subsequent cmd_sync over a subsidiary
+# watch-trust hiccup unrelated to whether the code actually updated.
+test_rebind_all_failure_is_warned_not_fatal() {
+  local w out err rc
+  w=$(new_world t13)
+  mkdir -p "$w/seed/bin"
+  printf "#!/usr/bin/env bash\necho v1 >> \"\$1\"\n" > "$w/seed/bin/watched-action.sh"
+  chmod +x "$w/seed/bin/watched-action.sh"
+  git -C "$w/seed" add -A
+  git -C "$w/seed" commit -qm add-watched-action
+  git -C "$w/seed" push -q origin main
+  git -C "$w/main" pull -q origin main
+
+  FM_ROOT_OVERRIDE="$w/main" FM_HOME="$w/home" "$ROOT/bin/fm-procevent-when.sh" \
+    arm rebind-doomed --interval 60 --stable 1 \
+    --condition true --action "$w/main/bin/watched-action.sh" "$w/rebind.log" >/dev/null
+
+  git -C "$w/seed" rm -q bin/watched-action.sh
+  git -C "$w/seed" commit -qm remove-watched-action
+  git -C "$w/seed" push -q origin main
+
+  out=$(PATH="$w/fakebin:$PATH" FM_FAKE_DIR="$w/fake" FM_SSH_BIN=ssh \
+    FM_ROOT_OVERRIDE="$w/main" FM_HOME="$w/home" "$UPDATE" 2>"$w/stderr")
+  rc=$?
+  err=$(cat "$w/stderr")
+
+  [ "$rc" -eq 0 ] || fail "a rebind-all failure must not fail fm-update.sh's own exit status (rc=$rc, stderr: $err)"
+  assert_contains "$out" "firstmate: updated " "the primary still advanced despite the rebind failure"
+  assert_contains "$err" "warning: fm-procevent-when.sh rebind-all failed for firstmate home" \
+    "the per-home rebind-all failure was not reported"
+  assert_contains "$err" "warning: rebind-all failed for at least one home" \
+    "the summary rebind-all failure warning was not reported"
+  pass "T13 a rebind-all failure after a self-update is warned, not fatal"
+}
+
 test_updates_main_and_secondmate
 test_reread_gate_is_instruction_only
 test_bin_only_advance_restarts
@@ -485,5 +563,7 @@ test_registry_backstop_dedup_and_self_exclusion
 test_firstmate_wrong_branch_skipped
 test_firstmate_detached_head_skipped
 test_unsafe_secondmate_home_skipped_before_git_update
+test_primary_update_rebinds_local_watch
+test_rebind_all_failure_is_warned_not_fatal
 
 echo "# all fm-update tests passed"
