@@ -57,8 +57,11 @@
 # would be wrongly refused. After each home's own update (primary and every
 # local secondmate), this script best-effort runs that home's own
 # fm-procevent-when.sh rebind-all to republish those bindings against the new
-# bytes; a failure there is reported as a warning and fails the script's own
-# exit status, even though the git update itself already landed.
+# bytes; a failure there is reported as a warning on stderr rather than
+# swallowed, but it does not fail the script's own exit status - the git
+# update itself already landed, and callers such as
+# fm-remote-secondmate-control.sh's cmd_update treat any non-zero exit from
+# this script as the update itself having failed.
 #
 # Usage: fm-update.sh [--help]
 set -eu
@@ -251,6 +254,5 @@ echo "restart-secondmates:${FF_RESTART_WINDOWS:- none}"
 echo "nudge-secondmates:${FF_STEER_WINDOWS:- none}"
 
 if [ "$rebind_failed" -eq 1 ]; then
-  echo "rebind-all: failed for at least one home; watch trust bindings may still be desynced" >&2
-  exit 1
+  echo "warning: rebind-all failed for at least one home; watch trust bindings may still be desynced" >&2
 fi
