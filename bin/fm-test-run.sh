@@ -1356,7 +1356,8 @@ families_for_unmapped_bin() {
 # Conservative path → family map. Over-selects rather than under-selects.
 # Never expands to the complete suite.
 families_for_changed_path() {
-  local path=$1 fixture_ref
+  local path=$1 fixture_ref fixture_group
+  local prose_mapped=0
   # Every tracked prose surface, and the inventory beside it, is an input to the
   # documentation audience check and to the link set its suite pins. Emitted
   # ahead of the map below because prose also carries whatever family its own
@@ -1364,6 +1365,7 @@ families_for_changed_path() {
   case "$path" in
     *.md|*.mdx|*.rst|*.txt|docs/examples/*|docs/documentation-audiences.json)
       printf '%s\n' documentation-audiences
+      prose_mapped=1
       ;;
   esac
   case "$path" in
@@ -1640,24 +1642,31 @@ families_for_changed_path() {
       families_for_test_reference git-config-helpers.sh lib.sh herdr-test-safety.sh \
         || printf '%s\n' "__unmapped__:$path"
       ;;
-    tests/fixtures/*/*)
+    tests/fixtures/*/*|tests/captures/*/*)
       # A fixture belongs to whichever suite reads its directory, found by the
       # same reference scan used for shared helpers. Keyed on the directory
       # rather than the file so adding a fixture selects the same suite.
       # A removed fixture directory has no consuming suite left to select.
-      fixture_ref=${path#tests/fixtures/}
+      # Recorded captures are read the same way, so they resolve by the same
+      # rule rather than falling to the tests/* refusal below.
+      fixture_group=${path#tests/}
+      fixture_ref=${fixture_group#*/}
       fixture_ref=${fixture_ref%%/*}
-      if [ -d "tests/fixtures/$fixture_ref" ]; then
-        families_for_test_reference "fixtures/$fixture_ref" \
+      fixture_group=${fixture_group%%/*}
+      fixture_ref="$fixture_group/$fixture_ref"
+      if [ -d "tests/$fixture_ref" ]; then
+        families_for_test_reference "$fixture_ref" \
           || printf '%s\n' "__unmapped__:$path"
       fi
       ;;
-    tests/lib.sh|tests/*-helpers.sh|tests/fixtures.sh|tests/*-fixture.sh)
-      # Shared top-level test files, selected by the suites that name them.
-      # Must stay below the tests/fixtures/*/* arm: a case glob's * spans /, so
-      # tests/*-fixture.sh would otherwise swallow a nested
-      # tests/fixtures/<dir>/<name>-fixture.sh and scan for its basename
-      # instead of the fixture directory its readers actually name.
+    tests/*)
+      # Any remaining file under tests/ is a shared input - a helper, a
+      # fixture, an executable repro - selected by the suites that name it,
+      # and refused only when nothing reads it. Must stay below the
+      # tests/fixtures/*/* arm: a case glob's * spans /, so this would
+      # otherwise swallow a nested tests/fixtures/<dir>/<name>-fixture.sh and
+      # scan for its basename instead of the fixture directory its readers
+      # actually name.
       families_for_test_reference "$(basename "$path")" \
         || printf '%s\n' "__unmapped__:$path"
       ;;
@@ -1670,14 +1679,15 @@ families_for_changed_path() {
           || printf '%s\n' "__unmapped__:$path"
       fi
       ;;
-    tests/*)
-      printf '%s\n' "__unmapped__:$path"
-      ;;
     README.md|LICENSE|assets/*|docs/*|.gitignore)
       ;;
     *)
       if [ -e "$path" ]; then
+        # A prose surface already selected the documentation suite above, so it
+        # is mapped whether or not a test also names it. Refusing here would
+        # make any new prose file nobody reads break changed-file selection.
         families_for_test_reference "$path" \
+          || [ "$prose_mapped" -eq 1 ] \
           || printf '%s\n' "__unmapped__:$path"
       else
         # A retired source path with no remaining test consumer cannot select

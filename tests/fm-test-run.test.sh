@@ -146,6 +146,13 @@ init_changed_fixture_repo() {
   mkdir -p "$repo/tests/fixtures/demo"
   : >"$repo/tests/fixtures/demo/demo-fixture.sh"
   printf '# tests/fixtures/demo\n' >>"$repo/tests/fm-backend-orca.test.sh"
+  # A recorded capture directory and an executable repro: shared test inputs
+  # under tests/ that carry neither a fixture path nor a helper suffix.
+  mkdir -p "$repo/tests/captures/tool-v1"
+  : >"$repo/tests/captures/tool-v1/overview.toon"
+  printf '# tests/captures/tool-v1\n' >>"$repo/tests/fm-bearings-snapshot.test.sh"
+  : >"$repo/tests/fm-demo-repro.py"
+  printf '# fm-demo-repro.py\n' >>"$repo/tests/fm-backend.test.sh"
   # A shared helper with no curated family of its own, named by exactly ONE
   # script of the expensive real-Herdr family and consumed by one curated
   # watcher script. This is the shape that made a one-line helper change select
@@ -176,6 +183,9 @@ init_changed_fixture_repo() {
   : >"$repo/.pi/extensions/lib/fm-operational-input.ts"
   : >"$repo/docs/fm-test-isolation-proof.md"
   : >"$repo/CONTRIBUTING.md"
+  # A root prose surface the curated map never names and no suite reads: the
+  # shape every newly added top-level document starts out as.
+  : >"$repo/CHARTER.md"
   : >"$repo/src/unmapped.ts"
   git -C "$repo" init -q
   git -C "$repo" add .
@@ -435,7 +445,7 @@ test_changed_dependency_selection_and_unmapped_failure() {
 }
 
 test_prose_only_change_selects_the_documentation_suite() {
-  local tmp repo listed
+  local tmp repo listed rc
   tmp=$(mktemp -d "${TMPDIR:-/tmp}/fm-test-run-prose.XXXXXX")
   repo="$tmp/repo"
   init_changed_fixture_repo "$repo"
@@ -465,6 +475,25 @@ test_prose_only_change_selects_the_documentation_suite() {
     "an inventory change selects no documentation coverage"
   git -C "$repo" add docs
   git -C "$repo" -c user.name=test -c user.email=test@example.invalid commit -qm inventory-change
+
+  # A root prose surface no suite reads and the curated map never names still
+  # has coverage: the documentation suite measures it. Refusing to map it made
+  # --changed exit non-zero for the whole commit, so every other changed path
+  # lost its selection too.
+  printf 'a new top-level document\n' >>"$repo/CHARTER.md"
+  printf '\n' >>"$repo/bin/fm-control-lib.sh"
+  set +e
+  listed=$(cd "$repo" && bin/fm-test-run.sh --list --changed --base HEAD 2>"$tmp/charter.err")
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] \
+    || fail "an unread root prose file refused changed selection (rc=$rc): $(cat "$tmp/charter.err")"
+  assert_contains "$listed" "tests/fm-documentation-audiences.test.sh" \
+    "an unread root prose change selects no documentation coverage"
+  assert_contains "$listed" "tests/fm-backend.test.sh" \
+    "an unread root prose change suppressed the selection of a mapped sibling path"
+  git -C "$repo" add CHARTER.md bin/fm-control-lib.sh
+  git -C "$repo" -c user.name=test -c user.email=test@example.invalid commit -qm charter-change
 
   # Prose outside docs/ carries its own family as well as the documentation one.
   printf '\n' >>"$repo/.agents/skills/example/SKILL.md"
@@ -1470,6 +1499,20 @@ test_changed_shared_fixture_selects_its_readers() {
   listed=$(cd "$repo" && bin/fm-test-run.sh --list --changed --base HEAD)
   assert_contains "$listed" "tests/fm-backend-orca.test.sh" \
     "a nested fixture selects the suite that reads its directory"
+
+  # A recorded capture resolves by the directory its reader names, the same
+  # rule tests/fixtures/<dir> uses, rather than refusing as an unknown path.
+  printf '\n' >>"$repo/tests/captures/tool-v1/overview.toon"
+  listed=$(cd "$repo" && bin/fm-test-run.sh --list --changed --base HEAD)
+  assert_contains "$listed" "tests/fm-bearings-snapshot.test.sh" \
+    "a changed capture did not select the suite that reads its directory"
+
+  # An executable repro under tests/ is a shared input like any helper: the
+  # suite that runs it is selected by name, not refused for its suffix.
+  printf '\n' >>"$repo/tests/fm-demo-repro.py"
+  listed=$(cd "$repo" && bin/fm-test-run.sh --list --changed --base HEAD)
+  assert_contains "$listed" "tests/fm-backend.test.sh" \
+    "a changed executable repro did not select the suite that runs it"
 
   rm -rf "$tmp"
   pass "a changed shared test fixture selects its readers while an unread tests/ path still refuses"
