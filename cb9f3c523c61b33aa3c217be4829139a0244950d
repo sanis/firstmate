@@ -1,0 +1,23 @@
+docs/herdr-backend.md
+  s_ca3e56513e0eb3::t_8e2eb98ecca880 324-326,328
+tests/fm-afk-return.test.sh
+  s_ca3e56513e0eb3::t_83a87f212ce6e4 334-403,828
+.agents/skills/afk/SKILL.md
+  s_ca3e56513e0eb3::t_4cc14024905bc9 44-46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "cb9f3c523c61b33aa3c217be4829139a0244950d",
+  "prompts": {},
+  "sessions": {
+    "s_ca3e56513e0eb3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "93ca36a7-9679-4c51-9cec-768453bc98e1",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Justinas Bolys <justinas.bolys@mediatech.one>"
+    }
+  }
+}

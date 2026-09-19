@@ -1,0 +1,21 @@
+docs/fm-test-portable-shards.md
+  s_312f13989aaf0c::t_cb2643d016629b 62
+docs/scripts.md
+  s_312f13989aaf0c::t_e7188467baf1ea 22,32-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "09196cd120b82a8fa6abc60e5ecb1aea56159cb5",
+  "prompts": {},
+  "sessions": {
+    "s_312f13989aaf0c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8b78bee6-40f9-418c-999c-2cb90797813b",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Justinas Bolys <justinas.bolys@mediatech.one>"
+    }
+  }
+}
