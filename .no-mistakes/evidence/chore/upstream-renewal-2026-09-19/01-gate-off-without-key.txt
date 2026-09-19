@@ -1,0 +1,19 @@
+SCENARIO: the typed dispatch resolver is inert unless TYPESAFE_API_KEY is present.
+Sandbox FM_HOME, curl removed from PATH entirely, so a network call is physically impossible.
+
+CASE A: key unset in the environment, no .env file present
+$ env -u TYPESAFE_API_KEY PATH=<no-curl> FM_HOME=<sandbox> fm-dispatch-resolve.sh brief.md --project pager
+stdout bytes : 0   (empty = firstmate dispatches exactly as before)
+stderr       : dispatch-resolve: off (TYPESAFE_API_KEY absent from the environment and /tmp/fm-dispatch-sandbox.RAWv7d/.env)
+exit code    : 0
+
+CASE B (adversarial): key EXPORTED BUT EMPTY - must be treated as absent, not as a usable key
+stdout bytes : 0
+stderr       : dispatch-resolve: off (TYPESAFE_API_KEY absent from the environment and /tmp/fm-dispatch-sandbox.RAWv7d/.env)
+exit code    : 0
+
+CASE C (adversarial): key absent AND the brief file does not exist.
+  The gate must fire FIRST - an off resolver must not turn a missing brief into a failure.
+stdout bytes : 0
+stderr       : dispatch-resolve: off (TYPESAFE_API_KEY absent from the environment and /tmp/fm-dispatch-sandbox.RAWv7d/.env)
+exit code    : 0  (0 = an intake is never blocked by this tool)

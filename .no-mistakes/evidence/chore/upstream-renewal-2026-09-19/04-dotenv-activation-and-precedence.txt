@@ -1,0 +1,33 @@
+SCENARIO: the captain stores the credential as a TYPESAFE_API_KEY= line in a gitignored
+FM_HOME/.env. Two things must hold: (1) that file alone activates the tool, and
+(2) the process environment wins over the file.
+
+FM_HOME/.env now contains a DELIBERATELY INVALID placeholder key (not the captain's).
+
+CASE A: key absent from the environment -> the .env line alone must activate the tool.
+        The tool is no longer 'off'; it calls the API and, because the placeholder is
+        rejected, reports a clean error instead of blocking the intake.
+$ env -u TYPESAFE_API_KEY FM_HOME=<sandbox> fm-dispatch-resolve.sh brief.md --project pager
+--- stdout ---
+dispatch-resolve:
+  status: error
+  reason: http 401 after 611 ms: {"detail":{"error_type":"authentication_error","message":"Cannot authenticate with the server. Please check your API key and try again."}}
+--- stderr ---
+dispatch-resolve: error (http 401 after 611 ms: {"detail":{"error_type":"authentication_error","message":"Cannot authenticate with the server. Please check your API key and try again."}})
+--- exit code: 0   (0 = a bad credential never blocks an intake) ---
+
+CASE B: the real key in the environment, the invalid placeholder still in .env.
+        The environment must win, so the resolution succeeds.
+$ FM_HOME=<sandbox> fm-dispatch-resolve.sh brief.md --project pager
+--- stdout ---
+dispatch-resolve:
+  status: clear
+  model: jev-1.13.0   latency_ms: 713   tokens: 480/53
+  rule: rule_2 (A simple bug fix with a stated root cause.)   confidence: 1.0
+  probabilities: rule_3=0.0 default=0.0 rule_1=0.0 rule_2=1.0
+  note: rule matched
+  candidate: claude:sonnet  provider=claude  scope=all_models  remaining=48%  spendPriority=0.4279  runway=through_reset  -> eligible
+  candidate: cursor:cursor-grok-4.6-medium  provider=cursor  scope=all_models  remaining=100%  spendPriority=1.3016  runway=through_reset  -> eligible
+  profile: --harness 'cursor' --model 'cursor-grok-4.6-medium'
+--- stderr ---
+--- exit code: 0 ---

@@ -1,0 +1,26 @@
+SCENARIO: with TYPESAFE_API_KEY present, the resolver calls typesafe.ai System One
+(jev-latest) for real and resolves ONE concrete dispatch profile from a written brief.
+
+The brief handed to it (synthetic, generic - a stated-root-cause bug fix):
+    # Task
+    Fix the off-by-one in the pager helper: the root cause is the `<=` comparison on
+    line 40 of pager.sh, and the expected behavior is exactly one page per call.
+
+The dispatch rules in FM_HOME/config/crew-dispatch.json (synthetic):
+    when: New feature work on the application.
+    when: A simple bug fix with a stated root cause.
+    when: Genuinely very difficult design or planning work.
+
+$ FM_HOME=<sandbox> fm-dispatch-resolve.sh brief.md --project pager
+--- stdout -------------------------------------------------------------
+dispatch-resolve:
+  status: clear
+  model: jev-1.13.0   latency_ms: 729   tokens: 480/53
+  rule: rule_2 (A simple bug fix with a stated root cause.)   confidence: 1.0
+  probabilities: default=0.0 rule_3=0.0 rule_1=0.0 rule_2=1.0
+  note: rule matched
+  candidate: claude:sonnet  provider=claude  scope=all_models  remaining=48%  spendPriority=0.4274  runway=through_reset  -> eligible
+  candidate: cursor:cursor-grok-4.6-medium  provider=cursor  scope=all_models  remaining=100%  spendPriority=1.3016  runway=through_reset  -> eligible
+  profile: --harness 'cursor' --model 'cursor-grok-4.6-medium'
+--- stderr -------------------------------------------------------------
+--- exit code: 0 -----------------------------------------------------

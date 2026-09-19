@@ -1,0 +1,24 @@
+SCENARIO: a captain runs the newly arrived resolver in this repository, key set
+
+$ bin/fm-dispatch-resolve.sh --help   (first ten lines of the operator interface)
+fm-dispatch-resolve.sh - resolve one concrete crewmate or scout dispatch
+profile from a task brief with typesafe.ai's System One model (Jev), opt-in.
+
+Usage:
+  fm-dispatch-resolve.sh <brief-file> [--project <name>]
+
+Opt-in gate: TYPESAFE_API_KEY non-empty in this process environment, else a
+  TYPESAFE_API_KEY= line in $FM_HOME/.env read with fmx_env_get, the same
+  accessor as FMX_PAIRING_TOKEN (bin/fm-env-lib.sh). The environment wins.
+  Absent in both: one "dispatch-resolve: off" line on stderr, nothing on
+
+The fork ships no config/crew-dispatch.json yet:
+config/crew-dispatch.json: No such file or directory
+
+$ TYPESAFE_API_KEY=<real> bin/fm-dispatch-resolve.sh brief.md
+dispatch-resolve:
+  status: escalate
+  reason: no rules to match
+exit: 0
+
+No rules to match, so it escalates to the captain and exits 0 -- intake is never blocked.

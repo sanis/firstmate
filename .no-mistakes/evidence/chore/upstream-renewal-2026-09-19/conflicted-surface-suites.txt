@@ -1,0 +1,302 @@
+FM_TEST_BEGIN 2026-09-19T14:26:31Z tests/fm-brief.test.sh family=pure-contract-unit expected_gate_skip=none
+FM_TEST_BEGIN 2026-09-19T14:26:31Z tests/fm-pr-merge.test.sh family=pr-forge expected_gate_skip=none
+ok - fm-brief: scaffolds leave the worker role scope to the launch boundary and keep the secondmate contract
+ok - fm-brief.sh: bash -n succeeds
+/private/var/folders/b8/p7dyhngn7l591759f0_ngqr40000gn/T/fm-test-run.ERLIak/w1/tmp/fm-brief.Tdxqf2/heredoc-in-substitution.sh:2
+ok - fm-brief.sh: no heredoc is nested inside a command substitution (Bash 3.2 parse-safe)
+ok - fm-brief.sh: --help renders the complete header
+ok - fm-brief.sh: no-mistakes/direct-PR/local-only briefs generate cleanly
+ok - fm-brief.sh: ship --mode is required and closed-set validated
+ok - fm-brief.sh: the explicit ship mode wins over the registered posture
+ok - fm-brief.sh: --yolo and scout/secondmate --mode are refused, never silently dropped
+ok - fm-brief.sh: faster paths use configured authority without stacked review
+ok - fm-brief.sh: no-mistakes DOD keeps its apostrophe prose and bans --yes outright
+ok - fm-brief.sh: no-mistakes ask-user findings use one event plus a verbatim snapshot
+ok - fm-brief.sh: ship project-memory wording carries the AGENTS.md authoring bar
+ok - fm-brief.sh: --herdr-lab emits the complete hard safety contract
+ok - fm-brief.sh: --herdr-lab uses its quoted Firstmate-owned helper path
+ok - fm-brief.sh: ship and scout scaffolds make omitted Herdr intent fail-visible
+ok - fm-brief.sh: the documented {TASK} and {FIRSTMATE_SPEC} fills cannot corrupt the Herdr safety gate
+ok - fm-brief.sh: Herdr lab contract covers scouts and rejects secondmate misuse
+ok - fm-brief.sh: --no-projects scaffolds a project-less charter and guards misuse
+ok - fm-brief.sh: marked requests avoid generic acknowledgements and preserve material reporting
+ok - fm-brief.sh: relative directory inputs ignore CDPATH, render stable absolute charter paths, or fail loudly
+ok - fm-brief.sh: custom pause verb renders in every scaffold
+ok - fm-brief.sh: ship and scout scaffolds teach validation-round pauses
+ok - fm-brief.sh: investigation and visual-review completions load the shared decision policy
+ok - fm-brief: scout and secondmate code paths still scaffold well-formed briefs
+ok - fm-brief.sh: scout Lavish hosting follows the bootstrap lavish-axi floor
+FM_TEST_END 2026-09-19T14:26:49Z tests/fm-brief.test.sh exit=0 duration_ms=18281 gate_skip=false
+ok - fm-pr-merge reports exact queue retry flags after a zero-exit false success
+ok - fm-pr-merge omits merge-queue retry guidance for a closed GitHub PR
+ok - fm-pr-merge aggregates agreeing merge-queue rules
+ok - fm-pr-merge reports ambiguity for conflicting merge-queue rules
+ok - fm-pr-merge records pr= and pr_head= for a verified GitHub merge
+ok - fm-pr-merge records pr= before the forge call can land the merge
+ok - fm-pr-merge propagates a real merge failure without silently succeeding
+ok - fm-pr-merge refuses a GitHub merge call that leaves the PR open and unqueued
+ok - fm-pr-merge keeps PR bookkeeping when it cannot read a successful merge call's outcome
+ok - fm-pr-merge refuses with the forge's own output quoted apart from its verdict
+ok - fm-pr-merge quotes the forge output when it cannot read the outcome either
+ok - fm-pr-merge does not echo back queue flags the caller already used
+ok - fm-pr-merge still names retry flags when the caller used a different method
+ok - fm-pr-merge names the queue requirement even when its method is unrecognised
+ok - fm-pr-merge distinguishes unreadable branch rules from a base with no merge queue
+ok - fm-pr-merge reads a plan-gated 403 on branch rules as no merge queue, not unreadable
+ok - fm-pr-merge says nothing about a merge queue when the base branch has no queue rule
+ok - fm-pr-merge accepts only a proved merge from the gh-axi fallback
+ok - fm-pr-merge explains an armed auto-merge that landed nothing on a queue-less base
+ok - fm-pr-merge never reports auto-merge as armed when the merge command failed
+ok - fm-pr-merge claims no acceptance for a failed merge command carrying queue flags
+ok - fm-pr-merge falls back to the gh-axi view when gh's read fails
+ok - fm-pr-merge names a landed state hiding behind a failed GitHub merge command
+ok - fm-pr-merge refuses a GitHub merge when gh is missing, before recording
+ok - fm-pr-merge refuses a GitHub merge when gh is missing rather than merging blind
+ok - fm-pr-merge verifies a genuinely merged GitHub pull request
+ok - fm-pr-merge refuses to claim a merge when poll recording fails
+ok - fm-pr-merge accepts and accurately reports a GitHub merge-queue entry
+ok - fm-pr-merge explains how to retry with the required GitHub merge queue method
+ok - fm-pr-merge refuses branch deletion unless --attended-override is passed
+ok - fm-pr-merge refuses before merging when task meta is missing
+ok - fm-pr-merge refuses malformed PR URLs before calling gh-axi
+ok - fm-pr-merge refuses unsafe PR URL segments before recording state
+ok - fm-pr-merge refuses repo override args before recording state
+ok - fm-pr-merge refuses a bundled short-option repo override and refuses -d unless attended
+ok - fm-pr-merge does not add default --squash when the caller passes an explicit merge method
+ok - fm-pr-merge respects --method=<value> as an explicit merge method
+ok - fm-pr-merge parses a GitHub PR URL into gh-axi number and --repo arguments
+ok - fm-pr-merge refuses a caller --sha on GitHub because the head comes from the live read
+ok - fm-pr-merge merges a GitLab merge request through glab instead of refusing it
+ok - fm-pr-merge takes the GitLab instance from the URL rather than assuming one
+ok - fm-pr-merge imposes no merge method on GitLab, leaving the project's own one
+ok - fm-pr-merge refuses GitLab source-branch deletion unless --attended-override is passed
+ok - fm-pr-merge propagates a real glab merge failure without silently succeeding
+ok - fm-pr-merge refuses on each GitLab pre-merge condition independently
+ok - fm-pr-merge reports every failing GitLab condition, not only the first
+ok - fm-pr-merge reports a stale recorded head and verifies the live one
+ok - fm-pr-merge refuses an unreadable GitLab merge request state rather than merging blind
+ok - fm-pr-merge refuses a GitLab head commit it cannot validate
+ok - fm-pr-merge refuses before recording anything when glab or jq is absent
+ok - fm-pr-merge refuses a GitLab head override before recording state
+ok - a merge a secondmate home performs itself is reported upward exactly once
+ok - a locally routed secondmate home reports the landed PR into its parent's own channel
+ok - a landed GitLab merge request is reported upward on the same channel
+ok - a queued GitLab merge stays silent and leaves confirmation to the armed poll
+ok - a refused or failed merge reports no outcome
+ok - a GitLab merge refused before the forge call reports no outcome
+ok - a merge a main home performs itself leaves one durable wake naming the PR
+ok - a queued GitHub merge stays silent and leaves confirmation to the armed poll
+ok - distinct merged PRs for one task retain distinct captain-facing wakes
+ok - an uncommitted marker retry preserves at least one durable outcome
+ok - a secondmate home that cannot report upward says so instead of merging in silence
+ok - fm-pr-merge proceeds when the home carries no backlog at all
+ok - fm-pr-merge refuses when the backlog exists but cannot be read
+ok - fm-pr-merge refuses when its configured backend cannot be read
+ok - fm-pr-merge refuses when its user backend configuration cannot be read
+ok - fm-pr-merge refuses when its user backend configuration directory cannot be traversed
+ok - fm-pr-merge proceeds once when its user configuration directory and backlog are genuinely absent
+ok - fm-pr-merge honors a backend override over an unreadable user configuration
+ok - fm-pr-merge refuses red GitHub checks and waives only a named --allow-red check
+ok - fm-pr-merge merges when a failed check run was replaced by a passing re-run
+ok - fm-pr-merge never lets a check run supersede a legacy status context
+ok - fm-pr-merge still refuses when a check's current run failed after an earlier pass
+ok - fm-pr-merge uses start order when the old success finishes last
+ok - fm-pr-merge supersedes an old cancellation that finishes last
+ok - fm-pr-merge keeps a check red while its re-run is still in flight
+ok - fm-pr-merge never lets one check's pass clear another check's failure
+ok - fm-pr-merge clears a failure only on a proven later pass of the same check
+ok - fm-pr-merge keeps --allow-red scoped to its named check beside a superseded failure
+ok - fm-pr-merge rechecks away presence before an attended red merge
+ok - fm-pr-merge accepts exactly one separately named red-check waiver
+ok - away merges require yolo or a grant, and --attended-override does not skip that
+ok - under the away-posture record the branch merges a granted green task, is held without a grant, cannot waive a red check, and is refused at the partition while attended
+ok - a branch merge refuses under the lock when the away record is archived during preflight
+ok - away posture permits immediate merges but refuses every asynchronous path
+ok - away merge proceeds on a plan-gated 403 because that repository cannot have a merge queue
+ok - a grant does not bypass red checks, and a recorded pr= must match the URL
+ok - an unreadable away-posture record refuses the merge instead of skipping the grant
+ok - no away-record archive or grant revocation lands between the authority read and the merge
+ok - a grant revoked before the merge's own authority read refuses the merge
+ok - a merge that cannot lock the away record refuses instead of merging unlocked
+ok - fm-pr-merge refuses --allow-red on GitLab
+FM_TEST_END 2026-09-19T14:35:10Z tests/fm-pr-merge.test.sh exit=0 duration_ms=519413 gate_skip=false
+FM_TEST_BEGIN 2026-09-19T14:35:10Z tests/fm-pr-check-security.test.sh family=pr-forge expected_gate_skip=none
+ok - raw-byte parser accepts canonical URLs and rejects the complete adversarial matrix
+ok - GitLab merge requests are followed on any instance and never wake falsely
+ok - validated merged polls notify once and retire before the next watcher cycle
+ok - a repeat identical merged poll for an already-notified task is absorbed, never queued as a main-blocking row
+ok - a failed upward merge report keeps its poll armed for repair and retry
+ok - staged self-merge and poll interleavings are never silent
+ok - queued merges retain yolo and away-grant after captain return
+ok - poll distinguishes attended authorization from external landing
+ok - accepted merge authority refuses rebound task metadata
+ok - accepted merge authority persists under the lifecycle lock
+ok - teardown cannot race merged-poll authority consumption
+ok - poll retirement preserves a replacement authority record
+ok - a merge detected by the poll is reported upward from a secondmate home exactly once
+ok - a different merged PR for the same task gets its own first notification
+ok - merged poll retirement preserves every persistent secondmate lifecycle artifact
+ok - queue, receipt, and every fixed-path removal crash point recover without loss or repeated execution
+ok - open/red, closed-unmerged, malformed, and forge errors remain armed until an exact merged transition
+ok - replacement, nonterminal, tampered, and custom results receive no deletion authority
+ok - queue failure and untrusted receipts preserve canonical poll evidence
+ok - GitHub and GitLab exact merged results share one retirement path
+ok - PR and teardown entrypoints reject invalid arguments before every side effect
+ok - valid direct and merge flows record exact metadata and reject multiline head metadata
+ok - rejected metacharacter bytes remain inert at generation and watcher time
+ok - static poll is silent except for one merged line and remains watcher-bounded
+ok - interrupted atomic preparation cleans private temporaries and publishes nothing
+ok - concurrent watchers observe only complete private poll publications
+ok - poll publication paths refuse symlinks and directories
+ok - live poll and custom-check artifacts require private single-link files
+ok - a poll armed before a volume renumber is re-recorded under the control lock and keeps detecting merges
+ok - a renumbered registration is never re-recorded around a tampered artifact: swapped-check altered-check swapped-sidecar altered-sidecar altered-template-hash wrong-mode hardlinked-check split-device (foreign-device not exercisable on Darwin), or a pending retirement
+ok - direct re-arm publication waits without replacing an armed poll
+ok - device re-record publication waits without rewriting its registration
+ok - post-rename poll validation faults revoke both names and allow a clean retry
+ok - bootstrap does not rewrite unauthenticated checks or emit retired migration diagnostics
+ok - watcher signals promptly stop custom checks and clean private state
+ok - returned custom check descendants are drained on installed and fallback timeout paths
+ok - teardown removes safe poll artifacts and refuses directory-shaped check files without traversal
+FM_TEST_END 2026-09-19T14:45:26Z tests/fm-pr-check-security.test.sh exit=0 duration_ms=615800 gate_skip=false
+FM_TEST_BEGIN 2026-09-19T14:45:26Z tests/fm-update.test.sh family=session-bootstrap expected_gate_skip=none
+ok - T1 main + secondmate fast-forward (single-parent), reread + restart signalled
+ok - T3 a non-instruction advance still restarts the live secondmate
+ok - T3b a bin/-only advance restarts the secondmate
+ok - T3c an unverifiable secondmate receives the fallback nudge
+ok - T3d an already-stopped secondmate is left to startup recovery
+ok - T3e a legacy remote advance still restarts the live remote mate
+ok - T4 dirty secondmate skipped, local edit preserved
+ok - T5 diverged secondmate is preserved and durably actionable
+ok - T5b squash-merged divergence heals and rejoins live convergence
+ok - T6 an already-current live secondmate is still restarted
+ok - T6b an already-current mate with an unprovable runtime is steered, not claimed as reloaded
+ok - T7 registry backstop resolves, dedups meta+registry, excludes the firstmate repo
+ok - T9 firstmate off its default branch is skipped, not forced
+ok - T10 firstmate detached HEAD is skipped
+ok - T11 unsafe secondmate home is not fast-forwarded
+ok - T12 a self-update rebinds a locally armed watch on the primary
+ok - T13 a rebind-all failure after a self-update is warned, not fatal
+# all fm-update tests passed
+FM_TEST_END 2026-09-19T14:46:14Z tests/fm-update.test.sh exit=0 duration_ms=47792 gate_skip=false
+FM_TEST_BEGIN 2026-09-19T14:46:14Z tests/fm-dispatch-resolve.test.sh family=standalone expected_gate_skip=none
+ok - absent key is off: one stderr line, exit 0, no network call
+ok - TYPESAFE_API_KEY= in .env activates the tool; environment and config overrides work
+ok - clear: one rule Choice request, key on the fd header only, spendPriority argmax over every candidate
+ok - rules snapshots and shell quoting preserve the profile protocol
+ok - no-rule fallback, Agy, Gemini, and documented configurations resolve
+ok - ambiguous: confidence below the fixed floor hands the decision back
+ok - escalate: a rule declared approval: captain never yields a profile
+ok - rule floor: known shortfall falls through while unavailable evidence escalates
+ok - declared provider and profile floor evidence are applied in code
+ok - nonnumeric spendPriority evidence is never ranked
+ok - partial and missing quota evidence remain eligible but unranked
+ok - provider-wide and exact quota rows combine into one limiting candidate
+ok - default: no rule matched resolves among the default profiles
+ok - tie: equal spendPriority never breaks by array order
+ok - no rankable candidate: the tool escalates instead of guessing
+ok - quota evidence comes from one quota-axi --json read, and its failure is an error outcome
+ok - API, transport, and response failures are error outcomes with exit 0
+ok - configuration errors exit 2 before any network call
+# all fm-dispatch-resolve tests passed
+FM_TEST_END 2026-09-19T14:46:30Z tests/fm-dispatch-resolve.test.sh exit=0 duration_ms=16206 gate_skip=false
+FM_TEST_BEGIN 2026-09-19T14:46:30Z tests/fm-claude-trust.test.sh family=backend-dispatch expected_gate_skip=none
+ok - fm-claude-trust.sh: a fresh task worktree is trusted
+ok - fm-claude-trust.sh: a fresh registration trusts the project root without manufacturing import consent
+ok - fm-claude-trust.sh: carries forward a project's already-granted import consent to the worktree entry
+ok - fm-claude-trust.sh: does not override a worktree entry's own declined external-imports consent
+ok - fm-claude-trust.sh: preserves unrelated keys on the project-root entry
+ok - fm-claude-trust.sh: refuses to override a project's declined external-imports consent
+ok - fm-claude-trust.sh: a never-asked default external-imports pair is not treated as a decline
+ok - fm-claude-trust.sh: repeat registration is idempotent
+ok - fm-claude-trust.sh: refuses the primary checkout
+ok - fm-claude-trust.sh: an exported CDPATH cannot defeat the scope refusal
+ok - fm-claude-trust.sh: inherited git environment overrides cannot defeat the scope refusal
+ok - fm-claude-trust.sh: refuses a home directory the git checks would accept
+ok - fm-claude-trust.sh: refuses the Claude config directory
+ok - fm-claude-trust.sh: refuses a relative CLAUDE_CONFIG_DIR
+ok - fm-claude-trust.sh: refuses a directory that is not a git worktree
+ok - fm-claude-trust.sh: refuses a path that does not exist
+ok - fm-claude-trust.sh: refuses a worktree belonging to another project
+ok - fm-claude-trust.sh: refuses a subdirectory of the worktree
+ok - fm-claude-trust.sh: a project argument that is itself a linked worktree resolves to the primary checkout
+ok - fm-claude-trust.sh: preserves unrelated store content
+ok - fm-claude-trust.sh: refuses a store symlinked to another user's file
+ok - fm-claude-trust.sh: follows a store symlink to this user's own file and leaves the link intact
+ok - fm-claude-trust.sh: refuses an unparseable store and leaves it untouched
+ok - fm-claude-trust.sh: a missing node is refused rather than degraded
+ok - fm-claude-trust.sh: a scope refusal stays fail-closed without node
+ok - fm-spawn.sh: a claude spawn pre-trusts its worktree and launches with the brief
+ok - fm-spawn.sh: a trust-refused claude spawn leaves no task state behind
+ok - fm-spawn.sh: a claude secondmate spawn pre-trusts a standalone-clone home
+ok - fm-spawn.sh: a claude secondmate spawn pre-trusts a leased worktree home
+ok - fm-claude-trust.sh: home-level trust is refused for everything but a home seeded for this secondmate
+ok - fm-claude-trust.sh: worktree mode still refuses a secondmate home
+ok - fm-spawn.sh: a claude secondmate spawn refuses when home trust cannot be recorded
+FM_TEST_END 2026-09-19T14:47:06Z tests/fm-claude-trust.test.sh exit=0 duration_ms=35140 gate_skip=false
+FM_TEST_BEGIN 2026-09-19T14:47:06Z tests/fm-afk-return.test.sh family=afk expected_gate_skip=none
+ok - return catch-up owns live blocker remediation, reports itself to Bearings as content, preserves evidence once, and clears idempotently
+ok - tmux and Herdr blockers require the same explicit durable reclassification before ordinary work
+ok - needs-decision remains reportable without masquerading as a firstmate-actionable blocker
+ok - AFK return re-drains published wakes until handling acknowledges
+ok - away-mode re-entry fails closed while the prior return catch-up is pending
+ok - /quiet off's return path behaves identically for a quiet-content flag as for a legacy away-content one
+ok - check retries recorded terminal teardown and keeps catch-up gated until success
+ok - skipped wake drain keeps catch-up gated until an uncontended drain presents the queue
+ok - an unreadable superseded mandate stays required until its record validates
+ok - the retained contract epoch requires its final archive on every check
+ok - the return brief renders health, mandate, waiting, could-not-fix, handled, and cost from durable records, and the gate shrinks to what the away session could not fix
+ok - a refreshed posture keeps its original window, superseded mandate, and earlier outcomes
+ok - a malformed posture record stays live and gates return catch-up
+ok - an epochless malformed record remains required until restored valid
+ok - an unreadable outcome store gates catch-up until a successful reread
+ok - an unavailable held listing gates catch-up until a successful reread
+ok - an unreadable status stays private and gates until a successful reread
+ok - the read-only guard treats the away-posture record as active away mode without the legacy flag
+ok - the return brief leads with supervisor health and names every detected gap
+ok - the return brief does not report an already-acked watcher-down marker as an open gap
+ok - a return with only the legacy away flag still renders the brief and measures the window from the flag
+FM_TEST_END 2026-09-19T14:48:20Z tests/fm-afk-return.test.sh exit=0 duration_ms=74305 gate_skip=false
+FM_TEST_BEGIN 2026-09-19T14:48:20Z tests/fm-afk-contract.test.sh family=afk expected_gate_skip=none
+ok - structural refusals name their missing part
+ok - an omitted stop uses the no-stop marker and confirms
+ok - the never-set flags listed concepts and their inflections without refusing, and never fires on unrelated names
+ok - clause fields are recorded verbatim, and no static parser judges the wording
+ok - clause fields preserve repeated spaces, tabs, newlines, and backslashes
+ok - clause ids are input ordinals across accepted and refused clauses
+ok - the read-back renders the words verbatim beside the accepted and refused lists
+ok - words preserve their final newline shape in storage and read-back
+ok - propose then confirm writes the record, announces hold-for-return only, and every read subcommand reflects it
+ok - confirmation requires a read-back, and refresh leaves the standing record untouched
+ok - a replacement archives the old mandate and keeps the session start
+ok - a failed replacement keeps the standing posture live
+ok - a failed final replacement publication rolls back its superseded archive
+ok - validation and archive refuse incomplete clause rows by name
+ok - validation and archive refuse blank decoded clause fields
+ok - validation and archive refuse blank stop and refused text
+ok - validation and archive refuse damaged words blocks
+ok - archive keys the record by its entry time, empties the posture, and is idempotent
+ok - malformed inputs and foreign record versions are refused rather than guessed
+ok - merge grants round-trip through propose, confirm, read-back, and grants
+ok - empty grants write the scalar form, and invalid or duplicate ids are usage errors
+ok - a pre-field v1 record reads as empty grants rather than skipping the field
+ok - malformed and duplicate merge-grant fields fail record validation
+ok - archive removes live grants so archived copies are not consulted
+ok - confirm and archive refuse while the record is locked, and proceed once it clears
+FM_TEST_END 2026-09-19T14:49:01Z tests/fm-afk-contract.test.sh exit=0 duration_ms=40567 gate_skip=false
+FM_TEST_SUMMARY total=8 failed=0 skipped_gate=0 duration_ms=1350486
+FM_TEST_SUMMARY_FAMILY family=afk count=2 duration_ms=114872 failed=0
+FM_TEST_SUMMARY_FAMILY family=backend-dispatch count=1 duration_ms=35140 failed=0
+FM_TEST_SUMMARY_FAMILY family=pr-forge count=2 duration_ms=1135213 failed=0
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=1 duration_ms=18281 failed=0
+FM_TEST_SUMMARY_FAMILY family=session-bootstrap count=1 duration_ms=47792 failed=0
+FM_TEST_SUMMARY_FAMILY family=standalone count=1 duration_ms=16206 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-pr-check-security.test.sh duration_ms=615800
+FM_TEST_SLOWEST rank=2 script=tests/fm-pr-merge.test.sh duration_ms=519413
+FM_TEST_SLOWEST rank=3 script=tests/fm-afk-return.test.sh duration_ms=74305
+FM_TEST_SLOWEST rank=4 script=tests/fm-update.test.sh duration_ms=47792
+FM_TEST_SLOWEST rank=5 script=tests/fm-afk-contract.test.sh duration_ms=40567
+FM_TEST_SLOWEST rank=6 script=tests/fm-claude-trust.test.sh duration_ms=35140
+FM_TEST_SLOWEST rank=7 script=tests/fm-brief.test.sh duration_ms=18281
+FM_TEST_SLOWEST rank=8 script=tests/fm-dispatch-resolve.test.sh duration_ms=16206
+exit: 0

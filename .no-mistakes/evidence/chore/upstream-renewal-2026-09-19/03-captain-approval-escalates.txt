@@ -1,0 +1,24 @@
+SCENARIO (adversarial): a brief matching a rule declared 'approval: captain' must NOT
+auto-resolve to a profile. The resolver must escalate and leave the decision to the captain.
+
+The brief (synthetic, generic - open-ended hard design work):
+    # Task
+    Design the whole multi-region failover architecture for the platform from scratch:
+    weigh consistency against availability, pick the replication topology, and plan a
+    staged migration. This is open-ended, very difficult design work with no stated answer.
+
+The matching rule carries:  "approval": "captain"
+
+$ FM_HOME=<sandbox> fm-dispatch-resolve.sh brief-hard.md --project platform
+--- stdout -------------------------------------------------------------
+dispatch-resolve:
+  status: escalate
+  model: jev-1.13.0   latency_ms: 719   tokens: 488/53
+  rule: rule_3 (Genuinely very difficult design or planning work.)   confidence: 1.0
+  probabilities: rule_3=1.0 rule_1=0.0 rule_2=0.0 default=0.0
+  reason: rule requires the captain's explicit approval before dispatch
+  candidate: claude:opus  provider=claude  scope=all_models  remaining=48%  spendPriority=0.4277  runway=through_reset  -> eligible
+--- stderr -------------------------------------------------------------
+--- exit code: 0 -----------------------------------------------------
+
+PASS CRITERION: status is 'escalate' and NO 'profile:' line is emitted.

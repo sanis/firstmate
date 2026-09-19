@@ -1,0 +1,17 @@
+$ bin/fm-dispatch-resolve.sh /tmp/synthetic-brief.md --project demo    # real key present, real api.typesafe.ai call
+dispatch-resolve:
+  status: escalate
+  reason: no rules to match
+exit=0
+
+$ FM_CONFIG_OVERRIDE=<tmp with docs/examples/crew-dispatch.json> bin/fm-dispatch-resolve.sh /tmp/synthetic-brief.md --project demo
+dispatch-resolve:
+  status: clear
+  model: jev-1.13.0   latency_ms: 853   tokens: 518/51
+  rule: default (No listed rule applies to this task.)   confidence: 0.85
+  probabilities: rule_3=0.01 rule_1=0.0 default=0.89 rule_2=0.1
+  note: no rule matched
+  candidate: codex:gpt-5.5  provider=codex  scope=all_models  remaining=73%  spendPriority=2.5967  runway=unknown  -> eligible
+  candidate: pi:anthropic/claude-sonnet-5  provider=claude  scope=all_models  remaining=44%  spendPriority=0.3204  runway=through_reset  -> eligible
+  profile: --harness 'codex' --model 'gpt-5.5' --effort 'medium'
+exit=0

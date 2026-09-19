@@ -1,0 +1,16 @@
+SCENARIO: the documented contributor selection path, run on the renewal branch
+
+CONTRIBUTING.md:110 tells a contributor to verify with this command.
+Default base is origin/main = 599ea9e (the pre-renewal fork tip).
+
+$ bin/fm-test-run.sh --list --changed
+fm-test-run: no changed-test mapping for source path: GROK_BOT.md
+exit: 2
+
+The refused path is modified by this renewal:
+M	GROK_BOT.md
+
+Neither side of the merge maps it, so the refusal is inherited, not introduced by conflict resolution:
+  599ea9e    GROK_BOT.md mapping lines: 0
+  2bcb88c    GROK_BOT.md mapping lines: 0
+  a15ec5f    GROK_BOT.md mapping lines: 0

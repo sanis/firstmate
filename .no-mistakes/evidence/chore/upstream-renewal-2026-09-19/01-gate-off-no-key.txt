@@ -1,0 +1,11 @@
+### SCENARIO: resolver stays inert when TYPESAFE_API_KEY is absent
+### (key unset in env, no .env in FM_HOME, curl not even on PATH)
+
+$ env -u TYPESAFE_API_KEY PATH=<no-curl> FM_HOME=<sandbox> bin/fm-dispatch-resolve.sh brief.md --project pager
+--- stdout ---
+cat: illegal option -- A
+usage: cat [-belnstuv] [file ...]
+[stdout byte count: 0]
+--- stderr ---
+dispatch-resolve: off (TYPESAFE_API_KEY absent from the environment and /tmp/fm-dispatch-sandbox.RAWv7d/.env)
+--- exit code: 0 ---
