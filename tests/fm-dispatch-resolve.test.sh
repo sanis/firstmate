@@ -9,6 +9,10 @@
 # at all.
 set -u
 
+# Every case supplies its own key, and the absent-key case means absent: drop an
+# operator's real credential so the suite reads the same from any shell.
+unset TYPESAFE_API_KEY TYPESAFE_API_KEY_PRIVATE
+
 # shellcheck source=tests/lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
