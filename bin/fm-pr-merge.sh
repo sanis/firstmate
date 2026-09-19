@@ -311,13 +311,17 @@ META="$STATE/$ID.meta"
 
 # shellcheck source=bin/fm-wake-lib.sh
 . "$SCRIPT_DIR/fm-wake-lib.sh"
-# Role partition: merging is MAIN-owned; the Pi supervision branch reports the
-# green PR and never merges (contract: bin/fm-lease-lib.sh; no-op in homes
-# without a branch actor). This precedes reading the task record, because the
-# wrong actor is refused for its role whatever that record says.
+# Role partition: merging is MAIN-owned while attended; the Pi supervision
+# branch reports the green PR and never merges (contract: bin/fm-lease-lib.sh;
+# no-op in homes without a branch actor). While the away-posture record exists
+# main is parked and this one action relocates to the branch, which then meets
+# exactly the same gates below as main would: a granted or yolo=on task only,
+# green at its live head, synchronous, under the record lock. This precedes
+# reading the task record, because the wrong actor is refused for its role
+# whatever that record says.
 # shellcheck source=bin/fm-lease-lib.sh
 . "$SCRIPT_DIR/fm-lease-lib.sh"
-fm_lease_forbid_branch "PR merge (fm-pr-merge)"
+fm_lease_forbid_branch "PR merge (fm-pr-merge)" --away-relocated
 
 if [ ! -f "$META" ] || [ -L "$META" ]; then
   echo "error: task metadata is unavailable" >&2
@@ -791,19 +795,35 @@ FM_PR_GITHUB_QUEUE_METHODS=
 FM_PR_GITHUB_QUEUE_STATUS=unreadable
 github_read_queue_method() {
   local methods line candidate method='' count=0 branch_path
-  local unrecognised=false conflicting=false
+  local unrecognised=false conflicting=false api_err api_err_text
   FM_PR_GITHUB_QUEUE_METHOD=
   FM_PR_GITHUB_QUEUE_METHODS=
   FM_PR_GITHUB_QUEUE_STATUS=unreadable
   command -v gh >/dev/null 2>&1 || return 0
   [ -n "$FM_PR_GITHUB_BASE" ] || return 0
   branch_path=$(github_urlencode_path_segment "$FM_PR_GITHUB_BASE")
+  api_err=$(mktemp "${TMPDIR:-/tmp}/fm-pr-merge-queue-rules.XXXXXX") || return 0
   if ! methods=$(gh api \
     --paginate "repos/$PR_OWNER/$PR_REPO/rules/branches/$branch_path" \
     --jq '.[] | select(.type == "merge_queue") | "merge_method=" + (.parameters.merge_method // "")' \
-    2>/dev/null); then
+    2>"$api_err"); then
+    api_err_text=$(cat "$api_err" 2>/dev/null)
+    rm -f "$api_err"
+    # A plan-gated 403 on this endpoint ("Upgrade to GitHub Pro or make this
+    # repository public") means the repository's plan cannot expose branch
+    # rules at all, on GitHub or GitHub Enterprise Server - not that this
+    # script failed to read them. A repository that cannot have branch rules
+    # cannot have a merge_queue rule either, so that specific 403 resolves to
+    # no queue rather than the generic unreadable status. Any other failure
+    # (auth, rate limit, network, a 404, an unrelated 403) stays unreadable.
+    case "$api_err_text" in
+      *"Upgrade to GitHub Pro or make this repository public"*)
+        FM_PR_GITHUB_QUEUE_STATUS=none
+        ;;
+    esac
     return 0
   fi
+  rm -f "$api_err"
   while IFS= read -r line; do
     [ -n "$line" ] || continue
     case "$line" in
@@ -924,6 +944,7 @@ require_current_away_authority() {
       return 2
     fi
   fi
+  fm_lease_forbid_branch "PR merge (fm-pr-merge)" --away-relocated
   require_away_merge_grant || return 1
   if [ "$FM_PR_AWAY_POSTURE" = true ] && [ "${#ALLOW_RED[@]}" -gt 0 ]; then
     echo "error: --allow-red is attended-only; while the away-posture record exists the green check is absolute" >&2
@@ -948,6 +969,18 @@ persist_accepted_merge_authority() {
   return 1
 }
 
+# While away, a merge proceeds only when the base branch's rules prove no
+# merge queue, because a queued merge can land after its away authority
+# lapses; this holds regardless of which away authority (a named merge grant
+# or a standing yolo=on posture) let the merge run at all. A repository whose
+# plan does not expose branch rules at all (GitHub's "Upgrade to GitHub Pro or
+# make this repository public" 403) proves that on its own, since such a
+# repository cannot have a merge_queue rule either; see
+# github_read_queue_method, which resolves that specific 403 to status=none.
+# Every other failure to read the queue state (auth, rate limit, network, a
+# 404, or an unrelated 403) stays unreadable and refuses the merge. The merge
+# stays synchronous (--auto is refused earlier) and every other gate still
+# applies.
 refuse_github_queue_while_away() {
   [ "$FM_PR_AWAY_POSTURE" = true ] || return 0
   # Accepted confused-agent-grade limitation, as in bin/fm-lease-lib.sh, not an
