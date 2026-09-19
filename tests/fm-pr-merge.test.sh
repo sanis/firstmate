@@ -145,7 +145,11 @@ case "${1:-} ${2:-}" in
       *statusCheckRollup*)
         cat "$FM_TEST_GH_VIEW_JSON"
         if [ -f "${FM_TEST_AWAY_RECORD_AFTER_VIEW:-}" ]; then
-          cp "$FM_TEST_AWAY_RECORD_AFTER_VIEW" "$FM_STATE_OVERRIDE/.afk-contract"
+          if [ -s "${FM_TEST_AWAY_RECORD_AFTER_VIEW}" ]; then
+            cp "$FM_TEST_AWAY_RECORD_AFTER_VIEW" "$FM_STATE_OVERRIDE/.afk-contract"
+          else
+            rm -f "$FM_STATE_OVERRIDE/.afk-contract"
+          fi
         fi
         exit 0
         ;;
@@ -190,6 +194,10 @@ case "${1:-} ${2:-}" in
     exit 0
     ;;
   api\ *)
+    if [ -f "${FM_TEST_GH_RULES_FAIL_BODY:-}" ]; then
+      cat "$FM_TEST_GH_RULES_FAIL_BODY" >&2
+      exit 1
+    fi
     if [ -f "${FM_TEST_GH_RULES_FAIL:-}" ]; then
       exit 1
     fi
@@ -381,6 +389,7 @@ run_pr_merge() {
   FM_TEST_GH_MERGE_OUTPUT="$(cat "$case_dir/github-merge-output" 2>/dev/null || true)" \
   FM_TEST_GH_GRAPHQL_FAIL="$case_dir/github-graphql-fail" \
   FM_TEST_GH_RULES_FAIL="$case_dir/github-rules-fail" \
+  FM_TEST_GH_RULES_FAIL_BODY="$case_dir/github-rules-fail-body" \
   FM_TEST_META_AT_MERGE="$case_dir/meta-at-merge" \
   FM_TEST_AWAY_RECORD_AFTER_VIEW="$case_dir/away-record-after-view" \
   FM_TEST_ROOT="$ROOT" \
@@ -831,6 +840,61 @@ test_github_unreadable_queue_rules_are_not_reported_as_no_queue() {
   assert_no_grep 'retry with:' "$case_dir/stderr" \
     "github-unreadable-queue-rules: retry flags were named from rules nothing could read"
   pass "fm-pr-merge distinguishes unreadable branch rules from a base with no merge queue"
+}
+
+# A repository whose plan does not expose branch rules answers the rules
+# endpoint with a 403 whose body is GitHub's own plan-upgrade message, not a
+# generic auth or rate-limit failure. That repository cannot have a
+# merge_queue rule either, so it must read as no queue rather than unreadable
+# - an attended read still fails the merge here only because the queue-aware
+# outcome read (api graphql) was never set up for this case, exactly like the
+# no-queue-rule case below; the queue read itself is proven by the absence of
+# 'merge-queue' wording in the refusal.
+test_github_plan_gated_403_reads_as_no_queue() {
+  local case_dir rc
+  case_dir=$(make_case github-plan-gated-403)
+  mkdir -p "$case_dir/wt"
+  add_gh_mocks "$case_dir" 8989898989898989898989898989898989898989
+  write_github_outcome "$case_dir" OPEN false false main
+  printf 'gh: Upgrade to GitHub Pro or make this repository public to enable this feature (HTTP 403)\n' \
+    > "$case_dir/github-rules-fail-body"
+  : > "$case_dir/gh-axi.log"
+  : > "$case_dir/gh.log"
+
+  set +e
+  run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/75 \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+
+  expect_code 1 "$rc" "github-plan-gated-403: an unproved merge must fail"
+  assert_no_grep 'merge queue' "$case_dir/stderr" \
+    "github-plan-gated-403: a plan-gated 403 was read as an unreadable or present queue rule"
+  assert_no_grep 'could not be read' "$case_dir/stderr" \
+    "github-plan-gated-403: a plan-gated 403 was reported as an unreadable rules response"
+  pass "fm-pr-merge reads a plan-gated 403 on branch rules as no merge queue, not unreadable"
+}
+
+# The practical effect of the fix: while away under a standing yolo=on
+# posture (no per-task merge grant), a private repository's plan-gated 403
+# must no longer refuse the merge the way any other unreadable queue response
+# does.
+test_away_plan_gated_403_does_not_block_the_merge() {
+  local case_dir rc url head
+  head=cececececececececececececececececececece
+  url=https://github.com/example/repo/pull/91
+  case_dir=$(make_case away-plan-gated-403)
+  mkdir -p "$case_dir/wt" "$case_dir/home"
+  add_gh_mocks "$case_dir" "$head"
+  printf 'gh: Upgrade to GitHub Pro or make this repository public to enable this feature (HTTP 403)\n' \
+    > "$case_dir/github-rules-fail-body"
+  printf '\nyolo=on\n' >> "$case_dir/state/task-x1.meta"
+  write_away_record "$case_dir"
+  FM_TEST_HOME="$case_dir/home" run_pr_merge "$case_dir" task-x1 "$url" \
+    > "$case_dir/stdout" 2> "$case_dir/stderr" \
+    || fail "away-plan-gated-403: a private repo's plan-gated 403 must not block an away merge"
+  assert_logged_gh_merge "$case_dir" 91 example/repo --squash
+  pass "away merge proceeds on a plan-gated 403 because that repository cannot have a merge queue"
 }
 
 test_github_no_queue_rule_says_nothing_about_a_queue() {
@@ -2102,6 +2166,7 @@ test_github_accepted_queue_flags_do_not_echo_back_the_same_command
 test_github_mismatched_queue_flags_still_name_the_retry
 test_github_unrecognised_queue_method_still_names_the_queue
 test_github_unreadable_queue_rules_are_not_reported_as_no_queue
+test_github_plan_gated_403_reads_as_no_queue
 test_github_no_queue_rule_says_nothing_about_a_queue
 test_github_unmerged_fallback_cannot_replace_queue_aware_read
 test_github_auto_merge_without_queue_refuses_legibly
@@ -2707,6 +2772,111 @@ test_away_grant_and_yolo_and_hold_for_return() {
   pass "away merges require yolo or a grant, and --attended-override does not skip that"
 }
 
+# While the away-posture record exists main is parked, so the supervision
+# branch actor may reach the merge gate - and meets exactly the gate main
+# would: a granted task merges green at its live head under away-grant
+# authority, an ungranted one is held for the return, and without the record
+# the branch is refused at the role partition before any forge call
+# (docs/pi-supervision-branch.md "Postures").
+test_away_branch_actor_merges_only_with_a_grant() {
+  local case_dir rc url head
+  head=dadadadadadadadadadadadadadadadadadadada
+  url=https://github.com/example/repo/pull/93
+
+  case_dir=$(make_case away-branch-attended)
+  mkdir -p "$case_dir/wt"
+  add_gh_mocks "$case_dir" "$head"
+  set +e
+  FM_SUPERVISION_ACTOR=branch run_pr_merge "$case_dir" task-x1 "$url" \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 6 "$rc" "away-branch-attended: an attended branch must be refused at the partition"
+  assert_grep 'the supervision branch never performs this action' "$case_dir/stderr" \
+    "away-branch-attended: refusal lost the partition wording"
+  [ ! -e "$case_dir/gh.log" ] || assert_no_grep 'pr ' "$case_dir/gh.log" \
+    "away-branch-attended: gh ran for an attended branch merge"
+
+  case_dir=$(make_case away-branch-held)
+  mkdir -p "$case_dir/wt"
+  add_gh_mocks "$case_dir" "$head"
+  write_away_record "$case_dir"
+  set +e
+  FM_SUPERVISION_ACTOR=branch run_pr_merge "$case_dir" task-x1 "$url" \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 1 "$rc" "away-branch-held: an ungranted task must be held for the return"
+  assert_grep 'main is parked' "$case_dir/stderr" \
+    "away-branch-held: the relocation note was not printed"
+  assert_grep 'task task-x1 is held for the captain return' "$case_dir/stderr" \
+    "away-branch-held: refusal did not name hold-for-return"
+  assert_no_grep 'pr merge' "$case_dir/gh.log" \
+    "away-branch-held: gh pr merge ran for an ungranted branch merge"
+
+  case_dir=$(make_case away-branch-grant)
+  mkdir -p "$case_dir/wt" "$case_dir/home"
+  add_gh_mocks "$case_dir" "$head"
+  write_away_record "$case_dir" --grant task-x1
+  FM_SUPERVISION_ACTOR=branch FM_TEST_HOME="$case_dir/home" run_pr_merge "$case_dir" task-x1 "$url" \
+    > "$case_dir/stdout" 2> "$case_dir/stderr" \
+    || fail "away-branch-grant: a granted green merge must succeed for the branch: $(cat "$case_dir/stderr")"
+  assert_logged_gh_merge "$case_dir" 93 example/repo --squash
+  assert_grep "merge landed: task-x1 $url away-grant" "$case_dir/state/.wake-queue" \
+    "away-branch-grant: the durable outcome did not tag away-grant"
+
+  # The green gate is absolute in this posture for the branch as for main.
+  case_dir=$(make_case away-branch-red)
+  mkdir -p "$case_dir/wt" "$case_dir/home"
+  add_gh_mocks "$case_dir" "$head"
+  write_github_rollup_json "$case_dir" "$head" \
+    '{"__typename":"CheckRun","name":"lint","status":"COMPLETED","conclusion":"FAILURE","startedAt":"2026-09-01T00:00:00Z"}'
+  write_away_record "$case_dir" --grant task-x1
+  set +e
+  FM_SUPERVISION_ACTOR=branch FM_TEST_HOME="$case_dir/home" run_pr_merge "$case_dir" task-x1 "$url" --allow-red lint \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 2 "$rc" "away-branch-red: --allow-red must stay attended-only for the branch"
+  assert_grep 'allow-red is attended-only' "$case_dir/stderr" \
+    "away-branch-red: refusal did not name the attended-only waiver"
+  assert_no_grep 'pr merge' "$case_dir/gh.log" \
+    "away-branch-red: gh pr merge ran for a red branch merge while away"
+  pass "under the away-posture record the branch merges a granted green task, is held without a grant, cannot waive a red check, and is refused at the partition while attended"
+}
+
+# The race this closes: a granted branch merge passes the opening partition
+# because the live record exists, then the captain returns and archives that
+# record during the slow forge preflight. The locked authority recheck must
+# treat that archive as absence and refuse the branch before gh pr merge.
+# An empty away-record-after-view file is the mock's archive-during-view hook.
+test_away_branch_refuses_when_record_archived_during_preflight() {
+  local case_dir rc url head
+  head=a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7
+  url=https://github.com/example/repo/pull/127
+
+  case_dir=$(make_case away-branch-archived-during-preflight)
+  mkdir -p "$case_dir/wt" "$case_dir/home"
+  add_gh_mocks "$case_dir" "$head"
+  write_away_record "$case_dir" --grant task-x1
+  : > "$case_dir/away-record-after-view"
+  set +e
+  FM_SUPERVISION_ACTOR=branch FM_TEST_HOME="$case_dir/home" run_pr_merge "$case_dir" task-x1 "$url" \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+  expect_code 6 "$rc" "away-branch-archived-during-preflight: an archived record must refuse the branch under the lock"
+  assert_grep 'main is parked' "$case_dir/stderr" \
+    "away-branch-archived-during-preflight: the opening partition never saw the live record"
+  assert_grep 'the supervision branch never performs this action' "$case_dir/stderr" \
+    "away-branch-archived-during-preflight: refusal lost the partition wording"
+  assert_grep 'pr view' "$case_dir/gh.log" \
+    "away-branch-archived-during-preflight: the forge preflight never ran"
+  assert_no_grep 'pr merge' "$case_dir/gh.log" \
+    "away-branch-archived-during-preflight: gh pr merge ran after the record was archived"
+  pass "a branch merge refuses under the lock when the away record is archived during preflight"
+}
+
 test_away_posture_refuses_asynchronous_merge_paths() {
   local case_dir rc url head merge_line
   head=abababababababababababababababababababab
@@ -3038,7 +3208,10 @@ test_allow_red_still_waives_only_the_current_failure
 test_allow_red_is_refused_while_away
 test_allow_red_requires_one_separate_name
 test_away_grant_and_yolo_and_hold_for_return
+test_away_branch_actor_merges_only_with_a_grant
+test_away_branch_refuses_when_record_archived_during_preflight
 test_away_posture_refuses_asynchronous_merge_paths
+test_away_plan_gated_403_does_not_block_the_merge
 test_away_grant_does_not_bypass_red_or_identity
 test_unreadable_away_record_refuses_merge
 test_away_record_cannot_change_between_the_authority_read_and_the_merge
