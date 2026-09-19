@@ -141,10 +141,14 @@
 # that names it is selected as that SCRIPT, because the reference is per-script
 # evidence. Consumer bin/ scripts still resolve through the curated map, so
 # recorded family-level coupling still expands to the whole family.
-# tests/lib.sh, tests/fixtures.sh, tests/*-helpers.sh and tests/*-fixture.sh are
-# shared files that map to the suites naming them; a fixture under
-# tests/fixtures/<dir>/ is mapped by that directory instead. Curated family arms
-# above those also name individual tests/ files explicitly.
+# A file under tests/ that no curated arm names - a helper, a fixture, a
+# recorded capture, an executable repro - is a shared input that maps to the
+# suites naming it, and is refused only when nothing reads it; a file under
+# tests/fixtures/<dir>/ or tests/captures/<dir>/ is mapped by that directory
+# instead. Curated family arms above those also name individual tests/ files
+# explicitly. A prose surface maps to the documentation suite whether or not a
+# test also names it, so a new prose file nobody reads is selected rather than
+# refused.
 set -eu
 
 now_ms() {
