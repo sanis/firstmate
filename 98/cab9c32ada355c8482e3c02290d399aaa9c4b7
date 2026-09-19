@@ -1,0 +1,20 @@
+bin/fm-test-run.sh
+  s_21e3288c9aad95::t_5a41da3444092f 144-145
+  s_21e3288c9aad95::t_643078e2dfffe9 146-151
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "98cab9c32ada355c8482e3c02290d399aaa9c4b7",
+  "prompts": {},
+  "sessions": {
+    "s_21e3288c9aad95": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e64d32c9-4111-4989-b4dc-1334705e5a95",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Justinas Bolys <justinas.bolys@mediatech.one>"
+    }
+  }
+}
