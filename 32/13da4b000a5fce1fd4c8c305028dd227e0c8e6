@@ -1,0 +1,19 @@
+tests/fm-dispatch-resolve.test.sh
+  s_fb66b396cb4e31::t_df400a73084dc6 12-15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3213da4b000a5fce1fd4c8c305028dd227e0c8e6",
+  "prompts": {},
+  "sessions": {
+    "s_fb66b396cb4e31": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f565b341-3519-4e74-9e87-51c8bcd2692e",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Justinas Bolys <justinas.bolys@mediatech.one>"
+    }
+  }
+}
