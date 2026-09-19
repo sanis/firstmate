@@ -150,7 +150,10 @@ make_case() {  # <name> -> case dir with fake forge CLIs and a fake fm-guard
   dir="$TMP_ROOT/$name"
   fakebin="$dir/fakebin"
   fake_root="$dir/root"
-  mkdir -p "$dir/home/state" "$fakebin" "$fake_root/bin"
+  # A real home carries data/ beside state/; registration arms the contribution
+  # observer there (bin/fm-contributions.sh arm), and a home without it makes
+  # every registration report unconfirmed coverage on STDERR.
+  mkdir -p "$dir/home/state" "$dir/home/data" "$fakebin" "$fake_root/bin"
   cat > "$fake_root/bin/fm-guard.sh" <<'SH'
 #!/usr/bin/env bash
 exit 0
