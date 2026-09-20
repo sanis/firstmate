@@ -1,0 +1,15 @@
+### one status log, one live tmux window (idle pane), three builds of fm-crew-state
+live tmux window: fm:fm-feat-live
+
+--- log A: an open keyed decision carrying upstream epoch stamps ---
+working [at=1789922689]: implementing
+needs-decision [at=1789923169] [key=nm-7-review]: ask-user findings=f1,f2
+fork-parent-851f717          -> state: parked · source: status-log · ask-user findings=f1,f2
+upstream-parent-a09090d      -> state: parked · source: status-log · ask-user findings=f1,f2
+merged-HEAD                  -> state: parked · source: status-log · ask-user findings=f1,f2
+
+--- log B: the captain answers that exact key ---
+resolved [at=1789923229] [key=nm-7-review]: captain answered
+fork-parent-851f717          -> state: unknown · source: none · no current-state source available
+upstream-parent-a09090d      -> state: unknown · source: none · no current-state source available
+merged-HEAD                  -> state: unknown · source: none · no current-state source available

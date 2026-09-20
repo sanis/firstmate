@@ -1,0 +1,21 @@
+### live crew-state against a REAL tmux window (private socket $TMUX_TMPDIR=/tmp/fm-cs-C2Vt)
+tmux window present: fm:fm-feat-live pane=%0
+
+--- 1. status log ends with an open keyed decision (fork-local decision fold) ---
+working [at=1789922638]: implementing
+needs-decision [at=1789923118] [key=nm-7-review]: ask-user findings=f1,f2
+-> state: parked · source: status-log · ask-user findings=f1,f2
+
+--- 2. captain answers: resolved closes that key (upstream epoch stamp + fork keyed fold) ---
+working [at=1789922638]: implementing
+needs-decision [at=1789923118] [key=nm-7-review]: ask-user findings=f1,f2
+resolved [at=1789923178] [key=nm-7-review]: captain answered
+done [at=1789923208]: shipped pr=42
+-> state: done · source: status-log · shipped pr=42
+
+--- 3. adversarial: pane goes busy again; the live pane must beat the stale done log ---
+-> state: working · source: pane · harness busy (claude-hook)
+
+--- 4. adversarial: kill the real tmux window; state must read unknown, never a stale done ---
+no server running on /private/tmp/fm-cs-C2Vt/tmux-501/default
+-> state: unknown · source: none · backend target gone: fm:fm-feat-live

@@ -1,0 +1,43 @@
+# merged runner (bin/fm-test-run.sh) resolving which suites a diff touches, run on the merge commit
+
+## --list --changed --base 851f717  (i.e. the upstream-side half of the merge)
+selected suites:      218
+tests/fm-documentation-audiences.test.sh
+tests/fm-agy-harness.test.sh
+tests/fm-arm-pretool-check.test.sh
+tests/fm-ask-user-authority.test.sh
+tests/fm-bearings-board.test.sh
+tests/fm-brief.test.sh
+tests/fm-calm-claude-mod.test.sh
+tests/fm-calm-pi-extension.test.sh
+tests/fm-captain-hold-lifecycle.test.sh
+tests/fm-cd-pretool-check.test.sh
+tests/fm-classify-decision-key.test.sh
+tests/fm-clickup-contract.test.sh
+  ... (     218 total)
+
+## --list --changed --base a09090d  (i.e. the fork-side half of the merge)
+selected suites:      222
+tests/fm-documentation-audiences.test.sh
+tests/fm-agy-harness.test.sh
+tests/fm-arm-pretool-check.test.sh
+tests/fm-ask-user-authority.test.sh
+tests/fm-bearings-board.test.sh
+tests/fm-brief.test.sh
+tests/fm-calm-claude-mod.test.sh
+tests/fm-calm-pi-extension.test.sh
+tests/fm-captain-hold-lifecycle.test.sh
+tests/fm-cd-pretool-check.test.sh
+tests/fm-classify-decision-key.test.sh
+tests/fm-clickup-contract.test.sh
+  ... (     222 total)
+
+## fork-only suites present in the selection (local-only tests survived the merge and are still reachable):
+/tmp/sel-fork.txt:tests/fm-clickup-contract.test.sh
+/tmp/sel-fork.txt:tests/fm-download-lib.test.sh
+/tmp/sel-fork.txt:tests/fm-evidence-artifacts.test.sh
+/tmp/sel-fork.txt:tests/fm-pr-description-guard.test.sh
+/tmp/sel-up.txt:tests/fm-clickup-contract.test.sh
+/tmp/sel-up.txt:tests/fm-download-lib.test.sh
+/tmp/sel-up.txt:tests/fm-evidence-artifacts.test.sh
+/tmp/sel-up.txt:tests/fm-pr-description-guard.test.sh
